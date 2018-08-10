@@ -1,3 +1,9 @@
+html {
+  position: relative;
+  height: 100%;
+  overflow: hidden;
+}
+
 @font-face {
   font-family: 'Honey Script';
   src: url('../fonts/HoneyScript-Light.woff2') format('woff2'), url('../fonts/HoneyScript-Light.woff') format('woff');
