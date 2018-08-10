@@ -5,8 +5,12 @@
   font-style: normal;
 }
 
+html {
+  height: 100.1%;
+}
+
 body {
-  height: 100vh;
+  height: 100.1%;
   background: #000 url(../img/guacamole.jpg) no-repeat 0 0;
   background-size: cover;
 }
