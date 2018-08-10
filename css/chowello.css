@@ -1,3 +1,14 @@
+@font-face {
+  font-family: 'Honey Script';
+  src: url('../fonts/HoneyScript-Light.woff2') format('woff2'), url('../fonts/HoneyScript-Light.woff') format('woff');
+  font-weight: 300;
+  font-style: normal;
+}
+
+body {
+  background: #000;
+}
+
 .page-bg {
   position: absolute;
   top: 0;
@@ -6,4 +17,31 @@
   left: 0;
   background: url(../img/guacamole.jpg) no-repeat 0 0;
   background-size: cover;
+}
+
+.page-info {
+  position: absolute;
+  right: 0;
+  left: 0;
+  top: 50%;
+  transform: translate(0, -50%);
+  -webkit-transform: translate(0, -50%);
+  -moz-transform: translate(0, -50%);
+  -ms-transform: translate(0, -50%);
+  -o-transform: translate(0, -50%);
+  text-align: center;
+}
+
+.page-info h1 {
+  color: #fff;
+  font-size: 7em;
+  margin: 0;
+  font-family: "Honey Script";
+}
+
+.page-info div {
+  color: #fff;
+  font-size: 2em;
+  margin-top: -40px;
+  font-family: "Honey Script";
 }
