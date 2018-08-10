@@ -40,14 +40,16 @@ body {
 
 .page-info h1 {
   color: #fff;
-  font-size: 7em;
+  font-size: 5em;
   margin: 0;
   font-family: "Honey Script";
+  font-weight: normal;
 }
 
 .page-info div {
   color: #fff;
-  font-size: 2em;
-  margin-top: -40px;
+  font-size: 1.2em;
+  margin-top: -20px;
   font-family: "Honey Script";
+  font-weight: 600;
 }
