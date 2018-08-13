@@ -1,3 +1,3 @@
-window.addEventListener('load', function () {
-  window.scrollTo(0, 10);
-})
+document.addEventListener('DOMContentLoaded', function () {
+  window.scrollTo(0, 100);
+}, false);
