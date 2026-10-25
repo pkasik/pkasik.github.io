@@ -1,0 +1,1228 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#efeee9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#171512" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Brew Deck">
+<meta name="description" content="Pour-over recipe cards and brew log.">
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="icon" href="./icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="./apple-touch-icon.png">
+<style>
+/* Base reset (the artifact viewer used to provide this) */
+:root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; font-family: system-ui, sans-serif; font-size: 14px; }
+img { max-width: 100%; }
+[hidden] { display: none !important; }
+</style>
+<title>Brew Deck</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500&family=Figtree:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one swipeable deck of label-orange recipe cards, brew log for the active card underneath, edit sheets as dialogs */
+:root {
+  --bg: #efeee9; --fg: #1f1c18; --muted: #6b655c; --line: #d6d2c8; --paper: #fbfaf6; --chip: #e6e2d8;
+  --amber: #e2711d; --amber-ink: #2a1607; --amber-soft: #f3dcc6;
+  --danger: #a8341c; --ok: #3f6b3a;
+  --display: "Newsreader", Georgia, "Times New Roman", serif;
+  --body: "Figtree", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #171512; --fg: #ece8e0; --muted: #a39b8f; --line: #36312a; --paper: #221f1b; --chip: #2e2a24;
+    --amber: #c8641c; --amber-ink: #1c0e04; --amber-soft: #3a2616; --danger: #e0735a; --ok: #8fc287;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #171512; --fg: #ece8e0; --muted: #a39b8f; --line: #36312a; --paper: #221f1b; --chip: #2e2a24;
+  --amber: #c8641c; --amber-ink: #1c0e04; --amber-soft: #3a2616; --danger: #e0735a; --ok: #8fc287;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body { background: var(--bg); color: var(--fg); font: 15px/1.5 var(--body); padding-inline: 16px; padding-block: 18px 40px; }
+.wrap { max-width: 720px; margin-inline: auto; display: grid; gap: 16px; }
+button { font: inherit; color: inherit; cursor: pointer; }
+button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+.btn { border: 1px solid var(--line); background: var(--paper); border-radius: 999px; padding: 8px 14px; font-weight: 500; font-size: 14px; display: inline-flex; align-items: center; gap: 6px; }
+.btn.primary { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+.btn.quiet { border-color: transparent; background: transparent; color: var(--muted); }
+.btn.danger { color: var(--danger); }
+.btn:disabled { opacity: .45; cursor: default; }
+
+/* Top bar */
+.top { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.top h1 { font: 500 26px/1.1 var(--display); margin: 0; }
+.top .sub { font: 500 11px/1 var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--muted); margin-top: 6px; }
+.status { font: 12.5px/1.3 var(--mono); color: var(--muted); }
+
+/* Deck */
+.deck { position: relative; }
+.rail { display: flex; gap: 12px; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; margin-inline: -16px; padding-inline: 16px; scroll-padding-inline: 16px; }
+.rail::-webkit-scrollbar { display: none; }
+.card { flex: 0 0 100%; scroll-snap-align: start; min-width: 0;
+  --c-bg: var(--amber); --c-fg: var(--amber-ink);
+  --c-muted: color-mix(in srgb, var(--amber-ink) 68%, var(--amber));
+  --c-line: color-mix(in srgb, var(--amber-ink) 22%, var(--amber));
+  --c-soft: color-mix(in srgb, var(--amber-ink) 10%, var(--amber));
+  background: var(--c-bg); color: var(--c-fg); border: 1px solid var(--c-line); border-radius: 8px;
+  display: grid; grid-template-columns: minmax(0, 1fr); align-content: start; overflow: hidden; }
+.specs { padding: 12px 14px; border: 1px solid var(--c-line); border-radius: 4px; background: var(--c-soft); }
+.specs dl { margin: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 14px; }
+.specs dl > div:first-child { grid-column: 1 / -1; }
+.specs dl > div:first-child dd { min-height: 1.3em; -webkit-line-clamp: 1; }
+.info { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; border: 1px solid var(--c-line); background: transparent; color: var(--c-muted); font: 500 12px/1 var(--mono); vertical-align: middle; margin-left: 4px; padding: 0; }
+.info[aria-expanded="true"] { background: var(--c-fg); color: var(--c-bg); border-color: var(--c-fg); }
+.specs dt { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform: uppercase; color: var(--c-muted); }
+.specs dd { margin: 3px 0 0; font: 400 15px/1.3 var(--display); overflow-wrap: anywhere; min-height: 2.6em; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.main { padding: 20px 20px 18px; display: grid; gap: 14px; min-width: 0; align-content: start; }
+.roaster { font: 500 11px/1.2 var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--c-muted); margin: 0 0 6px; }
+.name { font: 400 clamp(28px, 6vw, 36px)/1.02 var(--display); margin: 0; text-wrap: balance; }
+.tasting { margin: 6px 0 0; font-weight: 500; }
+.key { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1px; background: var(--c-line); border: 1px solid var(--c-line); border-radius: 4px; overflow: hidden; }
+.key div { background: var(--c-bg); padding: 9px 10px; display: grid; gap: 2px; min-width: 0; }
+.key span { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform: uppercase; color: var(--c-muted); }
+.key strong { font: 500 18px/1.15 var(--mono); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.key small { font-size: 12px; color: var(--c-muted); }
+.card h3 { margin: 0 0 4px; font: 600 10.5px/1.2 var(--body); letter-spacing: .08em; text-transform: uppercase; color: var(--c-muted); }
+.card table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.card td { padding: 6px 0; border-bottom: 1px solid var(--c-line); vertical-align: top; }
+.card tr:last-child td { border-bottom: 0; }
+td.t { font: 500 14px/1.3 var(--mono); width: 54px; }
+td.w { font: 500 14px/1.3 var(--mono); width: 76px; white-space: nowrap; }
+.flow { font: 500 11.5px/1.3 var(--mono); color: var(--c-muted); font-variant-numeric: tabular-nums; margin-top: 2px; }
+.finish { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px 16px; padding: 9px 12px; background: var(--c-soft); border-radius: 4px; }
+.finish b { font: 500 14px/1.3 var(--mono); }
+.tip { font-size: 13.5px; color: var(--c-muted); margin: 0; }
+.card { position: relative; }
+.card .close { position: absolute; top: 10px; right: 10px; z-index: 1; width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--c-line); background: var(--c-bg); color: var(--c-fg); font: 400 22px/1 var(--display); display: grid; place-items: center; padding: 0 0 2px; }
+.card .close:hover { background: var(--c-soft); }
+.top.compact { display: none; }
+.main > div:first-child { padding-right: 40px; }
+.dosebar { display: flex; align-items: center; justify-content: flex-end; gap: 8px 10px; margin-bottom: 10px; flex-wrap: nowrap; min-width: 0; }
+@media (max-width: 560px) {
+  .dosebar { justify-content: space-between; gap: 8px; }
+  .dosebar .dose-label { display: none; }
+  .seg button { padding: 6px 9px; font-size: 12.5px; }
+}
+.dose-label { font: 600 10.5px/1.2 var(--body); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; background: var(--paper); padding: 2px; }
+.seg button { border: 0; background: transparent; color: var(--muted); border-radius: 999px; padding: 6px 12px; font: 500 13px/1.2 var(--mono); font-variant-numeric: tabular-nums; }
+.seg button[aria-checked="true"] { background: var(--amber); color: var(--amber-ink); }
+.scaled { margin: 0; font-size: 12.5px; color: var(--c-muted); }
+.auth { background: var(--paper); border: 1px solid var(--line); border-radius: 8px; padding: 18px 20px; display: grid; gap: 10px; margin-bottom: 4px; }
+.auth h2 { font: 500 22px/1.2 var(--display); margin: 0; }
+.auth p { margin: 0; color: var(--muted); }
+.auth-row { display: flex; gap: 10px; align-items: end; flex-wrap: wrap; }
+.auth-msg { min-height: 1.2em; font-size: 13.5px; }
+.auth-msg.ok { color: var(--ok); }
+.auth-msg.err { color: var(--danger); }
+.settings { display: grid; gap: 14px; padding: 20px; }
+.settings h2 { font: 500 24px/1.15 var(--display); margin: 0; }
+.settings-for { margin: -6px 0 0; color: var(--muted); font-size: 13.5px; }
+.setting { display: grid; gap: 6px; }
+.seg.wrap { flex-wrap: wrap; border-radius: 12px; }
+.seg.wrap button { border-radius: 9px; }
+.setline { display: inline-flex; align-items: center; gap: 8px; border: 1px solid var(--c-line); background: var(--c-soft); color: var(--c-fg); border-radius: 999px; padding: 6px 12px 6px 10px; font: 500 12.5px/1.2 var(--mono); font-variant-numeric: tabular-nums; max-width: 100%; }
+.setline .gear { font-size: 15px; line-height: 1; }
+.setline span.txt { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.guide { background: var(--paper); border: 0; border-radius: 10px; padding: 18px 20px; display: grid; gap: 12px; }
+.guide h2 { font: 500 22px/1.2 var(--display); margin: 0; }
+.guide-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.guide-sub { margin: 6px 0 0; font: 600 10.5px/1.2 var(--body); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.guide-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 16px; }
+.guide-grid > div { border-top: 2px solid var(--fg); padding-top: 8px; }
+.guide-grid b { font: 500 15px/1.3 var(--mono); font-variant-numeric: tabular-nums; }
+.guide-grid p { margin: 4px 0 0; color: var(--muted); font-size: 13.5px; }
+.guide-note { margin: 0; color: var(--muted); font-size: 12.5px; }
+@media (max-width: 560px) { .guide-grid { grid-template-columns: minmax(0, 1fr); } }
+.rtabs { display: flex; gap: 6px; flex-wrap: wrap; }
+.rtab { border: 1px solid var(--c-line); background: transparent; color: var(--c-fg); border-radius: 999px; padding: 5px 11px; font: 500 12px/1.2 var(--mono); font-variant-numeric: tabular-nums; }
+.rtab[aria-selected="true"] { background: var(--c-fg); color: var(--c-bg); border-color: var(--c-fg); }
+.variant-bar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.variant-bar select { font: 14px/1.3 var(--body); color: var(--fg); background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 7px 10px; min-width: 0; flex: 1 1 160px; }
+.card-actions { display: flex; gap: 8px; justify-content: flex-end; }
+.card-actions .btn { border-color: var(--c-line); background: transparent; color: var(--c-fg); font-size: 13px; padding: 6px 12px; }
+
+.nav { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 10px; }
+.dots { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; }
+.dots button { width: 8px; height: 8px; border-radius: 50%; border: 0; background: var(--line); padding: 0; }
+.dots button[aria-current="true"] { background: var(--amber); width: 20px; border-radius: 4px; }
+.counter { font: 12.5px/1 var(--mono); color: var(--muted); font-variant-numeric: tabular-nums; min-width: 44px; text-align: center; }
+
+/* Brew log */
+.log { background: var(--paper); border: 1px solid var(--line); border-radius: 8px; padding: 18px 20px; display: grid; gap: 12px; }
+.log header { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.log h2 { font: 500 20px/1.2 var(--display); margin: 0; }
+.log h2 small { font: 13px/1 var(--body); color: var(--muted); margin-left: 6px; }
+.brews { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.brew { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 12px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 6px; }
+.brew .when { font: 500 12.5px/1.2 var(--mono); color: var(--muted); }
+.brew .params { display: flex; flex-wrap: wrap; gap: 4px 10px; font: 500 13px/1.3 var(--mono); font-variant-numeric: tabular-nums; }
+.brew .params span::before { content: attr(data-k) " "; color: var(--muted); font-weight: 400; }
+.brew .text { grid-column: 1 / -1; margin: 2px 0 0; font-size: 14px; }
+.brew .rating { font: 500 13px/1.2 var(--mono); color: var(--amber); letter-spacing: .08em; white-space: nowrap; }
+.brew .rm { grid-column: 2; justify-self: end; }
+.empty { color: var(--muted); font-size: 14px; margin: 0; }
+.empty-deck { background: var(--paper); border: 1px dashed var(--line); border-radius: 8px; padding: 36px 24px; text-align: center; display: grid; gap: 10px; justify-items: center; }
+.empty-deck h2 { font: 500 24px/1.15 var(--display); margin: 0; }
+.empty-deck p { margin: 0; color: var(--muted); max-width: 42ch; }
+
+/* Dialogs */
+dialog { border: 0; border-radius: 10px; padding: 0; background: var(--paper); color: var(--fg); width: min(640px, calc(100vw - 32px)); max-height: calc(100dvh - 32px); }
+dialog::backdrop { background: rgb(20 14 8 / .55); }
+dialog form { display: grid; gap: 14px; padding: 20px; }
+dialog h2 { font: 500 24px/1.15 var(--display); margin: 0; }
+.grid2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 12px; }
+.grid3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px 12px; }
+label.f { display: grid; gap: 4px; font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); min-width: 0; }
+label.f input, label.f textarea, label.f select { font: 15px/1.4 var(--body); letter-spacing: 0; text-transform: none; color: var(--fg); background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; width: 100%; min-width: 0; }
+label.f textarea { min-height: 72px; resize: vertical; }
+fieldset { border: 1px solid var(--line); border-radius: 6px; padding: 10px 12px 12px; margin: 0; display: grid; gap: 8px; min-width: 0; }
+legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); padding-inline: 4px; }
+.pour-row { display: grid; grid-template-columns: 64px 76px 54px minmax(0, 1fr) auto; gap: 6px; align-items: center; }
+.pour-row input { font: 14px/1.3 var(--body); color: var(--fg); background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 7px 8px; width: 100%; min-width: 0; }
+.pour-row .x { border: 0; background: transparent; color: var(--muted); padding: 4px 6px; font-size: 18px; line-height: 1; }
+.actions { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.actions .right { display: flex; gap: 8px; margin-left: auto; }
+.stars { display: flex; gap: 4px; }
+.stars button { border: 1px solid var(--line); background: var(--bg); border-radius: 6px; width: 38px; height: 34px; font: 500 14px/1 var(--mono); }
+.stars button[aria-pressed="true"] { background: var(--amber); color: var(--amber-ink); border-color: var(--amber); }
+.confirm { display: grid; gap: 12px; padding: 20px; }
+.confirm p { margin: 0; }
+.err { color: var(--danger); font-size: 13.5px; margin: 0; }
+
+/* Dashboard grid */
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+.tile { aspect-ratio: 1; max-width: 100%; min-width: 0; border-radius: 8px; border: 1px solid color-mix(in srgb, var(--amber-ink) 22%, var(--amber));
+  background: var(--amber); color: var(--amber-ink); padding: 12px; text-align: left;
+  display: grid; grid-template-rows: auto 1fr auto; gap: 6px; overflow: hidden; }
+.tile:hover, .tile:focus-visible { filter: brightness(1.05); }
+.tile .t-roaster { font: 500 9.5px/1.2 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: color-mix(in srgb, var(--amber-ink) 68%, var(--amber)); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tile .t-name { font: 400 clamp(17px, 2.6vw, 21px)/1.05 var(--display); text-wrap: balance; align-self: start; overflow-wrap: anywhere; }
+.tile .t-notes { font-size: 11.5px; line-height: 1.3; color: color-mix(in srgb, var(--amber-ink) 80%, var(--amber)); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.tile .t-key { display: flex; gap: 8px; font: 500 11px/1.2 var(--mono); font-variant-numeric: tabular-nums; border-top: 1px solid color-mix(in srgb, var(--amber-ink) 22%, var(--amber)); padding-top: 6px; white-space: nowrap; overflow: hidden; }
+.tile { position: relative; }
+.tile.archived { background: var(--chip); color: var(--fg); border-color: var(--line); }
+.tile.archived .t-roaster, .tile.archived .t-notes { color: var(--muted); }
+.tile.archived .t-key { border-top-color: var(--line); color: var(--muted); }
+.tile.draggable { touch-action: none; user-select: none; -webkit-user-select: none; cursor: grab; }
+.tile.dragging { outline: 3px solid var(--fg); outline-offset: 2px; transform: scale(1.03); z-index: 2; cursor: grabbing; box-shadow: 0 10px 24px rgb(0 0 0 / .25); }
+.grid.drag-on .tile.draggable:not(.dragging) { transition: transform .12s ease; }
+.tile-tools { position: absolute; top: 6px; right: 6px; display: flex; gap: 4px; }
+.tile-tools button { width: 28px; height: 28px; border-radius: 50%; border: 1px solid color-mix(in srgb, var(--amber-ink) 25%, var(--amber)); background: color-mix(in srgb, var(--amber-ink) 10%, var(--amber)); color: var(--amber-ink); font: 500 13px/1 var(--mono); display: grid; place-items: center; padding: 0; }
+.tile.archived .tile-tools button { border-color: var(--line); background: var(--paper); color: var(--fg); }
+.grid-divider { grid-column: 1 / -1; margin-top: 8px; font: 600 10.5px/1.2 var(--body); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); border-top: 1px solid var(--line); padding-top: 10px; }
+.tile.add { background: var(--paper); color: var(--muted); border: 1px dashed var(--line); place-items: center; display: grid; grid-template-rows: none; font-weight: 500; }
+.tile.add span { font-size: 28px; line-height: 1; }
+.view-head { display: flex; align-items: center; gap: 10px; }
+.view-head .btn { padding: 6px 12px; font-size: 13px; }
+
+@media (max-width: 560px) {
+  body { padding-block: 10px 32px; }
+  .wrap { gap: 12px; }
+  .top h1 { font-size: 22px; }
+  .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .main { padding: 16px; }
+  .key strong { font-size: 16px; }
+  .grid3 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .pour-row { grid-template-columns: 56px 66px 48px minmax(0, 1fr) auto; }
+}
+@media (prefers-reduced-motion: no-preference) { .rail { scroll-behavior: smooth; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top" id="top">
+    <div>
+      <h1>Brew Deck</h1>
+      <div class="sub">V60 NEO · Lagom Casa 65 · 1 : 16.7</div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <span class="status" id="status" aria-live="polite"></span>
+      <button class="btn" id="account" type="button" aria-haspopup="dialog">Account</button>
+      <button class="btn" id="openGuide" type="button">Grind guide</button>
+      <button class="btn" id="arrange" type="button" hidden aria-pressed="false">Arrange</button>
+      <button class="btn primary" id="addCard" type="button" hidden>+ Add card</button>
+    </div>
+  </header>
+
+  <section class="dash" id="dash" aria-label="All coffees">
+    <form class="auth" id="authPanel" hidden novalidate>
+      <h2>Sign in to your deck</h2>
+      <p>Enter your email and we'll send a one-time sign-in link. No password.</p>
+      <div class="auth-row">
+        <label class="f" style="flex:1 1 220px">Email<input id="authEmail" type="email" autocomplete="email" inputmode="email" required placeholder="you@example.com"></label>
+        <button class="btn primary" type="submit" id="authSend">Send link</button>
+      </div>
+      <div class="auth-row" id="authCodeRow" hidden>
+        <label class="f" style="flex:1 1 160px">Code from the email<input id="authCode" inputmode="numeric" pattern="[0-9]*" autocomplete="one-time-code" maxlength="8" placeholder="123456"></label>
+        <button class="btn primary" type="button" id="authVerify">Verify</button>
+      </div>
+      <p class="auth-msg" id="authMsg" aria-live="polite"></p>
+    </form>
+    <div class="grid" id="grid"></div>
+    <div class="empty-deck" id="emptyDeck" hidden>
+      <h2>No cards yet</h2>
+      <p id="emptyText">Add your first coffee and its recipe. Each card holds the bag details, water, filter, grind and pour schedule.</p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center">
+        <button class="btn primary" id="importStarter" type="button" hidden>Import my deck</button>
+        <button class="btn" id="addFirst" type="button" hidden>+ Add a card</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="deck" id="deck" aria-label="Recipe cards" hidden>
+    <div class="rail" id="rail" tabindex="0" aria-roledescription="carousel"></div>
+    <div class="nav" id="nav" hidden>
+      <button class="btn quiet" id="prev" type="button" aria-label="Previous card">‹ Prev</button>
+      <div class="dots" id="dots" role="tablist" aria-label="Cards"></div>
+      <span class="counter" id="counter"></span>
+      <button class="btn quiet" id="next" type="button" aria-label="Next card">Next ›</button>
+    </div>
+  </section>
+
+  <dialog id="guideDialog" aria-labelledby="guideTitle">
+  <section class="guide" id="guide">
+    <div class="guide-head"><h2 id="guideTitle">Grind guide</h2><button class="btn quiet" id="closeGuide" type="button" aria-label="Close">Close</button></div>
+    <h3 class="guide-sub">Comandante C40 MK4 · Red Clix</h3>
+    <div class="guide-grid" id="guideC40">
+      <div><b>≈ 15 µm per click</b><p>Comandante C40 MK4 with Red Clix. Two clicks (30 µm) is the smallest change worth tasting; three clicks is a real step, about one Casa number.</p></div>
+      <div><b>Casa 15 ≈ 50 clicks</b><p>The deck converts each Casa setting through its micron estimate. Expect to land 2–4 clicks finer than the number shown: the C40 makes fewer fines, so it needs a little less gap for the same extraction.</p></div>
+      <div><b>Fast, thin or sour</b><p>2 clicks finer, then 3 more if the cup doesn't move. Change temperature only once the drawdown lands in the window.</p></div>
+      <div><b>Slow, drying or bitter</b><p>2 clicks coarser, or drop 1°C. On naturals that read winey after a fast brew, go finer first, not cooler.</p></div>
+    </div>
+    <h3 class="guide-sub">Lagom Casa</h3>
+    <div class="guide-grid" id="guideCasa">
+      <div><b>≈ 50 µm per number</b><p>10 numbers per rotation, so one full turn is about 500 µm. Half a number (25 µm) is the smallest change worth tasting; a full number is a real step.</p></div>
+      <div><b>15 ≈ 750 µm</b><p>Your anchor sits at the coarse end of the usual V60 window (600–800 µm). For most of these coffees the working range is 13.5–15.</p></div>
+      <div><b>Fast, thin or sour</b><p>Grind ½ number finer, then a full number if the cup doesn't move. Change temperature only once the drawdown lands in the window.</p></div>
+      <div><b>Slow, drying or bitter</b><p>Grind ½ number coarser, or drop 1°C. On naturals that read winey after a fast brew, go finer first, not cooler.</p></div>
+    </div>
+    <p class="guide-note">Micron figures are estimates from published grind charts (Casa ≈ 50 µm per number; Red Clix ≈ 15 µm per click), not manufacturer specifications; use them to compare settings, not as absolutes.</p>
+  </section>
+  </dialog>
+
+  <section class="log" id="log" hidden aria-labelledby="logTitle">
+    <header>
+      <h2 id="logTitle">Brew log <small id="logName"></small></h2>
+      <button class="btn" id="addBrew" type="button">+ Log a brew</button>
+    </header>
+    <ul class="brews" id="brews"></ul>
+    <p class="empty" id="brewsEmpty" hidden>No brews logged for this coffee yet. Log one after your next cup: grind, temperature, finish time and how it tasted.</p>
+  </section>
+</div>
+
+<!-- Card editor -->
+<dialog id="cardDialog" aria-labelledby="cardDialogTitle">
+  <form id="cardForm" method="dialog" novalidate>
+    <h2 id="cardDialogTitle">New card</h2>
+    <div class="grid2">
+      <label class="f">Coffee name<input id="f_name" name="name" required autocomplete="off" placeholder="Kenya Maganio"></label>
+      <label class="f">Roaster<input id="f_roaster" name="roaster" autocomplete="off" placeholder="Apartment Coffee"></label>
+    </div>
+    <label class="f">Tasting notes<input id="f_tasting" name="tasting" autocomplete="off" placeholder="Redcurrant, pomegranate, rosehip"></label>
+    <div class="grid2">
+      <label class="f">Origin / region<input id="f_origin" name="origin" autocomplete="off"></label>
+      <label class="f">Producer<input id="f_producer" name="producer" autocomplete="off"></label>
+      <label class="f">Variety<input id="f_variety" name="variety" autocomplete="off"></label>
+      <label class="f">Altitude<input id="f_altitude" name="altitude" autocomplete="off" placeholder="1795 masl"></label>
+      <label class="f">Process<input id="f_process" name="process" autocomplete="off" placeholder="Washed"></label>
+      <label class="f">Roast date<input id="f_roasted" name="roasted" type="date"></label>
+    </div>
+    <fieldset>
+      <legend>Recipe</legend>
+      <div class="variant-bar">
+        <select id="variantSel" aria-label="Recipe variant"></select>
+        <button class="btn" id="addVariant" type="button">+ Variant</button>
+        <button class="btn quiet danger" id="removeVariant" type="button">Remove</button>
+      </div>
+      <div class="grid2">
+        <label class="f">Variant label<input id="f_label" name="label" autocomplete="off" placeholder="30 g · NEO"></label>
+        <label class="f">Dose<input id="f_dose" name="dose" autocomplete="off" placeholder="30 g / 500 g"></label>
+      </div>
+      <div class="grid3">
+        <label class="f">Water<input id="f_water" name="water" autocomplete="off" placeholder="96°C"></label>
+        <label class="f">Filter<input id="f_filter" name="filter" autocomplete="off" placeholder="TH-2"></label>
+        <label class="f">Grind<input id="f_grind" name="grind" autocomplete="off" placeholder="14 ¾"></label>
+        <label class="f">Filter note<input id="f_filterNote" name="filterNote" autocomplete="off" placeholder="or PURE.F"></label>
+        <label class="f">Grind note<input id="f_grindNote" name="grindNote" autocomplete="off" placeholder="PURE.F: ½ way to 14"></label>
+        <label class="f">Target finish<input id="f_finish" name="finish" autocomplete="off" placeholder="3:45 – 4:15"></label>
+      </div>
+      <label class="f">Pour style<input id="f_pourTitle" name="pourTitle" autocomplete="off" placeholder="5 stages, gentle"></label>
+      <div id="pourRows" style="display:grid;gap:6px"></div>
+      <div><button class="btn" id="addPour" type="button">+ Add pour</button></div>
+    </fieldset>
+    <label class="f">Tip<textarea id="f_tip" name="tip" placeholder="What to expect, and what to change if it's off."></textarea></label>
+    <p class="err" id="cardErr" hidden></p>
+    <div class="actions">
+      <button class="btn danger" id="deleteCard" type="button" hidden>Delete card</button>
+      <div class="right">
+        <button class="btn" type="button" id="cancelCard">Cancel</button>
+        <button class="btn primary" type="submit" id="saveCard">Save card</button>
+      </div>
+    </div>
+  </form>
+</dialog>
+
+<!-- Brew editor -->
+<dialog id="brewDialog" aria-labelledby="brewDialogTitle">
+  <form id="brewForm" method="dialog" novalidate>
+    <h2 id="brewDialogTitle">Log a brew</h2>
+    <div class="grid3">
+      <label class="f">Date<input id="b_date" name="date" type="date" required></label>
+      <label class="f">Grind<input id="b_grind" name="grind" autocomplete="off" placeholder="15"></label>
+      <label class="f">Water<input id="b_temp" name="temp" autocomplete="off" placeholder="96°C"></label>
+      <label class="f">Filter<input id="b_filter" name="filter" autocomplete="off" placeholder="TH-2"></label>
+      <label class="f">Dose<input id="b_dose" name="dose" autocomplete="off" placeholder="30 g / 500 g"></label>
+      <label class="f">Finish time<input id="b_finish" name="finish" autocomplete="off" placeholder="3:58"></label>
+    </div>
+    <div class="f" style="display:grid;gap:4px;font:600 10.5px/1.2 var(--body);letter-spacing:.06em;text-transform:uppercase;color:var(--muted)">
+      Rating
+      <div class="stars" id="stars" role="radiogroup" aria-label="Rating out of 5">
+        <button type="button" data-v="1" aria-pressed="false">1</button>
+        <button type="button" data-v="2" aria-pressed="false">2</button>
+        <button type="button" data-v="3" aria-pressed="false">3</button>
+        <button type="button" data-v="4" aria-pressed="false">4</button>
+        <button type="button" data-v="5" aria-pressed="false">5</button>
+      </div>
+    </div>
+    <label class="f">Notes<textarea id="b_notes" name="notes" placeholder="Taste, body, what to change next time."></textarea></label>
+    <p class="err" id="brewErr" hidden></p>
+    <div class="actions">
+      <div class="right">
+        <button class="btn" type="button" id="cancelBrew">Cancel</button>
+        <button class="btn primary" type="submit">Save brew</button>
+      </div>
+    </div>
+  </form>
+</dialog>
+
+<!-- Brew settings -->
+<dialog id="settingsDialog" aria-labelledby="settingsTitle">
+  <div class="settings">
+    <div class="guide-head"><h2 id="settingsTitle">Brew settings</h2><button class="btn quiet" id="closeSettings" type="button" aria-label="Close">Done</button></div>
+    <p class="settings-for" id="settingsFor"></p>
+    <div class="setting"><span class="dose-label">Grinder</span>
+      <div class="seg" id="grinderSeg" role="radiogroup" aria-label="Grinder">
+        <button type="button" data-g="casa" role="radio" aria-checked="true">Casa</button>
+        <button type="button" data-g="c40" role="radio" aria-checked="false">C40</button>
+      </div>
+    </div>
+    <div class="setting"><span class="dose-label">Dose</span>
+      <div class="seg" id="doseSeg" role="radiogroup" aria-label="Coffee dose">
+        <button type="button" data-d="15" role="radio" aria-checked="false">15 g</button>
+        <button type="button" data-d="20" role="radio" aria-checked="false">20 g</button>
+        <button type="button" data-d="30" role="radio" aria-checked="true">30 g</button>
+      </div>
+    </div>
+    <div class="setting"><span class="dose-label">Method</span><div class="seg wrap" id="methodSeg" role="radiogroup" aria-label="Brew method"></div></div>
+    <div class="setting"><span class="dose-label">Filter</span>
+      <div class="seg wrap" id="filterSeg" role="radiogroup" aria-label="Filter paper">
+        <button type="button" data-f="PURE.F" role="radio" aria-checked="false">PURE.F</button>
+        <button type="button" data-f="TH-2" role="radio" aria-checked="false">TH-2</button>
+        <button type="button" data-f="Abaca" role="radio" aria-checked="false">Abaca</button>
+      </div>
+    </div>
+    <div class="actions"><button class="btn" id="resetSettings" type="button">Reset to recipe</button></div>
+    <p class="guide-note">Choosing a different paper from the one the recipe was written for moves the grind by its offset (PURE.F ½ number finer than TH-2, Abaca ¼ finer) and adjusts the finish window. Method and filter are remembered per coffee; dose and grinder apply to every card. Reset returns this coffee to its written recipe: Casa, its base dose, first method and paper.</p>
+  </div>
+</dialog>
+
+<!-- Account -->
+<dialog id="accountDialog" aria-labelledby="accountTitle">
+  <div class="settings">
+    <div class="guide-head"><h2 id="accountTitle">Account</h2><button class="btn quiet" id="closeAccount" type="button" aria-label="Close">Done</button></div>
+    <p class="settings-for" id="accountEmail"></p>
+    <div class="actions" style="justify-content:flex-start">
+      <button class="btn" id="exportDeck" type="button">Export deck (JSON)</button>
+      <label class="btn" for="importFile">Import deck (JSON)</label>
+      <input id="importFile" type="file" accept="application/json,.json" hidden>
+    </div>
+    <p class="guide-note" id="accountNote">Export writes every coffee, recipe variant and brew to a file you can keep or move to another account. Import merges a file into this deck; existing coffees with the same id are replaced.</p>
+    <div class="actions"><button class="btn danger" id="signOut" type="button">Sign out</button></div>
+  </div>
+</dialog>
+
+<!-- Confirm -->
+<dialog id="confirmDialog" aria-labelledby="confirmTitle">
+  <div class="confirm">
+    <h2 id="confirmTitle">Delete this card?</h2>
+    <p id="confirmText">The card and its brew log entries will be removed.</p>
+    <div class="actions"><div class="right">
+      <button class="btn" type="button" id="confirmNo">Keep it</button>
+      <button class="btn danger" type="button" id="confirmYes">Delete</button>
+    </div></div>
+  </div>
+</dialog>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.js"></script>
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const todayISO = () => new Date().toISOString().slice(0, 10);
+
+  const state = { user: null, loaded: false, canWrite: false, coffees: [], active: 0, brews: [], editingId: null, brewRating: 0, pendingDelete: null, view: "grid", pendingFocus: null, brewsFor: null, variant: {}, editRecipes: [], editIdx: 0, info: {}, dose: 30, grinder: "casa", filterBy: {}, settingsFor: null, arrange: false };
+  try { if (localStorage.getItem("brewdeck.grinder") === "c40") state.grinder = "c40"; } catch {}
+  try { const d = Number(localStorage.getItem("brewdeck.dose")); if ([15, 20, 30].includes(d)) state.dose = d; } catch {}
+  try { if (localStorage.getItem("brewdeck.view") === "card") state.view = "card"; } catch {}
+
+  const rail = $("rail"), dots = $("dots"), counter = $("counter"), status = $("status");
+
+  // ---------- Rendering ----------
+  const RECIPE_FIELDS = ["label", "dose", "water", "filter", "filterNote", "grind", "grindNote", "finish", "pourTitle", "tip"];
+  // Casa dial → approximate burr gap: ~50 µm per number, 10 numbers per rotation (Honest Coffee Guide / Beeancoffee model, not an Option-O figure).
+  // Dial notation: "15", "14 ½", "14¾", "14.75" (quarters between numbers). Legacy "¼ → 14" (a quarter from 15 toward 14) still reads.
+  const FRAC = { "¼": 0.25, "½": 0.5, "¾": 0.75 };
+  const dialValue = (s) => {
+    const t = String(s || "").trim();
+    let m = t.match(/^(\d+(?:\.\d+)?)$/); if (m) return Number(m[1]);
+    m = t.match(/^(\d+)\s*([¼½¾])$/); if (m) return Number(m[1]) + FRAC[m[2]];
+    m = t.match(/^([¼½¾])\s*(?:→|->|toward|to)\s*(\d+)$/i);
+    if (m) { const frac = FRAC[m[1]], n = Number(m[2]); return n > 15 ? 15 + (n - 15) * frac : 15 - (15 - n) * frac; }
+    return null;
+  };
+  const micronsOf = (s) => { const v = dialValue(s); return v === null ? "" : `≈ ${Math.round(v * 50 / 5) * 5} µm`; };
+  // Comandante C40 MK4 with Red Clix: ~15 µm per click, so clicks ≈ Casa microns / 15.
+  const C40_UM_PER_CLICK = 15;
+  const c40Of = (s) => { const v = dialValue(s); return v === null ? null : Math.round(v * 50 / C40_UM_PER_CLICK); };
+  const grindDisplay = (grind) => {
+    if (state.grinder !== "c40") return { main: grind || "—", small: micronsOf(grind) };
+    const clicks = c40Of(grind);
+    return clicks === null ? { main: grind || "—", small: "no C40 equivalent" } : { main: `${clicks} clicks`, small: `${micronsOf(grind)} · Casa ${grind}` };
+  };
+  const grams = (s) => { const m = String(s || "").match(/^(\d+(?:\.\d+)?)\s*g/); return m ? Number(m[1]) : null; };
+  // "≈ 7 g/s · 15 s" for a pour with a rate; the poured amount is this step's target minus the previous step's.
+  const flowOf = (p, prev) => {
+    const rate = Number(p.rate); const to = grams(p.to); if (!rate || !to) return "";
+    const poured = to - (grams(prev?.to) || 0); if (poured <= 0) return "";
+    return `≈ ${rate} g/s · ${poured} g in ${Math.round(poured / rate)} s`;
+  };
+  const recipesOf = (c) => {
+    if (Array.isArray(c.recipes) && c.recipes.length) return c.recipes;
+    const legacy = Object.fromEntries(RECIPE_FIELDS.map((f) => [f, c[f] || ""]));
+    return [{ ...legacy, label: legacy.label || "30 g · NEO", dose: legacy.dose || "30 g / 500 g", pours: c.pours || [] }];
+  };
+  // A stored recipe is written for one dose ("30 g / 500 g"); the card scales it to the chosen dose.
+  const DOSES = [15, 20, 30];
+  const methodLabel = (r) => String(r.label || "").replace(/^\d+(?:\.\d+)?\s*g\s*·\s*/, "") || "Recipe";
+  const baseOf = (r) => {
+    const m = String(r.dose || "").match(/^(\d+(?:\.\d+)?)\s*g\s*\/\s*(\d+(?:\.\d+)?)\s*g/);
+    return m ? { dose: Number(m[1]), water: Number(m[2]) } : null;
+  };
+  const round5 = (n) => Math.round(n / 5) * 5;
+  const toSec = (t) => { const [m, s] = t.split(":").map(Number); return m * 60 + s; };
+  const fmtSec = (sec) => `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, "0")}`;
+  const shiftFinish = (finish, by) => {
+    const m = String(finish || "").match(/(\d+:\d{2})\s*[–-]\s*(\d+:\d{2})/); if (!m) return finish;
+    return `${fmtSec(Math.max(60, toSec(m[1]) + by))} – ${fmtSec(Math.max(90, toSec(m[2]) + by))}`;
+  };
+  const scaleRecipe = (r, dose) => {
+    const base = baseOf(r);
+    if (!base || base.dose === dose) return { ...r, scaled: false };
+    const f = dose / base.dose;
+    const ratio = base.water / base.dose;
+    const snapped = Math.abs(ratio - 16.667) < 0.35 ? 16.667 : Math.abs(ratio - 15) < 0.35 ? 15 : Math.abs(ratio - 16) < 0.35 ? 16 : ratio;
+    const water = round5(dose * snapped);
+    const pours = (r.pours || []).map((p, i, arr) => {
+      const g = grams(p.to); if (!g) return p;
+      const isLastWater = !arr.slice(i + 1).some((q) => grams(q.to));
+      return { ...p, to: `${isLastWater ? water : round5(g * f)} g` };
+    });
+    let finish = shiftFinish(r.finish, Math.round((dose - base.dose) * 3)); // ~3 s per gram
+    // A timed-pour method (4:6) can't finish before its last pour: keep the window at least 20 s after it.
+    const lastPour = Math.max(0, ...(r.pours || []).map((p) => /^\d+:\d{2}$/.test(p.time || "") ? toSec(p.time) : 0));
+    const fm = finish.match(/(\d+:\d{2})\s*[–-]\s*(\d+:\d{2})/);
+    if (fm && lastPour && toSec(fm[1]) < lastPour + 20) finish = shiftFinish(finish, lastPour + 20 - toSec(fm[1]));
+    return { ...r, dose: `${dose} g / ${water} g`, pours, finish, scaled: true, scaledFrom: base.dose };
+  };
+  // Filter papers: grind offset in Casa numbers relative to TH-2, and the drawdown they add or remove.
+  const FILTERS = { "PURE.F": { off: -0.5, time: -20 }, "TH-2": { off: 0, time: 0 }, "Abaca": { off: -0.25, time: -10 }, "Hario": { off: 0, time: 0 } };
+  const filterKey = (s) => { const t = String(s || ""); if (/pure/i.test(t)) return "PURE.F"; if (/th-?2/i.test(t)) return "TH-2"; if (/abaca/i.test(t)) return "Abaca"; if (/hario/i.test(t)) return "Hario"; return null; };
+  const fmtDial = (v) => { const w = Math.floor(v + 1e-9), f = v - w; const q = f >= 0.74 ? " ¾" : f >= 0.49 ? " ½" : f >= 0.24 ? " ¼" : ""; return `${w}${q}`; };
+  // The paper in force for a coffee: what you chose for it, else the paper its active recipe was written for.
+  const filterFor = (c, r) => state.filterBy[c.id] || filterKey(r.filter) || "TH-2";
+  const applyFilter = (r, to) => {
+    const from = filterKey(r.filter);
+    if (!from || from === to || !FILTERS[from] || !FILTERS[to]) return r;
+    const v = dialValue(r.grind); if (v === null) return r;
+    const delta = FILTERS[to].off - FILTERS[from].off;
+    const grind = fmtDial(v + delta);
+    const finish = shiftFinish(r.finish, FILTERS[to].time - FILTERS[from].time);
+    return { ...r, filter: to, filterNote: `recipe written for ${from}`, grind, grindNote: `${fmtDial(Math.abs(delta)).replace(/^0\s*/, "")} number ${delta < 0 ? "finer" : "coarser"} for ${to}`, finish, filterChanged: { from, to } };
+  };
+  const methodsOf = (c) => {
+    const seen = new Set();
+    return recipesOf(c).filter((r) => { const k = methodLabel(r); if (seen.has(k)) return false; seen.add(k); return true; });
+  };
+  const variantIndex = (c) => { const rs = methodsOf(c); const i = state.variant[c.id] ?? 0; return Math.min(i, rs.length - 1); };
+  const activeRecipe = (c) => { const base = methodsOf(c)[variantIndex(c)]; return applyFilter(scaleRecipe(base, state.dose), filterFor(c, base)); };
+
+  const renderCard = (c) => {
+    // Always render all five rows so the block is the same height on every card.
+    const specs = [["Origin", c.origin], ["Producer", c.producer], ["Variety", c.variety], ["Altitude", c.altitude], ["Process", c.process]]
+      .map(([k, v]) => `<div><dt>${esc(k)}</dt><dd>${v ? esc(v) : "—"}</dd></div>`).join("");
+    const rs = methodsOf(c), vi = variantIndex(c), r = applyFilter(scaleRecipe(rs[vi], state.dose), filterFor(c, rs[vi]));
+    const summary = [state.grinder === "c40" ? "C40" : "Casa", `${state.dose} g`, methodLabel(rs[vi]), r.filter || "—"].join(" · ");
+    const tabs = `<div><button class="setline" type="button" data-id="${esc(c.id)}" aria-haspopup="dialog" aria-label="Brew settings: ${esc(summary)}"><span class="gear" aria-hidden="true">⚙</span><span class="txt">${esc(summary)}</span></button></div>`;
+    const filterNote = r.filterChanged ? `<p class="scaled">Paper changed from ${esc(r.filterChanged.from)} to ${esc(r.filterChanged.to)}: grind and finish window adjusted.</p>` : "";
+    const grindHint = (() => {
+      const d = state.dose - r.scaledFrom, c40 = state.grinder === "c40";
+      const big = c40 ? "3 clicks" : "1 number", small = c40 ? "2 clicks" : "½ number";
+      if (d <= -12) return `start about ${big} finer than shown (shallower bed drains faster)`;
+      if (d < 0) return `start about ${small} finer than shown (shallower bed drains faster)`;
+      if (d >= 12) return `start about ${big} coarser than shown (deeper bed drains slower)`;
+      return `start about ${small} coarser than shown (deeper bed drains slower)`;
+    })();
+    const scaledNote = r.scaled ? `<p class="scaled">Scaled from the ${r.scaledFrom} g recipe: water and pours adjusted, timings kept. Grind: ${grindHint}.</p>` : "";
+    const pours = (r.pours || []).map((p, i, arr) => {
+      const flow = flowOf(p, arr[i - 1]);
+      return `<tr><td class="t">${esc(p.time)}</td><td class="w">→ ${esc(p.to)}</td><td>${esc(p.action)}${flow ? `<div class="flow">${flow}</div>` : ""}</td></tr>`;
+    }).join("");
+    const infoOpen = !!state.info[c.id];
+    return `<article class="card" data-id="${esc(c.id)}" aria-label="${esc(c.name)} recipe">
+      <button class="close" type="button" aria-label="Close and return to the dashboard">×</button>
+      <div class="main">
+        <div>${c.roaster ? `<p class="roaster">${esc(c.roaster)}</p>` : ""}
+          <h2 class="name">${esc(c.name)} <button class="info" type="button" data-id="${esc(c.id)}" aria-expanded="${infoOpen}" aria-label="Bag details">i</button></h2>
+          ${c.tasting ? `<p class="tasting">${esc(c.tasting)}</p>` : ""}</div>
+        <div class="specs" ${infoOpen ? "" : "hidden"}><dl>${specs}</dl></div>
+        ${tabs}
+        <div class="key">
+          <div><span>Water</span><strong>${esc(r.water || "—")}</strong>${r.dose ? `<small>${esc(r.dose)}</small>` : ""}</div>
+          <div><span>Filter</span><strong>${esc(r.filter || "—")}</strong></div>
+          <div><span>Grind${state.grinder === "c40" ? " · Red Clix" : ""}</span><strong>${esc(grindDisplay(r.grind).main)}</strong><small>${esc(grindDisplay(r.grind).small)}</small></div>
+        </div>
+        ${pours ? `<div><h3>Pours${r.pourTitle ? " · " + esc(r.pourTitle) : ""}</h3><table>${pours}</table></div>` : ""}
+        ${r.finish ? `<div class="finish"><span>Target finish</span><b>${esc(r.finish)}</b></div>` : ""}
+        ${scaledNote}
+        ${filterNote}
+        ${r.tip ? `<p class="tip">${esc(r.tip)}</p>` : ""}
+        ${state.canWrite ? `<div class="card-actions"><button class="btn edit" type="button" data-id="${esc(c.id)}">Edit</button></div>` : ""}
+      </div></article>`;
+  };
+
+  const rerenderCard = (c) => {
+    const el = rail.querySelector(`article.card[data-id="${CSS.escape(c.id)}"]`); if (!el) return;
+    const tmp = document.createElement("div"); tmp.innerHTML = renderCard(c); el.replaceWith(tmp.firstElementChild);
+  };
+
+  const tileBody = (c) => `<span class="t-roaster">${esc(c.roaster || "")}</span>
+      <span class="t-name">${esc(c.name)}</span>
+      <span class="t-notes">${esc(c.tasting || "")}</span>
+      <span class="t-key"><span>${esc(c.water || "—")}</span><span>${esc(c.filter || "—")}</span><span>${esc(c.grind || "—")}</span></span>`;
+  const renderGrid = () => {
+    const groups = [state.coffees.filter((c) => !c.archived), state.coffees.filter((c) => c.archived)];
+    let html = "";
+    const add = state.canWrite && !state.arrange ? `<button class="tile add" type="button" id="addTile" aria-label="Add a card"><span>+</span>Add card</button>` : "";
+    groups.forEach((group, g) => {
+      if (g === 1) { html += add; if (group.length) html += `<div class="grid-divider">Archived</div>`; }
+      html += group.map((c, i) => {
+        const idx = state.coffees.indexOf(c);
+        if (!state.arrange) return `<button class="tile${c.archived ? " archived" : ""}" type="button" data-i="${idx}" aria-label="Open ${esc(c.name)}">${tileBody(c)}</button>`;
+        return `<div class="tile draggable${c.archived ? " archived" : ""}" role="group" data-id="${esc(c.id)}" data-group="${g}" aria-label="${esc(c.name)} (drag to reorder)">${tileBody(c)}
+          <div class="tile-tools">
+            <button type="button" data-archive="${esc(c.id)}" aria-label="${c.archived ? "Unarchive" : "Archive"}" title="${c.archived ? "Unarchive" : "Archive"}">${c.archived ? "↩" : "▣"}</button>
+          </div></div>`;
+      }).join("");
+    });
+    $("grid").innerHTML = html;
+    $("arrange").hidden = !state.canWrite || state.view !== "grid";
+    $("arrange").textContent = state.arrange ? "Done" : "Arrange";
+    $("arrange").setAttribute("aria-pressed", String(state.arrange));
+  };
+  const sortCoffees = (list) => [...list].sort((a, b) => (Number(!!a.archived) - Number(!!b.archived)) || ((a.order ?? 0) - (b.order ?? 0)) || String(a.createdAt || "").localeCompare(String(b.createdAt || "")));
+  // Drag to reorder (Arrange mode): hold a tile briefly, then move it; the tile follows the finger within its group.
+  const drag = { id: null, el: null, timer: null, active: false, group: null, startX: 0, startY: 0 };
+  const endDrag = async () => {
+    clearTimeout(drag.timer); drag.timer = null;
+    if (!drag.active) { drag.id = null; drag.el = null; return; }
+    drag.active = false; drag.el?.classList.remove("dragging"); $("grid").classList.remove("drag-on");
+    const ids = [...$("grid").querySelectorAll(`.tile[data-group="${drag.group}"]`)].map((t) => t.dataset.id);
+    drag.id = null; drag.el = null;
+    const byId = new Map(state.coffees.map((c) => [c.id, c]));
+    const changed = [];
+    ids.forEach((id, k) => { const c = byId.get(id); if (c && c.order !== k) { c.order = k; changed.push(c); } });
+    state.coffees = sortCoffees(state.coffees); renderGrid();
+    for (const c of changed) { try { await store.updateCoffee(c.id, { order: c.order }); } catch (err) { setStatus(friendly(err, "save the order")); return; } }
+    cache.setCoffees(state.coffees);
+  };
+  $("grid").addEventListener("pointerdown", (e) => {
+    if (!state.arrange || e.target.closest("button")) return;
+    const el = e.target.closest(".tile.draggable"); if (!el) return;
+    drag.id = el.dataset.id; drag.el = el; drag.group = el.dataset.group; drag.startX = e.clientX; drag.startY = e.clientY;
+    drag.timer = setTimeout(() => { drag.active = true; el.classList.add("dragging"); $("grid").classList.add("drag-on"); try { el.setPointerCapture(e.pointerId); } catch {} }, 180);
+  });
+  $("grid").addEventListener("pointermove", (e) => {
+    if (!drag.id) return;
+    if (!drag.active) { if (Math.hypot(e.clientX - drag.startX, e.clientY - drag.startY) > 8) { clearTimeout(drag.timer); drag.id = null; drag.el = null; } return; }
+    e.preventDefault();
+    const over = document.elementFromPoint(e.clientX, e.clientY)?.closest(`.tile.draggable[data-group="${drag.group}"]`);
+    if (!over || over === drag.el) return;
+    const tiles = [...$("grid").querySelectorAll(`.tile[data-group="${drag.group}"]`)];
+    const from = tiles.indexOf(drag.el), to = tiles.indexOf(over);
+    if (from < to) over.after(drag.el); else over.before(drag.el);
+  });
+  $("grid").addEventListener("pointerup", endDrag);
+  $("grid").addEventListener("pointercancel", endDrag);
+  const toggleArchive = async (id) => {
+    const c = state.coffees.find((x) => x.id === id); if (!c) return;
+    const archived = !c.archived;
+    try { await store.updateCoffee(id, { archived, order: 999 }); await refresh(); } catch (err) { setStatus(friendly(err, archived ? "archive the card" : "unarchive the card")); }
+  };
+  $("arrange").addEventListener("click", () => { state.arrange = !state.arrange; renderGrid(); });
+
+  // Land on a card with no scroll animation (used when opening from the dashboard or after a data refresh).
+  const jumpTo = (i) => {
+    const el = rail.children[i]; if (!el) return;
+    rail.style.scrollBehavior = "auto";
+    rail.scrollLeft = el.offsetLeft - rail.offsetLeft;
+    rail.style.scrollBehavior = "";
+  };
+
+  const showView = (view) => {
+    const wasGrid = state.view === "grid";
+    if (wasGrid && view !== "grid") state.gridScroll = window.scrollY; // remember where you were on the dashboard
+    state.view = view;
+    const isGrid = view === "grid";
+    $("dash").hidden = !isGrid;
+    $("deck").hidden = isGrid;
+    $("addCard").hidden = !isGrid || !state.canWrite;
+    $("arrange").hidden = !isGrid || !state.canWrite;
+    $("top").classList.toggle("compact", !isGrid);
+    $("log").hidden = isGrid || state.coffees.length === 0;
+    $("emptyDeck").hidden = state.coffees.length > 0 || !isGrid;
+    $("nav").hidden = isGrid || state.coffees.length === 0;
+    if (!isGrid) { jumpTo(state.active); subscribeBrews(); window.scrollTo({ top: 0, behavior: "auto" }); document.documentElement.scrollTop = 0; document.body.scrollTop = 0; }
+    else if (!wasGrid) { const y = state.gridScroll || 0; requestAnimationFrame(() => { window.scrollTo({ top: y, behavior: "auto" }); requestAnimationFrame(() => window.scrollTo({ top: y, behavior: "auto" })); }); }
+    try { localStorage.setItem("brewdeck.view", view); } catch {}
+  };
+
+  const renderDeck = () => {
+    const has = state.coffees.length > 0;
+    const isGrid = state.view === "grid";
+    $("emptyDeck").hidden = has || !isGrid || !state.loaded;
+    $("nav").hidden = !has || isGrid;
+    $("log").hidden = !has || isGrid;
+    renderGrid();
+    rail.innerHTML = state.coffees.map(renderCard).join("");
+    dots.innerHTML = state.coffees.map((c, i) => `<button type="button" role="tab" data-i="${i}" aria-label="${esc(c.name)}" aria-current="${i === state.active}"></button>`).join("");
+    updateNav();
+    if (has && !isGrid) jumpTo(state.active);
+  };
+
+  $("grid").addEventListener("click", (e) => {
+    const ar = e.target.closest("button[data-archive]"); if (ar) { toggleArchive(ar.dataset.archive); return; }
+    const add = e.target.closest("#addTile"); if (add) { openCardEditor(null); return; }
+    const t = e.target.closest("button.tile[data-i]"); if (!t) return;
+    state.active = Number(t.dataset.i); updateNav(); showView("card");
+  });
+
+  const updateNav = () => {
+    const n = state.coffees.length;
+    counter.textContent = n ? `${state.active + 1} / ${n}` : "";
+    [...dots.children].forEach((d, i) => d.setAttribute("aria-current", String(i === state.active)));
+    $("prev").disabled = state.active === 0; $("next").disabled = state.active >= n - 1;
+    $("logName").textContent = state.coffees[state.active]?.name || "";
+  };
+
+  const renderBrews = () => {
+    const list = $("brews");
+    $("brewsEmpty").hidden = state.brews.length > 0;
+    list.innerHTML = state.brews.map((b) => {
+      const params = [["recipe", b.recipe], ["grind", b.grind], ["water", b.temp], ["filter", b.filter], ["dose", b.dose], ["finish", b.finish]]
+        .filter(([, v]) => v).map(([k, v]) => `<span data-k="${k}">${esc(v)}</span>`).join("");
+      return `<li class="brew" data-id="${esc(b.id)}">
+        <div class="when">${esc(b.date)}</div>
+        <div class="rating" aria-label="${b.rating || 0} out of 5">${b.rating ? "●".repeat(b.rating) + "○".repeat(5 - b.rating) : ""}</div>
+        <div class="params">${params}</div>
+        ${state.canWrite ? `<button class="btn quiet rm" type="button" data-id="${esc(b.id)}" aria-label="Delete this brew">Remove</button>` : ""}
+        ${b.notes ? `<p class="text">${esc(b.notes)}</p>` : ""}
+      </li>`;
+    }).join("");
+  };
+
+  // ---------- Navigation ----------
+  const goTo = (i) => {
+    if (!state.coffees.length) return;
+    state.active = Math.max(0, Math.min(state.coffees.length - 1, i));
+    rail.children[state.active]?.scrollIntoView({ block: "nearest", inline: "start" });
+    updateNav(); subscribeBrews();
+  };
+  $("prev").addEventListener("click", () => goTo(state.active - 1));
+  $("next").addEventListener("click", () => goTo(state.active + 1));
+  dots.addEventListener("click", (e) => { const b = e.target.closest("button[data-i]"); if (b) goTo(Number(b.dataset.i)); });
+  rail.addEventListener("keydown", (e) => { if (e.key === "ArrowRight") goTo(state.active + 1); if (e.key === "ArrowLeft") goTo(state.active - 1); });
+  let scrollT;
+  rail.addEventListener("scroll", () => {
+    clearTimeout(scrollT);
+    scrollT = setTimeout(() => {
+      const w = rail.children[0]?.getBoundingClientRect().width || 1;
+      const i = Math.round(rail.scrollLeft / (w + 12));
+      if (i !== state.active && state.coffees[i]) { state.active = i; updateNav(); subscribeBrews(); }
+    }, 80);
+  });
+  const renderDoseSeg = () => { [...$("doseSeg").children].forEach((b) => b.setAttribute("aria-checked", String(Number(b.dataset.d) === state.dose))); };
+  $("doseSeg").addEventListener("click", (e) => {
+    const b = e.target.closest("button[data-d]"); if (!b) return;
+    state.dose = Number(b.dataset.d);
+    try { localStorage.setItem("brewdeck.dose", String(state.dose)); } catch {}
+    renderDoseSeg(); state.coffees.forEach(rerenderCard);
+  });
+  renderDoseSeg();
+  const renderGrinderSeg = () => {
+    [...$("grinderSeg").children].forEach((b) => b.setAttribute("aria-checked", String(b.dataset.g === state.grinder)));
+  };
+  // Brew settings sheet: method is per coffee; filter, dose and grinder are global.
+  const renderMethodSeg = () => {
+    const c = state.coffees.find((x) => x.id === state.settingsFor); if (!c) return;
+    const rs = methodsOf(c), vi = variantIndex(c);
+    $("methodSeg").innerHTML = rs.map((r, i) => `<button type="button" data-v="${i}" role="radio" aria-checked="${i === vi}">${esc(methodLabel(r))}</button>`).join("");
+    $("settingsFor").textContent = c.name;
+  };
+  const renderFilterSeg = () => {
+    const c = state.coffees.find((x) => x.id === state.settingsFor); if (!c) return;
+    const cur = filterFor(c, methodsOf(c)[variantIndex(c)]);
+    [...$("filterSeg").children].forEach((b) => b.setAttribute("aria-checked", String(b.dataset.f === cur)));
+  };
+  $("resetSettings").addEventListener("click", () => {
+    const c = state.coffees.find((x) => x.id === state.settingsFor); if (!c) return;
+    state.grinder = "casa"; state.variant[c.id] = 0; delete state.filterBy[c.id];
+    state.dose = baseOf(methodsOf(c)[0])?.dose || 30; if (![15, 20, 30].includes(state.dose)) state.dose = 30;
+    try { localStorage.setItem("brewdeck.grinder", "casa"); localStorage.setItem("brewdeck.dose", String(state.dose)); localStorage.setItem("brewdeck.variant." + c.id, "0"); localStorage.removeItem("brewdeck.filter." + c.id); } catch {}
+    renderMethodSeg(); renderFilterSeg(); renderDoseSeg(); renderGrinderSeg(); state.coffees.forEach(rerenderCard);
+  });
+  const openSettings = (id) => { state.settingsFor = id; renderMethodSeg(); renderFilterSeg(); renderDoseSeg(); renderGrinderSeg(); $("settingsDialog").showModal(); };
+  $("closeSettings").addEventListener("click", () => $("settingsDialog").close());
+  $("methodSeg").addEventListener("click", (e) => {
+    const b = e.target.closest("button[data-v]"); if (!b) return;
+    const c = state.coffees.find((x) => x.id === state.settingsFor); if (!c) return;
+    state.variant[c.id] = Number(b.dataset.v);
+    try { localStorage.setItem("brewdeck.variant." + c.id, b.dataset.v); } catch {}
+    renderMethodSeg(); renderFilterSeg(); rerenderCard(c);
+  });
+  $("filterSeg").addEventListener("click", (e) => {
+    const b = e.target.closest("button[data-f]"); if (!b) return;
+    const c = state.coffees.find((x) => x.id === state.settingsFor); if (!c) return;
+    state.filterBy[c.id] = b.dataset.f;
+    try { localStorage.setItem("brewdeck.filter." + c.id, b.dataset.f); } catch {}
+    renderFilterSeg(); rerenderCard(c);
+  });
+  $("openGuide").addEventListener("click", () => $("guideDialog").showModal());
+  $("closeGuide").addEventListener("click", () => $("guideDialog").close());
+  $("grinderSeg").addEventListener("click", (e) => {
+    const b = e.target.closest("button[data-g]"); if (!b) return;
+    state.grinder = b.dataset.g;
+    try { localStorage.setItem("brewdeck.grinder", state.grinder); } catch {}
+    renderGrinderSeg(); state.coffees.forEach(rerenderCard);
+  });
+  renderGrinderSeg();
+
+  rail.addEventListener("click", (e) => {
+    if (e.target.closest("button.close")) { showView("grid"); return; }
+    const info = e.target.closest("button.info");
+    if (info) {
+      const c = state.coffees.find((x) => x.id === info.dataset.id); if (!c) return;
+      state.info[c.id] = !state.info[c.id]; rerenderCard(c); return;
+    }
+    const set = e.target.closest("button.setline");
+    if (set) { openSettings(set.dataset.id); return; }
+    const b = e.target.closest("button.edit"); if (b) openCardEditor(b.dataset.id);
+  });
+
+  // ---------- Card editor ----------
+  const cardDialog = $("cardDialog"), cardForm = $("cardForm"), pourRows = $("pourRows");
+  const CARD_FIELDS = ["name", "roaster", "tasting", "origin", "producer", "variety", "altitude", "process", "roasted"];
+  const DEFAULT_POURS = [{ time: "0:00", to: "90 g", action: "Bloom, swirl, wait 45 s" }, {}, {}];
+  const blankRecipe = () => ({ label: "", dose: "", water: "", filter: "", filterNote: "", grind: "", grindNote: "", finish: "", pourTitle: "", tip: "", pours: [] });
+  const loadRecipeForm = (r) => {
+    RECIPE_FIELDS.forEach((f) => { $("f_" + f).value = r[f] || ""; });
+    pourRows.innerHTML = "";
+    (r.pours?.length ? r.pours : DEFAULT_POURS).forEach((p) => pourRows.appendChild(pourRow(p)));
+  };
+  const stashRecipeForm = () => {
+    const r = Object.fromEntries(RECIPE_FIELDS.map((f) => [f, $("f_" + f).value.trim()]));
+    r.pours = readPours();
+    state.editRecipes[state.editIdx] = r;
+  };
+  const renderVariantSel = () => {
+    const sel = $("variantSel");
+    sel.innerHTML = state.editRecipes.map((r, i) => `<option value="${i}">${esc(r.label || "Recipe " + (i + 1))}</option>`).join("");
+    sel.value = String(state.editIdx);
+    $("removeVariant").disabled = state.editRecipes.length <= 1;
+  };
+  $("variantSel").addEventListener("change", (e) => {
+    stashRecipeForm(); state.editIdx = Number(e.target.value); loadRecipeForm(state.editRecipes[state.editIdx]); renderVariantSel();
+  });
+  $("f_label").addEventListener("input", () => { const o = $("variantSel").options[state.editIdx]; if (o) o.textContent = $("f_label").value || "Recipe " + (state.editIdx + 1); });
+  $("addVariant").addEventListener("click", () => {
+    stashRecipeForm();
+    const base = state.editRecipes[state.editIdx];
+    state.editRecipes.push({ ...blankRecipe(), water: base.water, filter: base.filter, grind: base.grind, pours: [] });
+    state.editIdx = state.editRecipes.length - 1; loadRecipeForm(state.editRecipes[state.editIdx]); renderVariantSel(); $("f_label").focus();
+  });
+  $("removeVariant").addEventListener("click", () => {
+    if (state.editRecipes.length <= 1) return;
+    state.editRecipes.splice(state.editIdx, 1);
+    state.editIdx = Math.max(0, state.editIdx - 1); loadRecipeForm(state.editRecipes[state.editIdx]); renderVariantSel();
+  });
+  const pourRow = (p = {}) => {
+    const row = document.createElement("div"); row.className = "pour-row";
+    row.innerHTML = `<input aria-label="Time" placeholder="0:00" value="${esc(p.time)}"><input aria-label="Water to" placeholder="90 g" value="${esc(p.to)}"><input aria-label="Flow rate in grams per second" placeholder="g/s" inputmode="decimal" value="${esc(p.rate ?? "")}"><input aria-label="Action" placeholder="Bloom, swirl, wait 45 s" value="${esc(p.action)}"><button class="x" type="button" aria-label="Remove pour">×</button>`;
+    row.querySelector(".x").addEventListener("click", () => row.remove());
+    return row;
+  };
+  const readPours = () => [...pourRows.children].map((r) => {
+    const [t, w, f, a] = r.querySelectorAll("input");
+    const p = { time: t.value.trim(), to: w.value.trim(), action: a.value.trim() };
+    const rate = Number(f.value); if (rate > 0) p.rate = rate;
+    return p;
+  }).filter((p) => p.time || p.to || p.action);
+  $("addPour").addEventListener("click", () => { pourRows.appendChild(pourRow()); pourRows.lastElementChild.querySelector("input").focus(); });
+
+  const openCardEditor = (id) => {
+    const c = id ? state.coffees.find((x) => x.id === id) : null;
+    state.editingId = c ? c.id : null;
+    $("cardDialogTitle").textContent = c ? "Edit card" : "New card";
+    $("deleteCard").hidden = !c; $("cardErr").hidden = true;
+    CARD_FIELDS.forEach((f) => { $("f_" + f).value = c?.[f] || ""; });
+    state.editRecipes = c ? recipesOf(c).map((r) => ({ ...r, pours: (r.pours || []).map((p) => ({ ...p })) })) : [{ ...blankRecipe(), label: "30 g · NEO", dose: "30 g / 500 g" }];
+    state.editIdx = c ? variantIndex(c) : 0;
+    loadRecipeForm(state.editRecipes[state.editIdx]); renderVariantSel();
+    cardDialog.showModal(); $("f_name").focus();
+  };
+  $("addCard").addEventListener("click", () => openCardEditor(null));
+  $("addFirst").addEventListener("click", () => openCardEditor(null));
+  $("cancelCard").addEventListener("click", () => cardDialog.close());
+
+  cardForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    stashRecipeForm();
+    const data = Object.fromEntries(CARD_FIELDS.map((f) => [f, $("f_" + f).value.trim()]));
+    if (!data.name) { showErr("cardErr", "Give the card a coffee name."); return; }
+    const recipes = state.editRecipes.map((r, i) => ({ ...r, label: r.label || "Recipe " + (i + 1) }));
+    data.recipes = recipes;
+    // Mirror the first variant to the top-level fields so tiles and older readers keep working.
+    RECIPE_FIELDS.forEach((f) => { data[f] = recipes[0][f] || ""; });
+    data.pours = recipes[0].pours || [];
+    const save = $("saveCard"); save.disabled = true;
+    try {
+      if (state.editingId) {
+        const prev = state.coffees.find((x) => x.id === state.editingId);
+        await store.saveCoffee(state.editingId, { ...data, order: prev?.order ?? 0, archived: !!prev?.archived, createdAt: prev?.createdAt || new Date().toISOString() });
+      } else {
+        const order = Math.max(-1, ...state.coffees.map((c) => c.order ?? 0)) + 1;
+        const id = newId(data.name);
+        await store.saveCoffee(id, { ...data, order, archived: false, createdAt: new Date().toISOString() });
+        state.pendingFocus = id;
+      }
+      cardDialog.close(); await refresh();
+    } catch (err) { showErr("cardErr", friendly(err, "save the card")); }
+    finally { save.disabled = false; }
+  });
+
+  // ---------- Delete ----------
+  const confirmDialog = $("confirmDialog");
+  $("deleteCard").addEventListener("click", () => {
+    const c = state.coffees.find((x) => x.id === state.editingId); if (!c) return;
+    state.pendingDelete = { kind: "card", id: c.id };
+    $("confirmTitle").textContent = `Delete ${c.name}?`; $("confirmText").textContent = "The card and its brew log entries will be removed.";
+    confirmDialog.showModal();
+  });
+  $("confirmNo").addEventListener("click", () => confirmDialog.close());
+  $("confirmYes").addEventListener("click", async () => {
+    const p = state.pendingDelete; if (!p) return;
+    $("confirmYes").disabled = true;
+    try {
+      if (p.kind === "card") {
+        await store.deleteCoffee(p.id);
+        cardDialog.close(); await refresh();
+      } else {
+        await store.deleteBrew(p.id);
+        await loadBrews(true);
+      }
+      confirmDialog.close();
+    } catch (err) { setStatus(friendly(err, "delete")); confirmDialog.close(); }
+    finally { $("confirmYes").disabled = false; state.pendingDelete = null; }
+  });
+
+  // ---------- Brew log ----------
+  const brewDialog = $("brewDialog"), stars = $("stars");
+  stars.addEventListener("click", (e) => {
+    const b = e.target.closest("button[data-v]"); if (!b) return;
+    state.brewRating = Number(b.dataset.v) === state.brewRating ? 0 : Number(b.dataset.v);
+    [...stars.children].forEach((s) => s.setAttribute("aria-pressed", String(Number(s.dataset.v) <= state.brewRating && state.brewRating > 0)));
+  });
+  $("addBrew").addEventListener("click", () => {
+    const c = state.coffees[state.active]; if (!c) return;
+    if (!state.canWrite) { setStatus("Sign in to log brews."); return; }
+    const r = activeRecipe(c);
+    $("brewDialogTitle").textContent = "Log a brew · " + c.name + (r.label ? " · " + r.label : "");
+    $("b_date").value = todayISO(); $("b_grind").value = r.grind || ""; $("b_temp").value = r.water || ""; $("b_filter").value = r.filter || "";
+    $("b_dose").value = r.dose || ""; $("b_finish").value = ""; $("b_notes").value = ""; $("brewErr").hidden = true;
+    state.brewRating = 0; [...stars.children].forEach((s) => s.setAttribute("aria-pressed", "false"));
+    brewDialog.showModal(); $("b_finish").focus();
+  });
+  $("cancelBrew").addEventListener("click", () => brewDialog.close());
+  $("brewForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const c = state.coffees[state.active]; if (!c) return;
+    const data = { date: $("b_date").value || todayISO(), recipe: activeRecipe(c).label || "", grind: $("b_grind").value.trim(), temp: $("b_temp").value.trim(), filter: $("b_filter").value.trim(), dose: $("b_dose").value.trim(), finish: $("b_finish").value.trim(), rating: state.brewRating, notes: $("b_notes").value.trim(), createdAt: new Date().toISOString() };
+    try { await store.addBrew(c.id, data); brewDialog.close(); await loadBrews(true); }
+    catch (err) { showErr("brewErr", friendly(err, "save the brew")); }
+  });
+  $("brews").addEventListener("click", (e) => {
+    const b = e.target.closest("button.rm"); if (!b) return;
+    const c = state.coffees[state.active]; if (!c) return;
+    state.pendingDelete = { kind: "brew", id: b.dataset.id, coffeeId: c.id };
+    $("confirmTitle").textContent = "Remove this brew?"; $("confirmText").textContent = "The entry will be removed from the log.";
+    confirmDialog.showModal();
+  });
+
+  // Brew log for the active coffee: cached copy first, then the server.
+  const loadBrews = async (force) => {
+    const c = state.coffees[state.active];
+    if (!c) { state.brews = []; renderBrews(); return; }
+    if (state.brewsFor !== c.id || force) {
+      state.brewsFor = c.id;
+      state.brews = cache.getBrews(c.id); renderBrews();
+    }
+    if (!state.user) return;
+    try {
+      const rows = await store.listBrews(c.id);
+      if (state.brewsFor !== c.id) return;
+      state.brews = rows; cache.setBrews(c.id, rows); renderBrews();
+    } catch (err) { setStatus(friendly(err, "load the brew log")); }
+  };
+  const subscribeBrews = () => { loadBrews(false); };
+
+  // ---------- Helpers ----------
+  const showErr = (id, msg) => { const el = $(id); el.textContent = msg; el.hidden = false; };
+  const setStatus = (msg) => { status.textContent = msg; };
+  const friendly = (err, what) => {
+    const msg = String(err?.message || "");
+    if (!navigator.onLine) return `You're offline, so this couldn't ${what}. It will work again once you're back online.`;
+    if (err?.code === "42501" || /row-level security/i.test(msg)) return `You don't have permission to ${what} here. Sign in first.`;
+    if (/JWT|session/i.test(msg)) return `Your sign-in has expired. Sign in again to ${what}.`;
+    return `Couldn't ${what}. ${msg}`.trim();
+  };
+
+  // ---------- Storage: Supabase ----------
+  // The publishable key is safe in a public page: every row is protected by row-level security, so a visitor only ever sees their own deck.
+  const SUPABASE_URL = "https://vbydbjfrhjbrlqybgcoh.supabase.co";
+  const SUPABASE_KEY = "sb_publishable_x-FvT__bdgDB87Lus0kOJQ_X6L5qQa8";
+  const sb = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true } }) : null;
+  const APP_URL = location.origin + location.pathname;
+
+  const slug = (s) => String(s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40) || "coffee";
+  const newId = (name) => `${slug(name)}-${Math.random().toString(36).slice(2, 6)}`;
+  const brewId = () => `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+
+  const rowToCoffee = (r) => ({ ...(r.data || {}), id: r.id, order: r.order ?? 0, archived: !!r.archived });
+  const coffeeToRow = (id, obj) => {
+    const { id: _id, order, archived, owner: _o, ...data } = obj;
+    return { id, data, order: Number.isFinite(Number(order)) ? Number(order) : 0, archived: !!archived, updated_at: new Date().toISOString() };
+  };
+  const rowToBrew = (r) => ({ ...(r.data || {}), id: r.id, date: r.data?.date || r.brewed_on });
+  const brewToRow = (id, coffeeId, data) => { const { id: _id, owner: _o, ...rest } = data; return { id, coffee_id: coffeeId, data: rest, brewed_on: rest.date || new Date().toISOString().slice(0, 10) }; };
+  const unwrap = ({ data, error }) => { if (error) throw error; return data; };
+  const requireClient = () => { if (!sb) throw new Error("The sync library didn't load. Check your connection and reload."); return sb; };
+
+  const store = {
+    listCoffees: async () => unwrap(await requireClient().from("coffees").select("id,data,order,archived").order("order", { ascending: true })).map(rowToCoffee),
+    saveCoffee: async (id, obj) => { unwrap(await requireClient().from("coffees").upsert(coffeeToRow(id, obj), { onConflict: "id" })); },
+    updateCoffee: async (id, patch) => { unwrap(await requireClient().from("coffees").update({ ...patch, updated_at: new Date().toISOString() }).eq("id", id)); },
+    deleteCoffee: async (id) => { unwrap(await requireClient().from("coffees").delete().eq("id", id)); }, // brews cascade
+    listBrews: async (coffeeId) => unwrap(await requireClient().from("brews").select("id,data,brewed_on,created_at").eq("coffee_id", coffeeId).order("brewed_on", { ascending: false }).order("created_at", { ascending: false })).map(rowToBrew),
+    addBrew: async (coffeeId, data) => { unwrap(await requireClient().from("brews").insert(brewToRow(brewId(), coffeeId, data))); },
+    deleteBrew: async (id) => { unwrap(await requireClient().from("brews").delete().eq("id", id)); },
+    exportAll: async () => {
+      const client = requireClient();
+      const coffees = unwrap(await client.from("coffees").select("id,data,order,archived").order("order", { ascending: true }));
+      const brews = unwrap(await client.from("brews").select("id,coffee_id,data,brewed_on").order("brewed_on", { ascending: false }));
+      return { exportedAt: new Date().toISOString(), coffees, brews };
+    },
+    importAll: async (dump) => {
+      const client = requireClient();
+      const coffees = Array.isArray(dump?.coffees) ? dump.coffees : [];
+      const brews = Array.isArray(dump?.brews) ? dump.brews : [];
+      if (!coffees.length) throw new Error("That file has no coffees in it.");
+      const rows = coffees.filter((c) => c && c.id && c.data && typeof c.data === "object").map((c) => coffeeToRow(String(c.id), { ...c.data, order: c.order, archived: c.archived }));
+      unwrap(await client.from("coffees").upsert(rows, { onConflict: "id" }));
+      const ids = new Set(rows.map((r) => r.id));
+      const brewRows = brews.filter((b) => b && b.id && b.data && ids.has(String(b.coffee_id))).map((b) => ({ ...brewToRow(String(b.id), String(b.coffee_id), b.data), brewed_on: b.brewed_on || b.data.date }));
+      if (brewRows.length) unwrap(await client.from("brews").upsert(brewRows, { onConflict: "id" }));
+      return { coffees: rows.length, brews: brewRows.length };
+    },
+  };
+
+  // Local cache so the deck paints instantly and reads offline.
+  const cache = {
+    getCoffees: () => { try { return JSON.parse(localStorage.getItem("brewdeck.cache.coffees") || "[]"); } catch { return []; } },
+    setCoffees: (list) => { try { localStorage.setItem("brewdeck.cache.coffees", JSON.stringify(list)); } catch {} },
+    getBrews: (id) => { try { return JSON.parse(localStorage.getItem("brewdeck.cache.brews." + id) || "[]"); } catch { return []; } },
+    setBrews: (id, list) => { try { localStorage.setItem("brewdeck.cache.brews." + id, JSON.stringify(list)); } catch {} },
+    clear: () => { try { Object.keys(localStorage).filter((k) => k.startsWith("brewdeck.cache.")).forEach((k) => localStorage.removeItem(k)); } catch {} },
+  };
+
+  // ---------- Deck loading ----------
+  const applyCoffees = (list) => {
+    const prevId = state.coffees[state.active]?.id;
+    state.coffees = sortCoffees(list.map((c) => ({ ...c })));
+    state.coffees.forEach((c) => {
+      if (state.variant[c.id] === undefined) { try { const v = localStorage.getItem("brewdeck.variant." + c.id); if (v !== null) state.variant[c.id] = Number(v); } catch {} }
+      if (state.filterBy[c.id] === undefined) { try { const f = localStorage.getItem("brewdeck.filter." + c.id); if (["PURE.F", "TH-2", "Abaca"].includes(f)) state.filterBy[c.id] = f; } catch {} }
+    });
+    const wanted = state.pendingFocus || prevId;
+    const idx = state.coffees.findIndex((c) => c.id === wanted);
+    state.active = idx >= 0 ? idx : Math.min(state.active, Math.max(0, state.coffees.length - 1));
+    if (state.pendingFocus && idx >= 0) { state.pendingFocus = null; state.view = "card"; }
+    renderDeck();
+    $("dash").hidden = state.view !== "grid"; $("deck").hidden = state.view === "grid"; $("addCard").hidden = state.view !== "grid" || !state.canWrite; $("top").classList.toggle("compact", state.view !== "grid");
+    if (state.view === "card") { jumpTo(state.active); if (state.brewsFor !== state.coffees[state.active]?.id) subscribeBrews(); }
+  };
+
+  let refreshing = null;
+  const refresh = async () => {
+    if (!state.user) return;
+    if (refreshing) return refreshing;
+    setStatus("Syncing…");
+    refreshing = (async () => {
+      try { const rows = await store.listCoffees(); applyCoffees(rows); cache.setCoffees(rows); setStatus(""); }
+      catch (err) { setStatus(friendly(err, "load the cards")); }
+      finally { refreshing = null; }
+    })();
+    return refreshing;
+  };
+
+  const applyAuthUI = () => {
+    const signedIn = !!state.user;
+    state.canWrite = signedIn;
+    $("authPanel").hidden = signedIn;
+    $("account").textContent = signedIn ? "Account" : "Sign in";
+    $("addCard").hidden = !signedIn || state.view !== "grid"; $("addFirst").hidden = !signedIn; $("addBrew").hidden = !signedIn; $("importStarter").hidden = !signedIn;
+    $("emptyDeck").querySelector("h2").textContent = signedIn ? "No cards yet" : "Your deck is waiting";
+    $("emptyText").textContent = signedIn
+      ? "Import your deck to start with your coffees, or add a card by hand. Each card holds the bag details, water, filter, grind and pour schedule."
+      : "Sign in above to open your cards and brew log. They sync to every device you sign in on.";
+    $("accountEmail").textContent = state.user?.email || "";
+    renderDeck();
+  };
+
+  const handleSession = async (session) => {
+    state.user = session?.user || null;
+    state.loaded = true;
+    applyAuthUI();
+    if (!state.user) { if (state.coffees.length) setStatus("Signed out"); return; }
+    await refresh();
+    if (state.view === "card") subscribeBrews();
+  };
+
+  // ---------- Sign in (magic link or one-time code) ----------
+  const authMsg = (text, kind) => { const el = $("authMsg"); el.textContent = text; el.className = "auth-msg" + (kind ? " " + kind : ""); };
+  let pendingEmail = "";
+  $("authPanel").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const email = $("authEmail").value.trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { authMsg("Enter a valid email address.", "err"); $("authEmail").focus(); return; }
+    $("authSend").disabled = true; authMsg("Sending…");
+    try {
+      unwrap(await requireClient().auth.signInWithOtp({ email, options: { emailRedirectTo: APP_URL, shouldCreateUser: true } }));
+      pendingEmail = email;
+      $("authCodeRow").hidden = false;
+      authMsg("Check your email. Tap the link, or type the code from the message here.", "ok");
+      $("authCode").focus();
+    } catch (err) { authMsg(friendly(err, "send the sign-in email"), "err"); }
+    finally { $("authSend").disabled = false; }
+  });
+  $("authVerify").addEventListener("click", async () => {
+    const token = $("authCode").value.replace(/\D/g, "");
+    if (!pendingEmail) { authMsg("Send yourself a link first.", "err"); return; }
+    if (token.length < 6) { authMsg("The code is the 6-digit number in the email.", "err"); return; }
+    $("authVerify").disabled = true; authMsg("Checking…");
+    try { unwrap(await requireClient().auth.verifyOtp({ email: pendingEmail, token, type: "email" })); authMsg("Signed in.", "ok"); }
+    catch (err) { authMsg(/expired|invalid/i.test(err?.message || "") ? "That code didn't work. Check the digits, or send yourself a new link." : friendly(err, "verify the code"), "err"); }
+    finally { $("authVerify").disabled = false; }
+  });
+  $("authCode").addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); $("authVerify").click(); } });
+
+  // ---------- Account: export / import / sign out ----------
+  const accountDialog = $("accountDialog");
+  $("account").addEventListener("click", () => {
+    if (!state.user) { $("authPanel").scrollIntoView({ behavior: "smooth", block: "start" }); $("authEmail").focus(); return; }
+    $("accountNote").className = "guide-note"; $("accountNote").textContent = "Export writes every coffee, recipe variant and brew to a file you can keep or move to another account. Import merges a file into this deck; existing coffees with the same id are replaced.";
+    accountDialog.showModal();
+  });
+  $("closeAccount").addEventListener("click", () => accountDialog.close());
+  accountDialog.addEventListener("click", (e) => { if (e.target === accountDialog) accountDialog.close(); });
+  const accountNote = (text, kind) => { const el = $("accountNote"); el.textContent = text; el.className = "guide-note" + (kind ? " auth-msg " + kind : ""); };
+  $("exportDeck").addEventListener("click", async () => {
+    try {
+      const dump = await store.exportAll();
+      const blob = new Blob([JSON.stringify(dump, null, 2)], { type: "application/json" });
+      const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = `brew-deck-${dump.exportedAt.slice(0, 10)}.json`; document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+      accountNote(`Exported ${dump.coffees.length} coffees and ${dump.brews.length} brews.`, "ok");
+    } catch (err) { accountNote(friendly(err, "export the deck"), "err"); }
+  });
+  const importDump = async (dump, note) => {
+    const n = await store.importAll(dump);
+    await refresh();
+    if (state.view === "card") await loadBrews(true);
+    note(`Imported ${n.coffees} coffees and ${n.brews} brews.`, "ok");
+  };
+  $("importFile").addEventListener("change", async (e) => {
+    const file = e.target.files?.[0]; e.target.value = "";
+    if (!file) return;
+    try { await importDump(JSON.parse(await file.text()), accountNote); }
+    catch (err) { accountNote(friendly(err, "import that file"), "err"); }
+  });
+  $("importStarter").addEventListener("click", async () => {
+    const btn = $("importStarter"); btn.disabled = true; setStatus("Importing…");
+    try {
+      const res = await fetch("./seed.json", { cache: "no-store" });
+      if (!res.ok) throw new Error("The starter deck file is missing.");
+      await importDump(await res.json(), (text) => setStatus(text));
+    } catch (err) { setStatus(friendly(err, "import the deck")); }
+    finally { btn.disabled = false; }
+  });
+  $("signOut").addEventListener("click", async () => {
+    try { await requireClient().auth.signOut(); } catch {}
+    accountDialog.close();
+    cache.clear(); state.coffees = []; state.brews = []; state.brewsFor = null; pendingEmail = "";
+    $("authCodeRow").hidden = true; authMsg("");
+    showView("grid");
+    renderDeck();
+  });
+
+  // ---------- Boot ----------
+  renderDeck();
+  const cached = cache.getCoffees();
+  if (cached.length) applyCoffees(cached);
+  if (!sb) {
+    state.loaded = true; state.user = null; applyAuthUI();
+    setStatus("Offline"); authMsg("The sync library didn't load. Check your connection and reload.", "err");
+  } else {
+    sb.auth.onAuthStateChange((event, session) => {
+      if (event === "TOKEN_REFRESHED") return;
+      handleSession(session);
+      if (event === "SIGNED_IN" && (location.hash || location.search.includes("code="))) history.replaceState(null, "", APP_URL);
+    });
+  }
+  window.addEventListener("online", () => { refresh(); });
+  window.addEventListener("offline", () => setStatus("Offline"));
+  if ("serviceWorker" in navigator) window.addEventListener("load", () => { navigator.serviceWorker.register("./sw.js").catch(() => {}); });
+})();
+</script>
+</body>
+</html>
