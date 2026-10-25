@@ -1,5 +1,5 @@
 // Brew Deck service worker: network-first for the page (so updates land on the next open), cache-first for everything else, and the cached page as an offline fallback.
-const CACHE = "brew-deck-v1";
+const CACHE = "brew-deck-v2";
 const PRECACHE = ["./", "./index.html", "./manifest.webmanifest", "./icon.svg", "./icon-192.png", "./icon-512.png", "./apple-touch-icon.png"];
 
 self.addEventListener("install", (event) => {
