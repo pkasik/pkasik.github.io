@@ -155,6 +155,37 @@ td.w { font: 500 14px/1.3 var(--mono); width: 76px; white-space: nowrap; }
 .variant-bar select { font: 14px/1.3 var(--body); color: var(--fg); background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 7px 10px; min-width: 0; flex: 1 1 160px; }
 .card-actions { display: flex; gap: 8px; justify-content: flex-end; }
 .card-actions .btn { border-color: var(--c-line); background: transparent; color: var(--c-fg); font-size: 13px; padding: 6px 12px; }
+.card .start { width: 100%; justify-content: center; border-color: var(--c-fg); background: var(--c-fg); color: var(--c-bg); font-size: 14px; padding: 10px 14px; }
+/* Brew timer: a live run of the recipe, same orange label as the card */
+dialog.timer { background: var(--amber); color: var(--amber-ink); --c-bg: var(--amber); --c-fg: var(--amber-ink); --c-muted: color-mix(in srgb, var(--amber-ink) 68%, var(--amber)); --c-line: color-mix(in srgb, var(--amber-ink) 22%, var(--amber)); --c-soft: color-mix(in srgb, var(--amber-ink) 8%, var(--amber)); width: min(460px, calc(100vw - 24px)); }
+.timer-wrap { display: grid; gap: 14px; padding: 18px 18px 20px; }
+.timer-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+.timer-head h2 { font: 500 22px/1.15 var(--display); margin: 0; }
+.timer-head .btn { border-color: var(--c-line); background: transparent; color: var(--c-fg); }
+.timer-clock { display: grid; justify-items: center; gap: 2px; }
+.timer-clock .time { font: 500 56px/1 var(--mono); font-variant-numeric: tabular-nums; letter-spacing: -.02em; }
+.timer-clock .phase { font: 500 13px/1.3 var(--body); color: var(--c-muted); text-align: center; min-height: 1.3em; }
+.timer-stage { display: grid; grid-template-columns: 120px 1fr; gap: 14px; align-items: center; }
+.timer-art { width: 120px; height: auto; display: block; }
+.timer-art .stream { stroke: var(--c-fg); stroke-width: 3; stroke-linecap: round; stroke-dasharray: 2 7; animation: pour .5s linear infinite; opacity: 0; transition: opacity .2s; }
+.timer-art.pouring .stream { opacity: .9; }
+@keyframes pour { to { stroke-dashoffset: -9; } }
+.timer-water { display: grid; gap: 6px; }
+.timer-water .now { font: 500 34px/1 var(--mono); font-variant-numeric: tabular-nums; }
+.timer-water .goal { font: 500 13px/1.3 var(--mono); color: var(--c-muted); }
+.timer-water .bar { height: 6px; border-radius: 3px; background: var(--c-soft); border: 1px solid var(--c-line); overflow: hidden; }
+.timer-water .bar i { display: block; height: 100%; background: var(--c-fg); width: 0; transition: width .25s linear; }
+.timer-steps { list-style: none; margin: 0; padding: 0; display: grid; }
+.timer-steps li { display: grid; grid-template-columns: 44px 64px 1fr; gap: 8px; padding: 7px 0; border-bottom: 1px solid var(--c-line); font-size: 13.5px; color: var(--c-muted); align-items: baseline; }
+.timer-steps li:last-child { border-bottom: 0; }
+.timer-steps .t, .timer-steps .w { font: 500 13px/1.4 var(--mono); font-variant-numeric: tabular-nums; }
+.timer-steps li.active { color: var(--c-fg); font-weight: 600; }
+.timer-steps li.active .t, .timer-steps li.active .w { font-weight: 500; }
+.timer-steps li.done { opacity: .55; }
+.timer-ctl { display: flex; gap: 8px; }
+.timer-ctl .btn { flex: 1; justify-content: center; border-color: var(--c-fg); color: var(--c-fg); background: transparent; padding: 11px 14px; font-size: 15px; }
+.timer-ctl .btn.go { background: var(--c-fg); color: var(--c-bg); }
+.timer-note { margin: 0; font-size: 12.5px; color: var(--c-muted); }
 
 .nav { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 10px; }
 .dots { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; }
@@ -248,7 +279,6 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
   <header class="top" id="top">
     <div>
       <h1>Brew Deck</h1>
-      <div class="sub">V60 NEO · Lagom Casa 65 · 1 : 16.7</div>
     </div>
     <div class="tools">
       <span class="status" id="status" aria-live="polite"></span>
@@ -456,6 +486,39 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
   </div>
 </dialog>
 
+<!-- Brew timer -->
+<dialog id="timerDialog" class="timer" aria-labelledby="t_name">
+  <div class="timer-wrap">
+    <div class="timer-head">
+      <div><p class="roaster" id="t_method"></p><h2 id="t_name"></h2></div>
+      <button class="btn" id="t_close" type="button" aria-label="Close the brew timer">Close</button>
+    </div>
+    <div class="timer-clock"><span class="time" id="t_time">0:00</span><span class="phase" id="t_phase">Ready</span></div>
+    <div class="timer-stage">
+      <svg class="timer-art" id="t_art" viewBox="0 0 120 150" aria-hidden="true">
+        <defs><clipPath id="t_cone"><polygon points="12,34 108,34 72,104 48,104"/></clipPath><clipPath id="t_cup"><rect x="30" y="116" width="60" height="30" rx="5"/></clipPath></defs>
+        <line class="stream" id="t_stream" x1="60" y1="4" x2="60" y2="40"/>
+        <rect id="t_level" x="12" y="104" width="96" height="0" fill="var(--c-fg)" opacity=".85" clip-path="url(#t_cone)"/>
+        <polygon points="12,34 108,34 72,104 48,104" fill="none" stroke="var(--c-fg)" stroke-width="2.5" stroke-linejoin="round"/>
+        <line x1="60" y1="104" x2="60" y2="112" stroke="var(--c-fg)" stroke-width="2.5" stroke-dasharray="2 3" id="t_drip" opacity="0"/>
+        <rect id="t_cupfill" x="30" y="146" width="60" height="0" fill="var(--c-fg)" opacity=".85" clip-path="url(#t_cup)"/>
+        <rect x="30" y="116" width="60" height="30" rx="5" fill="none" stroke="var(--c-fg)" stroke-width="2.5"/>
+      </svg>
+      <div class="timer-water">
+        <span class="now" id="t_water">0 g</span>
+        <span class="goal" id="t_goal"></span>
+        <div class="bar"><i id="t_bar"></i></div>
+      </div>
+    </div>
+    <ol class="timer-steps" id="t_steps"></ol>
+    <div class="timer-ctl">
+      <button class="btn go" id="t_go" type="button">Start</button>
+      <button class="btn" id="t_stop" type="button" hidden>Stop</button>
+    </div>
+    <p class="timer-note" id="t_note"></p>
+  </div>
+</dialog>
+
 <!-- Confirm -->
 <dialog id="confirmDialog" aria-labelledby="confirmTitle">
   <div class="confirm">
@@ -608,6 +671,7 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
         </div>
         ${pours ? `<div><h3>Pours${r.pourTitle ? " · " + esc(r.pourTitle) : ""}</h3><table>${pours}</table></div>` : ""}
         ${r.finish ? `<div class="finish"><span>Target finish</span><b>${esc(r.finish)}</b></div>` : ""}
+        ${(r.pours || []).length ? `<button class="btn start" type="button" data-start="${esc(c.id)}">▶ Start brew</button>` : ""}
         ${scaledNote}
         ${filterNote}
         ${r.tip ? `<p class="tip">${esc(r.tip)}</p>` : ""}
@@ -831,6 +895,124 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
   });
   renderGrinderSeg();
 
+  // ---------- Brew timer ----------
+  // Runs the active recipe in real time: the water figure climbs at each pour's rate, the cone fills and drains, and the run ends at the end of the target window.
+  const secOf = (s) => { const m = String(s || "").trim().match(/^(\d+):(\d{1,2})$/); return m ? Number(m[1]) * 60 + Number(m[2]) : null; };
+  const mmss = (sec) => { const t = Math.max(0, Math.floor(sec)); return `${Math.floor(t / 60)}:${String(t % 60).padStart(2, "0")}`; };
+  const buildTimeline = (r) => {
+    let prev = 0;
+    const steps = (r.pours || []).map((p) => ({ t: secOf(p.time), to: grams(p.to), action: p.action || "", rate: Number(p.rate) || 0, label: p.to })).filter((p) => p.t !== null).sort((a, b) => a.t - b.t)
+      .map((p) => {
+        const pour = p.to !== null && p.to > prev;
+        const delta = pour ? p.to - prev : 0;
+        const dur = pour ? Math.max(2, delta / (p.rate || 5)) : 0;
+        const step = { ...p, from: prev, delta, dur, pour, end: p.t + dur };
+        if (pour) prev = p.to;
+        return step;
+      });
+    const win = String(r.finish || "").match(/(\d+:\d{2})\s*[–\-]\s*(\d+:\d{2})/);
+    const winStart = win ? secOf(win[1]) : secOf(r.finish);
+    const winEnd = win ? secOf(win[2]) : winStart;
+    const lastEnd = steps.length ? steps[steps.length - 1].end : 0;
+    const end = Math.max(winEnd ?? 0, lastEnd + 45);
+    const water = (t) => { let w = 0; for (const s of steps) { if (!s.pour) continue; if (t >= s.end) w = s.to; else if (t >= s.t) w = s.from + s.delta * (t - s.t) / s.dur; } return w; };
+    // Dripper level: the slurry drains in proportion to how much is in the cone (first-order), tuned so it is nearly empty by the end of the target window.
+    const tau = Math.max(8, ((winEnd ?? end) - lastEnd) / 3);
+    const dt = 0.25, levels = [0]; let peak = 1;
+    for (let t = dt, L = 0; t <= end + dt; t += dt) { L = Math.max(0, L + (water(t) - water(t - dt)) - (L / tau) * dt); levels.push(L); peak = Math.max(peak, L); }
+    const level = (t) => { const i = Math.min(levels.length - 1, Math.max(0, t / dt)); const a = Math.floor(i), f = i - a; return levels[a] + (levels[Math.min(levels.length - 1, a + 1)] - levels[a]) * f; };
+    const drained = (t) => Math.max(0, water(t) - level(t));
+    return { steps, total: prev, winStart, winEnd, end, water, drained, level, peak };
+  };
+  const timer = { tl: null, coffee: null, start: 0, raf: 0, running: false, lock: null, audio: null, cued: new Set() };
+  const beep = (n = 1) => {
+    try {
+      if (!timer.audio) timer.audio = new (window.AudioContext || window.webkitAudioContext)();
+      const ctx = timer.audio; if (ctx.state === "suspended") ctx.resume();
+      for (let i = 0; i < n; i++) {
+        const o = ctx.createOscillator(), g = ctx.createGain(); o.type = "sine"; o.frequency.value = 880;
+        const at = ctx.currentTime + i * 0.18; g.gain.setValueAtTime(0.0001, at); g.gain.exponentialRampToValueAtTime(0.25, at + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, at + 0.14);
+        o.connect(g).connect(ctx.destination); o.start(at); o.stop(at + 0.16);
+      }
+    } catch {}
+  };
+  const keepAwake = async (on) => {
+    try { if (on && "wakeLock" in navigator && !timer.lock) timer.lock = await navigator.wakeLock.request("screen"); if (!on && timer.lock) { await timer.lock.release(); timer.lock = null; } } catch { timer.lock = null; }
+  };
+  document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible" && timer.running) keepAwake(true); });
+  const renderTimerSteps = (activeIdx, doneBefore) => {
+    $("t_steps").innerHTML = timer.tl.steps.map((s, i) => `<li class="${i === activeIdx ? "active" : i < doneBefore ? "done" : ""}"><span class="t">${mmss(s.t)}</span><span class="w">${s.pour ? `→ ${s.to} g` : "—"}</span><span>${esc(s.action)}</span></li>`).join("");
+  };
+  const paintTimer = (t) => {
+    const tl = timer.tl;
+    $("t_time").textContent = mmss(t);
+    const cur = tl.steps.reduce((acc, s, i) => (s.t <= t ? i : acc), -1);
+    const next = tl.steps[cur + 1];
+    const s = tl.steps[cur];
+    const w = tl.water(t);
+    const pouring = s && s.pour && t < s.end;
+    let phase, goal;
+    if (!s) { phase = next ? `Starts with ${next.action.toLowerCase()} at ${mmss(next.t)}` : "Ready"; goal = next && next.pour ? `→ ${next.to} g` : ""; }
+    else if (pouring) { phase = s.action; goal = `→ ${s.to} g · ${s.rate || 5} g/s`; }
+    else if (next) { phase = `Wait · next pour at ${mmss(next.t)} (in ${Math.ceil(next.t - t)} s)`; goal = next.pour ? `next → ${next.to} g` : next.action; }
+    else if (tl.winStart !== null && t < tl.winStart) { phase = `Drawdown · window opens at ${mmss(tl.winStart)} (in ${Math.ceil(tl.winStart - t)} s)`; goal = `${tl.total} g in`; }
+    else if (tl.winEnd !== null && t < tl.winEnd) { phase = `In the target window · ends at ${mmss(tl.winEnd)}`; goal = `${tl.total} g in`; }
+    else { phase = s.pour ? "Done" : s.action; goal = `${tl.total} g in`; }
+    if (s && !s.pour && t >= s.t && (!next || t < next.t)) phase = s.action;
+    if (!timer.running && t === 0 && s) { phase = `Ready · first: ${s.action}`; goal = s.pour ? `→ ${s.to} g` : ""; }
+    $("t_phase").textContent = phase;
+    $("t_water").textContent = `${Math.round(w)} g`;
+    $("t_goal").textContent = goal;
+    $("t_bar").style.width = `${tl.total ? Math.min(100, (w / tl.total) * 100) : 0}%`;
+    $("t_art").classList.toggle("pouring", !!pouring);
+    const inCone = tl.level(t);
+    const h = 70 * Math.min(1, inCone / tl.peak);
+    const level = $("t_level"); level.setAttribute("y", String(104 - h)); level.setAttribute("height", String(h));
+    const cupH = 30 * Math.min(1, tl.total ? tl.drained(t) / tl.total : 0);
+    const cup = $("t_cupfill"); cup.setAttribute("y", String(146 - cupH)); cup.setAttribute("height", String(cupH));
+    $("t_drip").setAttribute("opacity", inCone > 0.5 && t > 5 ? "0.7" : "0");
+    renderTimerSteps(cur >= 0 && (pouring || (s && !s.pour)) ? cur : -1, cur + (s && !(pouring || (s && !s.pour)) ? 1 : 0));
+    // Sound cues: two beeps at each pour, three when the target window opens.
+    if (!timer.running) return;
+    tl.steps.forEach((st, i) => { if (t >= st.t && t < st.t + 1.5 && !timer.cued.has(i)) { timer.cued.add(i); beep(2); } });
+    if (tl.winStart !== null && t >= tl.winStart && !timer.cued.has("win")) { timer.cued.add("win"); beep(3); }
+  };
+  const tick = () => {
+    if (!timer.running) return;
+    const t = (performance.now() - timer.start) / 1000;
+    if (t >= timer.tl.end) { paintTimer(timer.tl.end); finishTimer("Done — enjoy."); return; }
+    paintTimer(t);
+    timer.raf = requestAnimationFrame(tick);
+  };
+  const finishTimer = (note) => {
+    timer.running = false; cancelAnimationFrame(timer.raf); keepAwake(false);
+    $("t_go").hidden = false; $("t_go").textContent = "Start again"; $("t_stop").hidden = true;
+    $("t_note").textContent = note;
+  };
+  const resetTimer = () => {
+    timer.running = false; cancelAnimationFrame(timer.raf); timer.cued = new Set(); timer.start = 0; keepAwake(false);
+    paintTimer(0);
+    $("t_go").hidden = false; $("t_go").textContent = "Start"; $("t_stop").hidden = true;
+    $("t_note").textContent = timer.tl.winEnd !== null ? `Runs to the end of the target window (${mmss(timer.tl.end)}). Two beeps at each pour, three when the window opens; the screen stays awake while it runs.` : "Runs until 45 s after the last pour.";
+  };
+  const openTimer = (id) => {
+    const c = state.coffees.find((x) => x.id === id); if (!c) return;
+    const r = activeRecipe(c);
+    timer.coffee = c; timer.tl = buildTimeline(r);
+    $("t_name").textContent = c.name; $("t_method").textContent = `${methodLabel(r)} · ${r.dose || ""} · ${r.water || ""}`.replace(/( · )+$/, "");
+    resetTimer();
+    $("timerDialog").showModal();
+  };
+  $("t_go").addEventListener("click", () => {
+    timer.cued = new Set(); timer.start = performance.now(); timer.running = true; keepAwake(true);
+    $("t_go").hidden = true; $("t_stop").hidden = false; $("t_note").textContent = "Tap Stop to end the run early.";
+    tick();
+  });
+  $("t_stop").addEventListener("click", () => resetTimer());
+  $("t_close").addEventListener("click", () => { resetTimer(); $("timerDialog").close(); });
+  $("timerDialog").addEventListener("cancel", () => resetTimer());
+  $("timerDialog").addEventListener("click", (e) => { if (e.target === $("timerDialog")) { resetTimer(); $("timerDialog").close(); } });
+
   rail.addEventListener("click", (e) => {
     if (e.target.closest("button.close")) { showView("grid"); return; }
     const info = e.target.closest("button.info");
@@ -840,6 +1022,8 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
     }
     const set = e.target.closest("button.setline");
     if (set) { openSettings(set.dataset.id); return; }
+    const go = e.target.closest("button.start");
+    if (go) { openTimer(go.dataset.start); return; }
     const b = e.target.closest("button.edit"); if (b) openCardEditor(b.dataset.id);
   });
 
