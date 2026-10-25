@@ -1,0 +1,2399 @@
+{
+ "exportedAt": "2026-10-25T04:44:32.739Z",
+ "coffees": [
+  {
+   "id": "colombia-monteverde",
+   "order": 0,
+   "archived": false,
+   "data": {
+    "altitude": "1795-2000 masl",
+    "createdAt": "2026-10-04T00:00:03.000Z",
+    "dose": "30 g / 500 g",
+    "filter": "PURE.F",
+    "filterNote": "or TH-2",
+    "finish": "3:15 – 3:45",
+    "grind": "15",
+    "grindNote": "TH-2: 15 ½",
+    "label": "30 g · NEO",
+    "name": "Colombia Monteverde",
+    "order": 0,
+    "origin": "Tolima, Colombia",
+    "pourTitle": "4 stages, gentle",
+    "pours": [
+     {
+      "action": "Bloom, swirl, wait 40 s",
+      "rate": 6,
+      "time": "0:00",
+      "to": "90 g"
+     },
+     {
+      "action": "Low, gentle spiral",
+      "rate": 5,
+      "time": "0:40",
+      "to": "230 g"
+     },
+     {
+      "action": "Low, gentle spiral",
+      "rate": 5,
+      "time": "1:20",
+      "to": "365 g"
+     },
+     {
+      "action": "Low spiral, then a light swirl",
+      "rate": 5,
+      "time": "2:00",
+      "to": "500 g"
+     }
+    ],
+    "process": "Underwater anaerobic honey",
+    "producer": "Gutierrez Falla Family",
+    "recipes": [
+     {
+      "dose": "30 g / 500 g",
+      "filter": "PURE.F",
+      "filterNote": "or TH-2",
+      "finish": "3:15 – 3:45",
+      "grind": "15",
+      "grindNote": "TH-2: 15 ½",
+      "label": "30 g · NEO",
+      "pourTitle": "4 stages, gentle",
+      "pours": [
+       {
+        "action": "Bloom, swirl, wait 40 s",
+        "rate": 6,
+        "time": "0:00",
+        "to": "90 g"
+       },
+       {
+        "action": "Low, gentle spiral",
+        "rate": 5,
+        "time": "0:40",
+        "to": "230 g"
+       },
+       {
+        "action": "Low, gentle spiral",
+        "rate": 5,
+        "time": "1:20",
+        "to": "365 g"
+       },
+       {
+        "action": "Low spiral, then a light swirl",
+        "rate": 5,
+        "time": "2:00",
+        "to": "500 g"
+       }
+      ],
+      "tip": "Anaerobic honey coffees extract easily, so this runs cooler, coarser and shorter. If it tastes boozy or heavy, go a little coarser or try 91°C. If it's thin and the citrus is sharp, go to 93°C.",
+      "water": "92°C"
+     },
+     {
+      "dose": "15 g / 250 g",
+      "filter": "Hario tabbed",
+      "filterNote": "rinse well",
+      "finish": "2:25 – 2:55",
+      "grind": "15",
+      "grindNote": "same as the NEO · shallow bed",
+      "label": "15 g · V60-01",
+      "pourTitle": "3 stages",
+      "pours": [
+       {
+        "action": "Bloom, swirl, wait 40 s",
+        "rate": 4,
+        "time": "0:00",
+        "to": "45 g"
+       },
+       {
+        "action": "One slow spiral pour",
+        "rate": 4,
+        "time": "0:40",
+        "to": "150 g"
+       },
+       {
+        "action": "Slow spiral, then a light swirl",
+        "rate": 4,
+        "time": "1:20",
+        "to": "250 g"
+       }
+      ],
+      "tip": "Small cone, shallow bed: pour low and centred, keep the kettle slow, and keep water off the paper walls. Under 2:30 and sour means go half a number finer.",
+      "water": "92°C"
+     },
+     {
+      "dose": "20 g / 335 g",
+      "filter": "TH-2",
+      "filterNote": "or PURE.F",
+      "finish": "2:40 – 3:10",
+      "grind": "15 ¼",
+      "grindNote": "¼ number finer than the NEO on TH-2",
+      "label": "20 g · Switch",
+      "pourTitle": "immersion-led: closed, then open",
+      "pours": [
+       {
+        "action": "Switch CLOSED · bloom, swirl, wait 40 s",
+        "rate": 5,
+        "time": "0:00",
+        "to": "60 g"
+       },
+       {
+        "action": "CLOSED · one pour, one gentle stir",
+        "rate": 8,
+        "time": "0:40",
+        "to": "335 g"
+       },
+       {
+        "action": "OPEN · let it drain",
+        "time": "1:45",
+        "to": "—"
+       }
+      ],
+      "tip": "Immersion keeps the fruit jammy and the body round. If it's muddy or heavy, open the switch 15 s earlier or go half a number coarser; if thin, extend the steep to 2:00.",
+      "water": "92°C"
+     },
+     {
+      "dose": "30 g / 500 g",
+      "filter": "TH-2",
+      "filterNote": "or Abaca",
+      "finish": "3:15 – 3:45",
+      "grind": "15 ¼",
+      "grindNote": "¼ number finer than the NEO on TH-2",
+      "label": "30 g · Kinto SCS",
+      "pourTitle": "3 stages, same as a V60",
+      "pours": [
+       {
+        "action": "Bloom, swirl, wait 45 s",
+        "rate": 6,
+        "time": "0:00",
+        "to": "90 g"
+       },
+       {
+        "action": "One steady spiral pour",
+        "rate": 7,
+        "time": "0:45",
+        "to": "300 g"
+       },
+       {
+        "action": "Steady spiral, then a light swirl",
+        "rate": 7,
+        "time": "1:30",
+        "to": "500 g"
+       }
+      ],
+      "tip": "The SCS-S01 has a V60-sized outlet, so it drains like the NEO: same grind, same window. The porcelain holds heat but also steals it, so rinse with plenty of hot water and let it sit a minute before dosing. Expect a slightly softer, rounder cup than the NEO from the smooth wall.",
+      "water": "92°C"
+     },
+     {
+      "dose": "30 g / 500 g",
+      "filter": "TH-2",
+      "filterNote": "or Hario / Abaca",
+      "finish": "3:30 – 4:00",
+      "grind": "15 ½",
+      "grindNote": "medium-coarse · each pour must drain",
+      "label": "30 g · 4:6",
+      "pourTitle": "Kasuya 4:6 · 5 pours every 45 s",
+      "pours": [
+       {
+        "action": "1st of 40% · smaller pour for sweetness, let it drain",
+        "rate": 7,
+        "time": "0:00",
+        "to": "85 g"
+       },
+       {
+        "action": "2nd of 40% · let it drain fully",
+        "rate": 7,
+        "time": "0:45",
+        "to": "200 g"
+       },
+       {
+        "action": "1st of 60% · let it drain",
+        "rate": 7,
+        "time": "1:30",
+        "to": "300 g"
+       },
+       {
+        "action": "2nd of 60% · let it drain",
+        "rate": 7,
+        "time": "2:15",
+        "to": "400 g"
+       },
+       {
+        "action": "3rd of 60% · let it drain",
+        "rate": 7,
+        "time": "3:00",
+        "to": "500 g"
+       }
+      ],
+      "tip": "Set up for sweetness with an 85/115 first 40%. Go to 100/100 if it reads flat, or 70/130 for even more sweetness. For a stronger cup, make the 60% two pours of 150 g. If a pour hasn't drained by the next one, grind coarser.",
+      "water": "90°C"
+     }
+    ],
+    "roasted": "",
+    "roaster": "Common Man Coffee Roasters",
+    "tasting": "Citrus, fig, chamomile",
+    "tip": "Anaerobic honey coffees extract easily, so this runs cooler, coarser and shorter. If it tastes boozy or heavy, go a little coarser or try 91°C. If it's thin and the citrus is sharp, go to 93°C.",
+    "variety": "Java",
+    "water": "92°C"
+   }
+  },
+  {
+   "id": "ethiopia-chelbesa",
+   "order": 1,
+   "archived": false,
+   "data": {
+    "altitude": "2150–2200 masl",
+    "createdAt": "2026-10-08T00:00:00.000Z",
+    "dose": "30 g / 500 g",
+    "filter": "PURE.F",
+    "filterNote": "for clarity",
+    "finish": "3:30 – 4:00",
+    "grind": "14 ¾",
+    "grindNote": "TH-2: 15 ¼",
+    "name": "Ethiopia Chelbesa",
+    "order": 1,
+    "origin": "Chelbesa, Gedeb, Ethiopia",
+    "pourTitle": "5 stages, gentle",
+    "pours": [
+     {
+      "action": "Bloom, swirl, wait 45 s",
+      "rate": 6,
+      "time": "0:00",
+      "to": "90 g"
+     },
+     {
+      "action": "Low, gentle spiral",
+      "rate": 5,
+      "time": "0:45",
+      "to": "210 g"
+     },
+     {
+      "action": "Low, gentle spiral",
+      "rate": 5,
+      "time": "1:15",
+      "to": "315 g"
+     },
+     {
+      "action": "Low, gentle spiral",
+      "rate": 5,
+      "time": "1:45",
+      "to": "415 g"
+     },
+     {
+      "action": "Gentle swirl to flatten the bed",
+      "rate": 5,
+      "time": "2:15",
+      "to": "500 g"
+     }
+    ],
+    "process": "Washed",
+    "producer": "",
+    "recipes": [
+     {
+      "dose": "30 g / 500 g",
+      "filter": "PURE.F",
+      "filterNote": "for clarity",
+      "finish": "3:30 – 4:00",
+      "grind": "14 ¾",
+      "grindNote": "TH-2: 15 ¼",
+      "label": "30 g · NEO",
+      "pourTitle": "5 stages, gentle",
+      "pours": [
+       {
+        "action": "Bloom, swirl, wait 45 s",
+        "rate": 6,
+        "time": "0:00",
+        "to": "90 g"
+       },
+       {
+        "action": "Low, gentle spiral",
+        "rate": 5,
+        "time": "0:45",
+        "to": "210 g"
+       },
+       {
+        "action": "Low, gentle spiral",
+        "rate": 5,
+        "time": "1:15",
+        "to": "315 g"
+       },
+       {
+        "action": "Low, gentle spiral",
+        "rate": 5,
+        "time": "1:45",
+        "to": "415 g"
+       },
+       {
+        "action": "Gentle swirl to flatten the bed",
+        "rate": 5,
+        "time": "2:15",
+        "to": "500 g"
+       }
+      ],
+      "tip": "Dialed in 23 Oct: 14 ¾ on PURE.F at 94°C. Expect a floral, tea-like cup with bright lemon. If the florals turn perfumey or the finish is drying, drop to 94°C before changing the grind.",
+      "water": "94°C"
+     },
+     {
+      "dose": "15 g / 250 g",
+      "filter": "Hario tabbed",
+      "filterNote": "rinse well",
+      "finish": "2:10 – 2:40",
+      "grind": "14 ½",
+      "grindNote": "¼ number finer than the NEO · shallow bed",
+      "label": "15 g · V60-01",
+      "pourTitle": "4 stages, gentle",
+      "pours": [
+       {
+        "action": "Bloom, swirl, wait 40 s",
+        "rate": 4,
+        "time": "0:00",
+        "to": "45 g"
+       },
+       {
+        "action": "Slow spiral, stay off the walls",
+        "rate": 4,
+        "time": "0:40",
+        "to": "125 g"
+       },
+       {
+        "action": "Slow spiral",
+        "rate": 4,
+        "time": "1:10",
+        "to": "190 g"
+       },
+       {
+        "action": "Light swirl to flatten the bed",
+        "rate": 4,
+        "time": "1:40",
+        "to": "250 g"
+       }
+      ],
+      "tip": "Small cone, shallow bed: pour low and centred, keep the kettle slow, and keep water off the paper walls. Under 2:30 and sour means go half a number finer.",
+      "water": "94°C"
+     },
+     {
+      "dose": "20 g / 335 g",
+      "filter": "PURE.F",
+      "filterNote": "for clarity",
+      "finish": "2:55 – 3:25",
+      "grind": "14 ¾",
+      "grindNote": "same as the NEO",
+      "label": "20 g · Switch",
+      "pourTitle": "hybrid: open, then closed",
+      "pours": [
+       {
+        "action": "Switch OPEN · bloom, swirl, wait 35 s",
+        "rate": 5,
+        "time": "0:00",
+        "to": "50 g"
+       },
+       {
+        "action": "OPEN · steady spiral",
+        "rate": 6,
+        "time": "0:35",
+        "to": "200 g"
+       },
+       {
+        "action": "CLOSE · pour the rest, cooler kettle if you have one",
+        "rate": 8,
+        "time": "1:10",
+        "to": "335 g"
+       },
+       {
+        "action": "OPEN · let it drain, light swirl",
+        "time": "2:10",
+        "to": "—"
+       }
+      ],
+      "tip": "Open-switch pours do the bright, clean extraction; the closed steep at the end adds sweetness without harshness. If it tastes flat, open the switch 15 s earlier; if sharp, drop the second kettle to 85°C.",
+      "water": "94°C"
+     },
+     {
+      "dose": "30 g / 500 g",
+      "filter": "TH-2",
+      "filterNote": "or Abaca",
+      "finish": "3:30 – 4:00",
+      "grind": "15 ¼",
+      "grindNote": "same as the NEO on TH-2",
+      "label": "30 g · Kinto SCS",
+      "pourTitle": "3 stages, same as a V60",
+      "pours": [
+       {
+        "action": "Bloom, swirl, wait 45 s",
+        "rate": 6,
+        "time": "0:00",
+        "to": "90 g"
+       },
+       {
+        "action": "One steady spiral pour",
+        "rate": 7,
+        "time": "0:45",
+        "to": "300 g"
+       },
+       {
+        "action": "Steady spiral, then a light swirl",
+        "rate": 7,
+        "time": "1:30",
+        "to": "500 g"
+       }
+      ],
+      "tip": "The SCS-S01 has a V60-sized outlet, so it drains like the NEO: same grind, same window. The porcelain holds heat but also steals it, so rinse with plenty of hot water and let it sit a minute before dosing. Expect a slightly softer, rounder cup than the NEO from the smooth wall.",
+      "water": "94°C"
+     },
+     {
+      "dose": "30 g / 500 g",
+      "filter": "TH-2",
+      "filterNote": "or Hario / Abaca",
+      "finish": "3:30 – 4:00",
+      "grind": "15 ¼",
+      "grindNote": "medium-coarse · each pour must drain",
+      "label": "30 g · 4:6",
+      "pourTitle": "Kasuya 4:6 · 5 pours every 45 s",
+      "pours": [
+       {
+        "action": "1st of 40% · pour, let it drain fully",
+        "rate": 7,
+        "time": "0:00",
+        "to": "100 g"
+       },
+       {
+        "action": "2nd of 40% · let it drain fully",
+        "rate": 7,
+        "time": "0:45",
+        "to": "200 g"
+       },
+       {
+        "action": "1st of 60% · let it drain",
+        "rate": 7,
+        "time": "1:30",
+        "to": "300 g"
+       },
+       {
+        "action": "2nd of 60% · let it drain",
+        "rate": 7,
+        "time": "2:15",
+        "to": "400 g"
+       },
+       {
+        "action": "3rd of 60% · let it drain",
+        "rate": 7,
+        "time": "3:00",
+        "to": "500 g"
+       }
+      ],
+      "tip": "The first two pours set the balance: 100/100 is neutral; 115/85 pushes acidity, 85/115 pushes sweetness. The last three set strength: two pours of 150 g for stronger, four of 75 g for lighter. If a pour hasn't drained by the next one, grind coarser.",
+      "water": "92°C"
+     }
+    ],
+    "roasted": "2026-09-30",
+    "roaster": "Flip Coffee Roasters",
+    "tasting": "Lemon zest, jasmine, Earl Grey",
+    "tip": "Dialed in 23 Oct: 14 ¾ on PURE.F at 94°C. Expect a floral, tea-like cup with bright lemon. If the florals turn perfumey or the finish is drying, drop to 94°C before changing the grind.",
+    "variety": "Heirloom varieties",
+    "water": "94°C"
+   }
+  },
+  {
+   "id": "bolivia-los-rodriguez",
+   "order": 2,
+   "archived": false,
+   "data": {
+    "altitude": "1500–1700 masl",
+    "createdAt": "2026-10-08T00:00:01.000Z",
+    "dose": "30 g / 500 g",
+    "filter": "TH-2",
+    "filterNote": "for body",
+    "finish": "3:30 – 4:00",
+    "grind": "14 ½",
+    "grindNote": "PURE.F: 14",
+    "name": "Bolivia Los Rodriguez",
+    "order": 2,
+    "origin": "Caranavi, La Paz, Bolivia",
+    "pourTitle": "3 stages, bigger pours",
+    "pours": [
+     {
+      "action": "Bloom, swirl, wait 45 s",
+      "rate": 6,
+      "time": "0:00",
+      "to": "90 g"
+     },
+     {
+      "action": "One steady spiral pour",
+      "rate": 7,
+      "time": "0:45",
+      "to": "300 g"
+     },
+     {
+      "action": "Steady spiral, then swirl",
+      "rate": 7,
+      "time": "1:30",
+      "to": "500 g"
+     }
+    ],
+    "process": "Coco natural",
+    "producer": "Los Rodriguez",
+    "recipes": [
+     {
+      "dose": "30 g / 500 g",
+      "filter": "TH-2",
+      "filterNote": "for body",
+      "finish": "3:30 – 4:00",
+      "grind": "14 ½",
+      "grindNote": "PURE.F: 14",
+      "label": "30 g · NEO",
+      "pourTitle": "3 stages, bigger pours",
+      "pours": [
+       {
+        "action": "Bloom, swirl, wait 45 s",
+        "rate": 6,
+        "time": "0:00",
+        "to": "90 g"
+       },
+       {
+        "action": "One steady spiral pour",
+        "rate": 7,
+        "time": "0:45",
+        "to": "300 g"
+       },
+       {
+        "action": "Steady spiral, then swirl",
+        "rate": 7,
+        "time": "1:30",
+        "to": "500 g"
+       }
+      ],
+      "tip": "A natural at lower altitude extracts easily, so this runs cooler and a touch coarser. Expect jammy dark fruit and a chocolatey, round finish. If it tastes boozy or heavy, go coarser or try 91°C; if it's flat, bring the water up to 93°C before grinding half a number finer.",
+      "water": "92°C"
+     },
+     {
+      "dose": "15 g / 250 g",
+      "filter": "Hario tabbed",
+      "filterNote": "rinse well",
+      "finish": "2:25 – 2:55",
+      "grind": "14 ¼",
+      "grindNote": "¼ number finer than the NEO · shallow bed",
+      "label": "15 g · V60-01",
+      "pourTitle": "3 stages",
+      "pours": [
+       {
+        "action": "Bloom, swirl, wait 40 s",
+        "rate": 4,
+        "time": "0:00",
+        "to": "45 g"
+       },
+       {
+        "action": "One slow spiral pour",
+        "rate": 4,
+        "time": "0:40",
+        "to": "150 g"
+       },
+       {
+        "action": "Slow spiral, then a light swirl",
+        "rate": 4,
+        "time": "1:20",
+        "to": "250 g"
+       }
+      ],
+      "tip": "Small cone, shallow bed: pour low and centred, keep the kettle slow, and keep water off the paper walls. Under 2:30 and sour means go half a number finer.",
+      "water": "92°C"
+     },
+     {
+      "dose": "20 g / 335 g",
+      "filter": "TH-2",
+      "filterNote": "for body",
+      "finish": "2:40 – 3:10",
+      "grind": "14 ½",
+      "grindNote": "same as the NEO",
+      "label": "20 g · Switch",
+      "pourTitle": "immersion-led: closed, then open",
+      "pours": [
+       {
+        "action": "Switch CLOSED · bloom, swirl, wait 40 s",
+        "rate": 5,
+        "time": "0:00",
+        "to": "60 g"
+       },
+       {
+        "action": "CLOSED · one pour, one gentle stir",
+        "rate": 8,
+        "time": "0:40",
+        "to": "335 g"
+       },
+       {
+        "action": "OPEN · let it drain",
+        "time": "1:45",
+        "to": "—"
+       }
+      ],
+      "tip": "Immersion keeps the fruit jammy and the body round. If it's muddy or heavy, open the switch 15 s earlier or go half a number coarser; if thin, extend the steep to 2:00.",
+      "water": "92°C"
+     },
+     {
+      "dose": "30 g / 500 g",
+      "filter": "TH-2",
+      "filterNote": "or Abaca",
+      "finish": "3:30 – 4:00",
+      "grind": "14 ½",
+      "grindNote": "same as the NEO",
+      "label": "30 g · Kinto SCS",
+      "pourTitle": "3 stages, same as a V60",
+      "pours": [
+       {
+        "action": "Bloom, swirl, wait 45 s",
+        "rate": 6,
+        "time": "0:00",
+        "to": "90 g"
+       },
+       {
+        "action": "One steady spiral pour",
+        "rate": 7,
+        "time": "0:45",
+        "to": "300 g"
+       },
+       {
+        "action": "Steady spiral, then a light swirl",
+        "rate": 7,
+        "time": "1:30",
+        "to": "500 g"
+       }
+      ],
+      "tip": "The SCS-S01 has a V60-sized outlet, so it drains like the NEO: same grind, same window. The porcelain holds heat but also steals it, so rinse with plenty of hot water and let it sit a minute before dosing. Expect a slightly softer, rounder cup than the NEO from the smooth wall.",
+      "water": "92°C"
+     },
+     {
+      "dose": "30 g / 500 g",
+      "filter": "TH-2",
+      "filterNote": "or Hario / Abaca",
+      "finish": "3:30 – 4:00",
+      "grind": "15 ½",
+      "grindNote": "medium-coarse · each pour must drain",
+      "label": "30 g · 4:6",
+      "pourTitle": "Kasuya 4:6 · 5 pours every 45 s",
+      "pours": [
+       {
+        "action": "1st of 40% · smaller pour for sweetness, let it drain",
+        "rate": 7,
+        "time": "0:00",
+        "to": "85 g"
+       },
+       {
+        "action": "2nd of 40% · let it drain fully",
+        "rate": 7,
+        "time": "0:45",
+        "to": "200 g"
+       },
+       {
+        "action": "1st of 60% · let it drain",
+        "rate": 7,
+        "time": "1:30",
+        "to": "300 g"
+       },
+       {
+        "action": "2nd of 60% · let it drain",
+        "rate": 7,
+        "time": "2:15",
+        "to": "400 g"
+       },
+       {
+        "action": "3rd of 60% · let it drain",
+        "rate": 7,
+        "time": "3:00",
+        "to": "500 g"
+       }
+      ],
+      "tip": "Set up for sweetness with an 85/115 first 40%. Go to 100/100 if it reads flat, or 70/130 for even more sweetness. For a stronger cup, make the 60% two pours of 150 g. If a pour hasn't drained by the next one, grind coarser.",
+      "water": "90°C"
+     }
+    ],
+    "roasted": "2026-09-30",
+    "roaster": "Flip Coffee Roasters",
+    "tasting": "Blackberry, red grape, chocolate liqueur, English Breakfast tea",
+    "tip": "A natural at lower altitude extracts easily, so this runs cooler and a touch coarser. Expect jammy dark fruit and a chocolatey, round finish. If it tastes boozy or heavy, go coarser or try 91°C; if it's flat, bring the water up to 93°C before grinding half a number finer.",
+    "variety": "Caturra",
+    "water": "92°C"
+   }
+  },
+  {
+   "id": "costa-rica-aquiares",
+   "order": 3,
+   "archived": false,
+   "data": {
+    "altitude": "1200–1400 masl",
+    "createdAt": "2026-10-15T00:00:00.000Z",
+    "dose": "30 g / 500 g",
+    "filter": "TH-2",
+    "filterNote": "for body",
+    "finish": "3:30 – 4:00",
+    "grind": "15",
+    "grindNote": "PURE.F: 14 ½",
+    "name": "Costa Rica Aquiares Estate",
+    "order": 3,
+    "origin": "Turrialba, Costa Rica",
+    "pourTitle": "3 stages, bigger pours",
+    "pours": [
+     {
+      "action": "Bloom, swirl, wait 45 s",
+      "rate": 6,
+      "time": "0:00",
+      "to": "90 g"
+     },
+     {
+      "action": "One steady spiral pour",
+      "rate": 7,
+      "time": "0:45",
+      "to": "300 g"
+     },
+     {
+      "action": "Steady spiral, then swirl",
+      "rate": 7,
+      "time": "1:30",
+      "to": "500 g"
+     }
+    ],
+    "process": "Natural",
+    "producer": "Aquiares Estate",
+    "recipes": [
+     {
+      "dose": "30 g / 500 g",
+      "filter": "TH-2",
+      "filterNote": "for body",
+      "finish": "3:30 – 4:00",
+      "grind": "15",
+      "grindNote": "PURE.F: 14 ½",
+      "label": "30 g · NEO",
+      "pourTitle": "3 stages, bigger pours",
+      "pours": [
+       {
+        "action": "Bloom, swirl, wait 45 s",
+        "rate": 6,
+        "time": "0:00",
+        "to": "90 g"
+       },
+       {
+        "action": "One steady spiral pour",
+        "rate": 7,
+        "time": "0:45",
+        "to": "300 g"
+       },
+       {
+        "action": "Steady spiral, then swirl",
+        "rate": 7,
+        "time": "1:30",
+        "to": "500 g"
+       }
+      ],
+      "tip": "A low-grown natural extracts easily, so it runs cool. Expect grape and chocolate with a gentle floral top. If it tastes boozy or heavy, go coarser or try 91°C; if flat, 93°C before grinding half a number finer.",
+      "water": "92°C"
+     },
+     {
+      "dose": "15 g / 250 g",
+      "filter": "Hario tabbed",
+      "filterNote": "rinse well",
+      "finish": "2:25 – 2:55",
+      "grind": "14 ½",
+      "grindNote": "½ number finer than the NEO · shallow bed",
+      "label": "15 g · V60-01",
+      "pourTitle": "3 stages",
+      "pours": [
+       {
+        "action": "Bloom, swirl, wait 40 s",
+        "rate": 4,
+        "time": "0:00",
+        "to": "45 g"
+       },
+       {
+        "action": "One slow spiral pour",
+        "rate": 4,
+        "time": "0:40",
+        "to": "150 g"
+       },
+       {
+        "action": "Slow spiral, then a light swirl",
+        "rate": 4,
+        "time": "1:20",
+        "to": "250 g"
+       }
+      ],
+      "tip": "Small cone, shallow bed: pour low and centred, keep the kettle slow, and keep water off the paper walls. Under 2:55 and sour means go half a number finer.",
+      "water": "92°C"
+     },
+     {
+      "dose": "20 g / 335 g",
+      "filter": "TH-2",
+      "filterNote": "for body",
+      "finish": "2:40 – 3:10",
+      "grind": "15",
+      "grindNote": "same as the NEO",
+      "label": "20 g · Switch",
+      "pourTitle": "immersion-led: closed, then open",
+      "pours": [
+       {
+        "action": "Switch CLOSED · bloom, swirl, wait 40 s",
+        "rate": 5,
+        "time": "0:00",
+        "to": "65 g"
+       },
+       {
+        "action": "CLOSED · one pour, one gentle stir",
+        "rate": 8,
+        "time": "0:40",
+        "to": "335 g"
+       },
+       {
+        "action": "OPEN · let it drain",
+        "time": "1:45",
+        "to": "—"
+       }
+      ],
+      "tip": "Immersion keeps the grape jammy and the chocolate round. If it's muddy or heavy, open the switch 15 s earlier or go half a number coarser; if thin, extend the steep to 2:00.",
+      "water": "92°C"
+     },
+     {
+      "dose": "30 g / 500 g",
+      "filter": "TH-2",
+      "filterNote": "or Abaca",
+      "finish": "3:30 – 4:00",
+      "grind": "15",
+      "grindNote": "same as the NEO",
+      "label": "30 g · Kinto SCS",
+      "pourTitle": "3 stages, same as a V60",
+      "pours": [
+       {
+        "action": "Bloom, swirl, wait 45 s",
+        "rate": 6,
+        "time": "0:00",
+        "to": "90 g"
+       },
+       {
+        "action": "One steady spiral pour",
+        "rate": 7,
+        "time": "0:45",
+        "to": "300 g"
+       },
+       {
+        "action": "Steady spiral, then a light swirl",
+        "rate": 7,
+        "time": "1:30",
+        "to": "500 g"
+       }
+      ],
+      "tip": "The SCS-S01 has a V60-sized outlet, so it drains like the NEO: same grind, same window. The porcelain holds heat but also steals it, so rinse with plenty of hot water and let it sit a minute before dosing. Expect a slightly softer, rounder cup than the NEO from the smooth wall.",
+      "water": "92°C"
+     },
+     {
+      "dose": "30 g / 500 g",
+      "filter": "TH-2",
+      "filterNote": "or Hario / Abaca",
+      "finish": "3:30 – 4:00",
+      "grind": "15 ½",
+      "grindNote": "medium-coarse · each pour must drain",
+      "label": "30 g · 4:6",
+      "pourTitle": "Kasuya 4:6 · 5 pours every 45 s",
+      "pours": [
+       {
+        "action": "1st of 40% · smaller pour for sweetness, let it drain",
+        "rate": 7,
+        "time": "0:00",
+        "to": "85 g"
+       },
+       {
+        "action": "2nd of 40% · let it drain fully",
+        "rate": 7,
+        "time": "0:45",
+        "to": "200 g"
+       },
+       {
+        "action": "1st of 60% · let it drain",
+        "rate": 7,
+        "time": "1:30",
+        "to": "300 g"
+       },
+       {
+        "action": "2nd of 60% · let it drain",
+        "rate": 7,
+        "time": "2:15",
+        "to": "400 g"
+       },
+       {
+        "action": "3rd of 60% · let it drain",
+        "rate": 7,
+        "time": "3:00",
+        "to": "500 g"
+       }
+      ],
+      "tip": "Set up for sweetness with an 85/115 first 40%. Go to 100/100 if it reads flat, or 70/130 for even more sweetness. For a stronger cup, make the 60% two pours of 150 g. If a pour hasn't drained by the next one, grind coarser.",
+      "water": "90°C"
+     }
+    ],
+    "roasted": "2026-10-12",
+    "roaster": "Apartment Coffee",
+    "tasting": "Red grape, sweet chocolate, floral",
+    "tip": "A low-grown natural extracts easily, so it runs cool. Expect grape and chocolate with a gentle floral top. If it tastes boozy or heavy, go coarser or try 91°C; if flat, 93°C before grinding half a number finer.",
+    "variety": "F1 Centroamericano",
+    "water": "92°C"
+   }
+  },
+  {
+   "id": "guatemala-la-joya",
+   "order": 4,
+   "archived": false,
+   "data": {
+    "altitude": "1850 masl",
+    "createdAt": "2026-10-15T00:00:00.000Z",
+    "dose": "30 g / 500 g",
+    "filter": "TH-2",
+    "filterNote": "for body",
+    "finish": "3:30 – 4:00",
+    "grind": "15",
+    "grindNote": "PURE.F: 14 ½",
+    "name": "Guatemala La Joya",
+    "order": 4,
+    "origin": "San Martín Jilotepeque, Chimaltenango",
+    "pourTitle": "3 stages, bigger pours",
+    "pours": [
+     {
+      "action": "Bloom, swirl, wait 45 s",
+      "rate": 6,
+      "time": "0:00",
+      "to": "90 g"
+     },
+     {
+      "action": "One steady spiral pour",
+      "rate": 7,
+      "time": "0:45",
+      "to": "300 g"
+     },
+     {
+      "action": "Steady spiral, then swirl",
+      "rate": 7,
+      "time": "1:30",
+      "to": "500 g"
+     }
+    ],
+    "process": "Natural",
+    "producer": "Solano Family",
+    "recipes": [
+     {
+      "dose": "30 g / 500 g",
+      "filter": "TH-2",
+      "filterNote": "for body",
+      "finish": "3:30 – 4:00",
+      "grind": "15",
+      "grindNote": "PURE.F: 14 ½",
+      "label": "30 g · NEO",
+      "pourTitle": "3 stages, bigger pours",
+      "pours": [
+       {
+        "action": "Bloom, swirl, wait 45 s",
+        "rate": 6,
+        "time": "0:00",
+        "to": "90 g"
+       },
+       {
+        "action": "One steady spiral pour",
+        "rate": 7,
+        "time": "0:45",
+        "to": "300 g"
+       },
+       {
+        "action": "Steady spiral, then swirl",
+        "rate": 7,
+        "time": "1:30",
+        "to": "500 g"
+       }
+      ],
+      "tip": "A high-grown natural with a cleaner, brighter profile than most, so it takes a touch more heat than the other naturals. Expect crisp apple and lychee over cane sugar. If it leans winey, drop to 92°C; if it's sharp or thin, go half a number finer.",
+      "water": "93°C"
+     },
+     {
+      "dose": "15 g / 250 g",
+      "filter": "Hario tabbed",
+      "filterNote": "rinse well",
+      "finish": "2:25 – 2:55",
+      "grind": "14 ¾",
+      "grindNote": "¼ number finer than the NEO · shallow bed",
+      "label": "15 g · V60-01",
+      "pourTitle": "3 stages",
+      "pours": [
+       {
+        "action": "Bloom, swirl, wait 40 s",
+        "rate": 4,
+        "time": "0:00",
+        "to": "45 g"
+       },
+       {
+        "action": "One slow spiral pour",
+        "rate": 4,
+        "time": "0:40",
+        "to": "150 g"
+       },
+       {
+        "action": "Slow spiral, then a light swirl",
+        "rate": 4,
+        "time": "1:20",
+        "to": "250 g"
+       }
+      ],
+      "tip": "Small cone, shallow bed: pour low and centred, keep the kettle slow, and keep water off the paper walls. Under 2:55 and sour means go half a number finer.",
+      "water": "93°C"
+     },
+     {
+      "dose": "20 g / 335 g",
+      "filter": "TH-2",
+      "filterNote": "for body",
+      "finish": "2:40 – 3:10",
+      "grind": "15",
+      "grindNote": "same as the NEO",
+      "label": "20 g · Switch",
+      "pourTitle": "immersion-led: closed, then open",
+      "pours": [
+       {
+        "action": "Switch CLOSED · bloom, swirl, wait 40 s",
+        "rate": 5,
+        "time": "0:00",
+        "to": "65 g"
+       },
+       {
+        "action": "CLOSED · one pour, one gentle stir",
+        "rate": 8,
+        "time": "0:40",
+        "to": "335 g"
+       },
+       {
+        "action": "OPEN · let it drain",
+        "time": "1:45",
+        "to": "—"
+       }
+      ],
+      "tip": "Immersion rounds the apple and lychee into something more like a juice. If it's muddy, open the switch 15 s earlier; if it reads flat, raise the water to 94°C before changing the grind.",
+      "water": "93°C"
+     },
+     {
+      "dose": "30 g / 500 g",
+      "filter": "TH-2",
+      "filterNote": "or Abaca",
+      "finish": "3:30 – 4:00",
+      "grind": "15",
+      "grindNote": "same as the NEO",
+      "label": "30 g · Kinto SCS",
+      "pourTitle": "3 stages, same as a V60",
+      "pours": [
+       {
+        "action": "Bloom, swirl, wait 45 s",
+        "rate": 6,
+        "time": "0:00",
+        "to": "90 g"
+       },
+       {
+        "action": "One steady spiral pour",
+        "rate": 7,
+        "time": "0:45",
+        "to": "300 g"
+       },
+       {
+        "action": "Steady spiral, then a light swirl",
+        "rate": 7,
+        "time": "1:30",
+        "to": "500 g"
+       }
+      ],
+      "tip": "The SCS-S01 has a V60-sized outlet, so it drains like the NEO: same grind, same window. The porcelain holds heat but also steals it, so rinse with plenty of hot water and let it sit a minute before dosing. Expect a slightly softer, rounder cup than the NEO from the smooth wall.",
+      "water": "93°C"
+     },
+     {
+      "dose": "30 g / 500 g",
+      "filter": "TH-2",
+      "filterNote": "or Hario / Abaca",
+      "finish": "3:30 – 4:00",
+      "grind": "15 ¼",
+      "grindNote": "medium-coarse · each pour must drain",
+      "label": "30 g · 4:6",
+      "pourTitle": "Kasuya 4:6 · 5 pours every 45 s",
+      "pours": [
+       {
+        "action": "1st of 40% · smaller pour for sweetness, let it drain",
+        "rate": 7,
+        "time": "0:00",
+        "to": "85 g"
+       },
+       {
+        "action": "2nd of 40% · let it drain fully",
+        "rate": 7,
+        "time": "0:45",
+        "to": "200 g"
+       },
+       {
+        "action": "1st of 60% · let it drain",
+        "rate": 7,
+        "time": "1:30",
+        "to": "300 g"
+       },
+       {
+        "action": "2nd of 60% · let it drain",
+        "rate": 7,
+        "time": "2:15",
+        "to": "400 g"
+       },
+       {
+        "action": "3rd of 60% · let it drain",
+        "rate": 7,
+        "time": "3:00",
+        "to": "500 g"
+       }
+      ],
+      "tip": "Set up for sweetness with an 85/115 first 40%. Go to 100/100 if it reads flat, or 70/130 for even more sweetness. For a stronger cup, make the 60% two pours of 150 g. If a pour hasn't drained by the next one, grind coarser.",
+      "water": "91°C"
+     }
+    ],
+    "roasted": "2026-10-13",
+    "roaster": "Apartment Coffee",
+    "tasting": "Red apple, lychee, cane sugar",
+    "tip": "A high-grown natural with a cleaner, brighter profile than most, so it takes a touch more heat than the other naturals. Expect crisp apple and lychee over cane sugar. If it leans winey, drop to 92°C; if it's sharp or thin, go half a number finer.",
+    "variety": "Red Bourbon",
+    "water": "93°C"
+   }
+  },
+  {
+   "id": "uganda-jam-sessions",
+   "order": 5,
+   "archived": false,
+   "data": {
+    "altitude": "1500–3500 masl",
+    "createdAt": "2026-10-23T00:00:00.000Z",
+    "dose": "30 g / 500 g",
+    "filter": "TH-2",
+    "filterNote": "or Abaca",
+    "finish": "3:15 – 3:45",
+    "grind": "15 ½",
+    "grindNote": "PURE.F: 15",
+    "name": "Uganda Jam Sessions",
+    "order": 5,
+    "origin": "Bulambuli, Mount Elgon, Uganda",
+    "pourTitle": "3 stages, bigger pours",
+    "pours": [
+     {
+      "action": "Bloom, swirl, wait 40 s",
+      "rate": 6,
+      "time": "0:00",
+      "to": "90 g"
+     },
+     {
+      "action": "One steady spiral pour",
+      "rate": 7,
+      "time": "0:40",
+      "to": "300 g"
+     },
+     {
+      "action": "Steady spiral, then swirl",
+      "rate": 7,
+      "time": "1:20",
+      "to": "500 g"
+     }
+    ],
+    "process": "Natural",
+    "producer": "Bulambuli Washing Station (NKG Bloom)",
+    "recipes": [
+     {
+      "dose": "30 g / 500 g",
+      "filter": "TH-2",
+      "filterNote": "or Abaca",
+      "finish": "3:15 – 3:45",
+      "grind": "15 ½",
+      "grindNote": "PURE.F: 15",
+      "label": "30 g · NEO",
+      "pourTitle": "3 stages, bigger pours",
+      "pours": [
+       {
+        "action": "Bloom, swirl, wait 40 s",
+        "rate": 6,
+        "time": "0:00",
+        "to": "90 g"
+       },
+       {
+        "action": "One steady spiral pour",
+        "rate": 7,
+        "time": "0:40",
+        "to": "300 g"
+       },
+       {
+        "action": "Steady spiral, then swirl",
+        "rate": 7,
+        "time": "1:20",
+        "to": "500 g"
+       }
+      ],
+      "tip": "Medium-dark natural brewed at Round Boy’s recommended 93°C, pulled back to 92°C for the longer V60 drawdown (their guide: 15 g : 225 g, about 2:10). It gives up its sugars easily, so the grind runs half a number coarser than the light roasts. Expect jammy plum and raspberry over cocoa. If it turns ashy or bitter on the longer V60 drawdown, drop to 90°C before touching the grind; if thin, go half a number finer.",
+      "water": "92°C"
+     },
+     {
+      "dose": "15 g / 250 g",
+      "filter": "Hario tabbed",
+      "filterNote": "rinse well",
+      "finish": "2:25 – 2:55",
+      "grind": "15 ¼",
+      "grindNote": "¼ number finer than the NEO · shallow bed",
+      "label": "15 g · V60-01",
+      "pourTitle": "3 stages",
+      "pours": [
+       {
+        "action": "Bloom, swirl, wait 35 s",
+        "rate": 4,
+        "time": "0:00",
+        "to": "45 g"
+       },
+       {
+        "action": "One slow spiral pour",
+        "rate": 4,
+        "time": "0:35",
+        "to": "150 g"
+       },
+       {
+        "action": "Slow spiral, then a light swirl",
+        "rate": 4,
+        "time": "1:10",
+        "to": "250 g"
+       }
+      ],
+      "tip": "Small cone, shallow bed: pour low and centred and keep the kettle slow. A darker roast blooms hard, so give it the full 35 s. Under 2:25 and thin means half a number finer; bitter means drop to 90°C.",
+      "water": "92°C"
+     },
+     {
+      "dose": "20 g / 335 g",
+      "filter": "TH-2",
+      "filterNote": "for body",
+      "finish": "2:50 – 3:20",
+      "grind": "15 ½",
+      "grindNote": "same as the NEO",
+      "label": "20 g · Switch",
+      "pourTitle": "immersion-led: closed, then open",
+      "pours": [
+       {
+        "action": "Switch CLOSED · bloom, swirl, wait 40 s",
+        "rate": 5,
+        "time": "0:00",
+        "to": "65 g"
+       },
+       {
+        "action": "CLOSED · one pour, one gentle stir",
+        "rate": 8,
+        "time": "0:40",
+        "to": "335 g"
+       },
+       {
+        "action": "OPEN · let it drain",
+        "time": "1:30",
+        "to": "—"
+       }
+      ],
+      "tip": "Immersion keeps the jam round and the cocoa soft; the shorter steep suits the darker roast. If it’s heavy or muddy, open the switch 15 s earlier; if bitter, drop to 90°C; if flat, go half a number finer.",
+      "water": "91°C"
+     },
+     {
+      "dose": "30 g / 500 g",
+      "filter": "TH-2",
+      "filterNote": "or Abaca",
+      "finish": "3:15 – 3:45",
+      "grind": "15 ½",
+      "grindNote": "same as the NEO",
+      "label": "30 g · Kinto SCS",
+      "pourTitle": "3 stages, same as a V60",
+      "pours": [
+       {
+        "action": "Bloom, swirl, wait 40 s",
+        "rate": 6,
+        "time": "0:00",
+        "to": "90 g"
+       },
+       {
+        "action": "One steady spiral pour",
+        "rate": 7,
+        "time": "0:40",
+        "to": "300 g"
+       },
+       {
+        "action": "Steady spiral, then a light swirl",
+        "rate": 7,
+        "time": "1:20",
+        "to": "500 g"
+       }
+      ],
+      "tip": "The SCS-S01 drains like the NEO: same grind, same window. Preheat it well, since the darker roast is more sensitive to a cold brewer turning the cup flat. Expect a slightly softer, rounder cup than the NEO.",
+      "water": "92°C"
+     },
+     {
+      "dose": "30 g / 500 g",
+      "filter": "TH-2",
+      "filterNote": "or Hario / Abaca",
+      "finish": "3:30 – 4:00",
+      "grind": "16",
+      "grindNote": "medium-coarse · each pour must drain",
+      "label": "30 g · 4:6",
+      "pourTitle": "Kasuya 4:6 · 5 pours every 45 s",
+      "pours": [
+       {
+        "action": "1st of 40% · smaller pour for sweetness, let it drain",
+        "rate": 7,
+        "time": "0:00",
+        "to": "85 g"
+       },
+       {
+        "action": "2nd of 40% · let it drain fully",
+        "rate": 7,
+        "time": "0:45",
+        "to": "200 g"
+       },
+       {
+        "action": "1st of 60% · let it drain",
+        "rate": 7,
+        "time": "1:30",
+        "to": "300 g"
+       },
+       {
+        "action": "2nd of 60% · let it drain",
+        "rate": 7,
+        "time": "2:15",
+        "to": "400 g"
+       },
+       {
+        "action": "3rd of 60% · let it drain",
+        "rate": 7,
+        "time": "3:00",
+        "to": "500 g"
+       }
+      ],
+      "tip": "Set up for sweetness with an 85/115 first 40%; Kasuya brews darker roasts cooler, hence 90°C. Go to 100/100 if it reads flat. For a stronger cup, make the 60% two pours of 150 g. If a pour hasn’t drained by the next one, grind coarser.",
+      "water": "90°C"
+     }
+    ],
+    "roasted": "",
+    "roaster": "Round Boy Roasters",
+    "tasting": "Jammy plum, raspberry, cocoa finish",
+    "tip": "Medium-dark natural brewed at Round Boy’s recommended 93°C, pulled back to 92°C for the longer V60 drawdown (their guide: 15 g : 225 g, about 2:10). It gives up its sugars easily, so the grind runs half a number coarser than the light roasts. Expect jammy plum and raspberry over cocoa. If it turns ashy or bitter on the longer V60 drawdown, drop to 90°C before touching the grind; if thin, go half a number finer.",
+    "variety": "SL14, SL28",
+    "water": "92°C"
+   }
+  },
+  {
+   "id": "brazil-recanto",
+   "order": 6,
+   "archived": false,
+   "data": {
+    "altitude": "1200 masl",
+    "createdAt": "2026-10-23T00:00:01.000Z",
+    "dose": "30 g / 500 g",
+    "filter": "TH-2",
+    "filterNote": "or Abaca",
+    "finish": "3:15 – 3:45",
+    "grind": "15 ¾",
+    "grindNote": "PURE.F: 15 ¼",
+    "name": "Brazil Recanto",
+    "order": 6,
+    "origin": "Cerrado Mineiro, Minas Gerais, Brazil",
+    "pourTitle": "3 stages, bigger pours",
+    "pours": [
+     {
+      "action": "Bloom, swirl, wait 40 s",
+      "rate": 6,
+      "time": "0:00",
+      "to": "90 g"
+     },
+     {
+      "action": "One steady spiral pour",
+      "rate": 7,
+      "time": "0:40",
+      "to": "300 g"
+     },
+     {
+      "action": "Steady spiral, then swirl",
+      "rate": 7,
+      "time": "1:20",
+      "to": "500 g"
+     }
+    ],
+    "process": "Natural",
+    "producer": "Fazenda Recanto · Vinhal family",
+    "recipes": [
+     {
+      "dose": "30 g / 500 g",
+      "filter": "TH-2",
+      "filterNote": "or Abaca",
+      "finish": "3:15 – 3:45",
+      "grind": "15 ¾",
+      "grindNote": "PURE.F: 15 ¼",
+      "label": "30 g · NEO",
+      "pourTitle": "3 stages, bigger pours",
+      "pours": [
+       {
+        "action": "Bloom, swirl, wait 40 s",
+        "rate": 6,
+        "time": "0:00",
+        "to": "90 g"
+       },
+       {
+        "action": "One steady spiral pour",
+        "rate": 7,
+        "time": "0:40",
+        "to": "300 g"
+       },
+       {
+        "action": "Steady spiral, then swirl",
+        "rate": 7,
+        "time": "1:20",
+        "to": "500 g"
+       }
+      ],
+      "tip": "Low-grown Brazilian natural, roasted medium-dark: the most soluble coffee in the deck, so it runs cool and three-quarters of a number coarser than the light roasts. Expect hazelnut-chocolate, caramel and a soft, round body with little acidity. If it turns ashy or bitter, drop to 88°C; if it tastes hollow, go half a number finer. Round Boy suggests two weeks of rest.",
+      "water": "90°C"
+     },
+     {
+      "dose": "15 g / 250 g",
+      "filter": "Hario tabbed",
+      "filterNote": "rinse well",
+      "finish": "2:25 – 2:55",
+      "grind": "15 ½",
+      "grindNote": "¼ number finer than the NEO · shallow bed",
+      "label": "15 g · V60-01",
+      "pourTitle": "3 stages",
+      "pours": [
+       {
+        "action": "Bloom, swirl, wait 35 s",
+        "rate": 4,
+        "time": "0:00",
+        "to": "45 g"
+       },
+       {
+        "action": "One slow spiral pour",
+        "rate": 4,
+        "time": "0:35",
+        "to": "150 g"
+       },
+       {
+        "action": "Slow spiral, then a light swirl",
+        "rate": 4,
+        "time": "1:10",
+        "to": "250 g"
+       }
+      ],
+      "tip": "Small cone, shallow bed: pour low and centred and keep the kettle slow. A darker roast blooms hard, so give it the full 35 s. Under 2:25 and thin means half a number finer; bitter means 88°C.",
+      "water": "90°C"
+     },
+     {
+      "dose": "20 g / 335 g",
+      "filter": "TH-2",
+      "filterNote": "for body",
+      "finish": "2:50 – 3:20",
+      "grind": "15 ¾",
+      "grindNote": "same as the NEO",
+      "label": "20 g · Switch",
+      "pourTitle": "immersion-led: closed, then open",
+      "pours": [
+       {
+        "action": "Switch CLOSED · bloom, swirl, wait 40 s",
+        "rate": 5,
+        "time": "0:00",
+        "to": "65 g"
+       },
+       {
+        "action": "CLOSED · one pour, one gentle stir",
+        "rate": 8,
+        "time": "0:40",
+        "to": "335 g"
+       },
+       {
+        "action": "OPEN · let it drain",
+        "time": "1:30",
+        "to": "—"
+       }
+      ],
+      "tip": "Immersion suits this coffee: it rounds the nutty chocolate into something close to a milk-drink texture without the milk. If it is heavy, open the switch 15 s earlier; if flat, go half a number finer rather than hotter.",
+      "water": "89°C"
+     },
+     {
+      "dose": "30 g / 500 g",
+      "filter": "TH-2",
+      "filterNote": "or Abaca",
+      "finish": "3:15 – 3:45",
+      "grind": "15 ¾",
+      "grindNote": "same as the NEO",
+      "label": "30 g · Kinto SCS",
+      "pourTitle": "3 stages, same as a V60",
+      "pours": [
+       {
+        "action": "Bloom, swirl, wait 40 s",
+        "rate": 6,
+        "time": "0:00",
+        "to": "90 g"
+       },
+       {
+        "action": "One steady spiral pour",
+        "rate": 7,
+        "time": "0:40",
+        "to": "300 g"
+       },
+       {
+        "action": "Steady spiral, then a light swirl",
+        "rate": 7,
+        "time": "1:20",
+        "to": "500 g"
+       }
+      ],
+      "tip": "The SCS-S01 drains like the NEO: same grind, same window. Preheat it well; a darker roast goes flat quickly in a cold brewer. Expect a slightly softer, rounder cup than the NEO.",
+      "water": "90°C"
+     },
+     {
+      "dose": "30 g / 500 g",
+      "filter": "TH-2",
+      "filterNote": "or Hario / Abaca",
+      "finish": "3:30 – 4:00",
+      "grind": "16 ¼",
+      "grindNote": "medium-coarse · each pour must drain",
+      "label": "30 g · 4:6",
+      "pourTitle": "Kasuya 4:6 · 5 pours every 45 s",
+      "pours": [
+       {
+        "action": "1st of 40% · smaller pour for sweetness, let it drain",
+        "rate": 7,
+        "time": "0:00",
+        "to": "85 g"
+       },
+       {
+        "action": "2nd of 40% · let it drain fully",
+        "rate": 7,
+        "time": "0:45",
+        "to": "200 g"
+       },
+       {
+        "action": "1st of 60% · let it drain",
+        "rate": 7,
+        "time": "1:30",
+        "to": "300 g"
+       },
+       {
+        "action": "2nd of 60% · let it drain",
+        "rate": 7,
+        "time": "2:15",
+        "to": "400 g"
+       },
+       {
+        "action": "3rd of 60% · let it drain",
+        "rate": 7,
+        "time": "3:00",
+        "to": "500 g"
+       }
+      ],
+      "tip": "Set up for sweetness with an 85/115 first 40%; darker roasts go cooler, hence 88°C. Go to 100/100 if it reads flat. For a stronger cup, make the 60% two pours of 150 g. If a pour has not drained by the next one, grind coarser.",
+      "water": "88°C"
+     }
+    ],
+    "roasted": "",
+    "roaster": "Round Boy Roasters",
+    "tasting": "Ferrero Rocher, kaya, toasted macadamia, chocolate wafer, caramel popcorn",
+    "tip": "Low-grown Brazilian natural, roasted medium-dark: the most soluble coffee in the deck, so it runs cool and three-quarters of a number coarser than the light roasts. Expect hazelnut-chocolate, caramel and a soft, round body with little acidity. If it turns ashy or bitter, drop to 88°C; if it tastes hollow, go half a number finer. Round Boy suggests two weeks of rest.",
+    "variety": "Mixed varietals",
+    "water": "90°C"
+   }
+  },
+  {
+   "id": "kenya-chinga-aa",
+   "order": 999,
+   "archived": true,
+   "data": {
+    "altitude": "1795 masl",
+    "archived": true,
+    "createdAt": "2026-10-04T00:00:01.000Z",
+    "dose": "30 g / 500 g",
+    "filter": "PURE.F",
+    "filterNote": "or TH-2",
+    "finish": "3:30 – 4:00",
+    "grind": "14 ½",
+    "grindNote": "TH-2: 15",
+    "name": "Kenya Chinga AA",
+    "order": 999,
+    "origin": "Nyeri County, Kenya",
+    "pourTitle": "5 stages, gentle",
+    "pours": [
+     {
+      "action": "Bloom, swirl, wait 45 s",
+      "rate": 6,
+      "time": "0:00",
+      "to": "90 g"
+     },
+     {
+      "action": "Low, gentle spiral",
+      "rate": 5,
+      "time": "0:45",
+      "to": "210 g"
+     },
+     {
+      "action": "Low, gentle spiral",
+      "rate": 5,
+      "time": "1:15",
+      "to": "315 g"
+     },
+     {
+      "action": "Low, gentle spiral",
+      "rate": 5,
+      "time": "1:45",
+      "to": "415 g"
+     },
+     {
+      "action": "Gentle swirl to flatten the bed",
+      "rate": 5,
+      "time": "2:15",
+      "to": "500 g"
+     }
+    ],
+    "process": "Washed",
+    "producer": "Othaya FCS",
+    "recipes": [
+     {
+      "dose": "30 g / 500 g",
+      "filter": "PURE.F",
+      "filterNote": "or TH-2",
+      "finish": "3:30 – 4:00",
+      "grind": "14 ½",
+      "grindNote": "TH-2: 15",
+      "label": "30 g · NEO",
+      "pourTitle": "5 stages, gentle",
+      "pours": [
+       {
+        "action": "Bloom, swirl, wait 45 s",
+        "rate": 6,
+        "time": "0:00",
+        "to": "90 g"
+       },
+       {
+        "action": "Low, gentle spiral",
+        "rate": 5,
+        "time": "0:45",
+        "to": "210 g"
+       },
+       {
+        "action": "Low, gentle spiral",
+        "rate": 5,
+        "time": "1:15",
+        "to": "315 g"
+       },
+       {
+        "action": "Low, gentle spiral",
+        "rate": 5,
+        "time": "1:45",
+        "to": "415 g"
+       },
+       {
+        "action": "Gentle swirl to flatten the bed",
+        "rate": 5,
+        "time": "2:15",
+        "to": "500 g"
+       }
+      ],
+      "tip": "Expect a clean, tea-like cup with blackcurrant depth. If it's drying or tannic, grind slightly coarser first, then try 94°C.",
+      "water": "95°C"
+     },
+     {
+      "dose": "15 g / 250 g",
+      "filter": "Hario tabbed",
+      "filterNote": "rinse well",
+      "finish": "2:10 – 2:40",
+      "grind": "14 ½",
+      "grindNote": "same as the NEO · shallow bed",
+      "label": "15 g · V60-01",
+      "pourTitle": "4 stages, gentle",
+      "pours": [
+       {
+        "action": "Bloom, swirl, wait 40 s",
+        "rate": 4,
+        "time": "0:00",
+        "to": "45 g"
+       },
+       {
+        "action": "Slow spiral, stay off the walls",
+        "rate": 4,
+        "time": "0:40",
+        "to": "125 g"
+       },
+       {
+        "action": "Slow spiral",
+        "rate": 4,
+        "time": "1:10",
+        "to": "190 g"
+       },
+       {
+        "action": "Light swirl to flatten the bed",
+        "rate": 4,
+        "time": "1:40",
+        "to": "250 g"
+       }
+      ],
+      "tip": "Small cone, shallow bed: pour low and centred, keep the kettle slow, and keep water off the paper walls. Under 2:30 and sour means go half a number finer.",
+      "water": "95°C"
+     },
+     {
+      "dose": "20 g / 335 g",
+      "filter": "PURE.F",
+      "filterNote": "or TH-2",
+      "finish": "2:55 – 3:25",
+      "grind": "14 ½",
+      "grindNote": "same as the NEO",
+      "label": "20 g · Switch",
+      "pourTitle": "hybrid: open, then closed",
+      "pours": [
+       {
+        "action": "Switch OPEN · bloom, swirl, wait 35 s",
+        "rate": 5,
+        "time": "0:00",
+        "to": "50 g"
+       },
+       {
+        "action": "OPEN · steady spiral",
+        "rate": 6,
+        "time": "0:35",
+        "to": "200 g"
+       },
+       {
+        "action": "CLOSE · pour the rest, cooler kettle if you have one",
+        "rate": 8,
+        "time": "1:10",
+        "to": "335 g"
+       },
+       {
+        "action": "OPEN · let it drain, light swirl",
+        "time": "2:10",
+        "to": "—"
+       }
+      ],
+      "tip": "Open-switch pours do the bright, clean extraction; the closed steep at the end adds sweetness without harshness. If it tastes flat, open the switch 15 s earlier; if sharp, drop the second kettle to 85°C.",
+      "water": "95°C"
+     },
+     {
+      "dose": "30 g / 500 g",
+      "filter": "TH-2",
+      "filterNote": "or Abaca",
+      "finish": "3:30 – 4:00",
+      "grind": "15",
+      "grindNote": "same as the NEO on TH-2",
+      "label": "30 g · Kinto SCS",
+      "pourTitle": "3 stages, same as a V60",
+      "pours": [
+       {
+        "action": "Bloom, swirl, wait 45 s",
+        "rate": 6,
+        "time": "0:00",
+        "to": "90 g"
+       },
+       {
+        "action": "One steady spiral pour",
+        "rate": 7,
+        "time": "0:45",
+        "to": "300 g"
+       },
+       {
+        "action": "Steady spiral, then a light swirl",
+        "rate": 7,
+        "time": "1:30",
+        "to": "500 g"
+       }
+      ],
+      "tip": "The SCS-S01 has a V60-sized outlet, so it drains like the NEO: same grind, same window. The porcelain holds heat but also steals it, so rinse with plenty of hot water and let it sit a minute before dosing. Expect a slightly softer, rounder cup than the NEO from the smooth wall.",
+      "water": "95°C"
+     },
+     {
+      "dose": "30 g / 500 g",
+      "filter": "TH-2",
+      "filterNote": "or Hario / Abaca",
+      "finish": "3:30 – 4:00",
+      "grind": "15 ¼",
+      "grindNote": "medium-coarse · each pour must drain",
+      "label": "30 g · 4:6",
+      "pourTitle": "Kasuya 4:6 · 5 pours every 45 s",
+      "pours": [
+       {
+        "action": "1st of 40% · pour, let it drain fully",
+        "rate": 7,
+        "time": "0:00",
+        "to": "100 g"
+       },
+       {
+        "action": "2nd of 40% · let it drain fully",
+        "rate": 7,
+        "time": "0:45",
+        "to": "200 g"
+       },
+       {
+        "action": "1st of 60% · let it drain",
+        "rate": 7,
+        "time": "1:30",
+        "to": "300 g"
+       },
+       {
+        "action": "2nd of 60% · let it drain",
+        "rate": 7,
+        "time": "2:15",
+        "to": "400 g"
+       },
+       {
+        "action": "3rd of 60% · let it drain",
+        "rate": 7,
+        "time": "3:00",
+        "to": "500 g"
+       }
+      ],
+      "tip": "The first two pours set the balance: 100/100 is neutral; 115/85 pushes acidity, 85/115 pushes sweetness. The last three set strength: two pours of 150 g for stronger, four of 75 g for lighter. If a pour hasn't drained by the next one, grind coarser.",
+      "water": "92°C"
+     }
+    ],
+    "roasted": "2026-09-08",
+    "roaster": "Apartment Coffee",
+    "tasting": "Blackcurrant, mandarin, oolong tea",
+    "tip": "Expect a clean, tea-like cup with blackcurrant depth. If it's drying or tannic, grind slightly coarser first, then try 94°C.",
+    "variety": "SL28, SL34, Ruiru 11, Batian",
+    "water": "95°C"
+   }
+  },
+  {
+   "id": "kenya-maganjo",
+   "order": 999,
+   "archived": true,
+   "data": {
+    "altitude": "1550–2300 masl",
+    "archived": true,
+    "createdAt": "2026-10-04T00:00:00.000Z",
+    "dose": "30 g / 500 g",
+    "filter": "TH-2",
+    "filterNote": "or PURE.F",
+    "finish": "3:30 – 4:00",
+    "grind": "15",
+    "grindNote": "PURE.F: 14 ½",
+    "name": "Kenya Maganjo",
+    "order": 999,
+    "origin": "Nyeri, Kenya",
+    "pourTitle": "5 stages",
+    "pours": [
+     {
+      "action": "Bloom, swirl, wait 45 s",
+      "rate": 6,
+      "time": "0:00",
+      "to": "90 g"
+     },
+     {
+      "action": "Steady spiral",
+      "rate": 7,
+      "time": "0:45",
+      "to": "210 g"
+     },
+     {
+      "action": "Steady spiral",
+      "rate": 7,
+      "time": "1:15",
+      "to": "315 g"
+     },
+     {
+      "action": "Steady spiral",
+      "rate": 7,
+      "time": "1:45",
+      "to": "415 g"
+     },
+     {
+      "action": "Gentle swirl to flatten the bed",
+      "rate": 5,
+      "time": "2:15",
+      "to": "500 g"
+     }
+    ],
+    "process": "Fully washed",
+    "producer": "Rumukia FCS",
+    "recipes": [
+     {
+      "dose": "30 g / 500 g",
+      "filter": "TH-2",
+      "filterNote": "or PURE.F",
+      "finish": "3:30 – 4:00",
+      "grind": "15",
+      "grindNote": "PURE.F: 14 ½",
+      "label": "30 g · NEO",
+      "pourTitle": "5 stages",
+      "pours": [
+       {
+        "action": "Bloom, swirl, wait 45 s",
+        "rate": 6,
+        "time": "0:00",
+        "to": "90 g"
+       },
+       {
+        "action": "Steady spiral",
+        "rate": 7,
+        "time": "0:45",
+        "to": "210 g"
+       },
+       {
+        "action": "Steady spiral",
+        "rate": 7,
+        "time": "1:15",
+        "to": "315 g"
+       },
+       {
+        "action": "Steady spiral",
+        "rate": 7,
+        "time": "1:45",
+        "to": "415 g"
+       },
+       {
+        "action": "Gentle swirl to flatten the bed",
+        "rate": 5,
+        "time": "2:15",
+        "to": "500 g"
+       }
+      ],
+      "tip": "Expect bright, juicy red fruit. PURE.F makes it more sparkling, TH-2 rounder.",
+      "water": "96°C"
+     },
+     {
+      "dose": "15 g / 250 g",
+      "filter": "Hario tabbed",
+      "filterNote": "rinse well",
+      "finish": "2:10 – 2:40",
+      "grind": "14 ½",
+      "grindNote": "½ number finer than the NEO · shallow bed",
+      "label": "15 g · V60-01",
+      "pourTitle": "4 stages, gentle",
+      "pours": [
+       {
+        "action": "Bloom, swirl, wait 40 s",
+        "rate": 4,
+        "time": "0:00",
+        "to": "45 g"
+       },
+       {
+        "action": "Slow spiral, stay off the walls",
+        "rate": 4,
+        "time": "0:40",
+        "to": "125 g"
+       },
+       {
+        "action": "Slow spiral",
+        "rate": 4,
+        "time": "1:10",
+        "to": "190 g"
+       },
+       {
+        "action": "Light swirl to flatten the bed",
+        "rate": 4,
+        "time": "1:40",
+        "to": "250 g"
+       }
+      ],
+      "tip": "Small cone, shallow bed: pour low and centred, keep the kettle slow, and keep water off the paper walls. Under 2:30 and sour means go half a number finer.",
+      "water": "96°C"
+     },
+     {
+      "dose": "20 g / 335 g",
+      "filter": "TH-2",
+      "filterNote": "or Abaca",
+      "finish": "2:55 – 3:25",
+      "grind": "15",
+      "grindNote": "same as the NEO",
+      "label": "20 g · Switch",
+      "pourTitle": "hybrid: open, then closed",
+      "pours": [
+       {
+        "action": "Switch OPEN · bloom, swirl, wait 35 s",
+        "rate": 5,
+        "time": "0:00",
+        "to": "50 g"
+       },
+       {
+        "action": "OPEN · steady spiral",
+        "rate": 6,
+        "time": "0:35",
+        "to": "200 g"
+       },
+       {
+        "action": "CLOSE · pour the rest, cooler kettle if you have one",
+        "rate": 8,
+        "time": "1:10",
+        "to": "335 g"
+       },
+       {
+        "action": "OPEN · let it drain, light swirl",
+        "time": "2:10",
+        "to": "—"
+       }
+      ],
+      "tip": "Open-switch pours do the bright, clean extraction; the closed steep at the end adds sweetness without harshness. If it tastes flat, open the switch 15 s earlier; if sharp, drop the second kettle to 85°C.",
+      "water": "96°C"
+     },
+     {
+      "dose": "30 g / 500 g",
+      "filter": "TH-2",
+      "filterNote": "or Abaca",
+      "finish": "3:30 – 4:00",
+      "grind": "15",
+      "grindNote": "same as the NEO",
+      "label": "30 g · Kinto SCS",
+      "pourTitle": "3 stages, same as a V60",
+      "pours": [
+       {
+        "action": "Bloom, swirl, wait 45 s",
+        "rate": 6,
+        "time": "0:00",
+        "to": "90 g"
+       },
+       {
+        "action": "One steady spiral pour",
+        "rate": 7,
+        "time": "0:45",
+        "to": "300 g"
+       },
+       {
+        "action": "Steady spiral, then a light swirl",
+        "rate": 7,
+        "time": "1:30",
+        "to": "500 g"
+       }
+      ],
+      "tip": "The SCS-S01 has a V60-sized outlet, so it drains like the NEO: same grind, same window. The porcelain holds heat but also steals it, so rinse with plenty of hot water and let it sit a minute before dosing. Expect a slightly softer, rounder cup than the NEO from the smooth wall.",
+      "water": "96°C"
+     },
+     {
+      "dose": "30 g / 500 g",
+      "filter": "TH-2",
+      "filterNote": "or Hario / Abaca",
+      "finish": "3:30 – 4:00",
+      "grind": "15 ¼",
+      "grindNote": "medium-coarse · each pour must drain",
+      "label": "30 g · 4:6",
+      "pourTitle": "Kasuya 4:6 · 5 pours every 45 s",
+      "pours": [
+       {
+        "action": "1st of 40% · pour, let it drain fully",
+        "rate": 7,
+        "time": "0:00",
+        "to": "100 g"
+       },
+       {
+        "action": "2nd of 40% · let it drain fully",
+        "rate": 7,
+        "time": "0:45",
+        "to": "200 g"
+       },
+       {
+        "action": "1st of 60% · let it drain",
+        "rate": 7,
+        "time": "1:30",
+        "to": "300 g"
+       },
+       {
+        "action": "2nd of 60% · let it drain",
+        "rate": 7,
+        "time": "2:15",
+        "to": "400 g"
+       },
+       {
+        "action": "3rd of 60% · let it drain",
+        "rate": 7,
+        "time": "3:00",
+        "to": "500 g"
+       }
+      ],
+      "tip": "The first two pours set the balance: 100/100 is neutral; 115/85 pushes acidity, 85/115 pushes sweetness. The last three set strength: two pours of 150 g for stronger, four of 75 g for lighter. If a pour hasn't drained by the next one, grind coarser.",
+      "water": "93°C"
+     }
+    ],
+    "roasted": "2026-08-31",
+    "roaster": "Apartment Coffee",
+    "tasting": "Redcurrant, pomegranate, rosehip",
+    "tip": "Expect bright, juicy red fruit. PURE.F makes it more sparkling, TH-2 rounder.",
+    "variety": "SL28, SL34, Ruiru 11",
+    "water": "96°C"
+   }
+  },
+  {
+   "id": "rwanda-musasa-ruli",
+   "order": 999,
+   "archived": true,
+   "data": {
+    "altitude": "1880–2002 masl",
+    "archived": true,
+    "createdAt": "2026-10-04T00:00:02.000Z",
+    "dose": "30 g / 500 g",
+    "filter": "TH-2",
+    "filterNote": "for body",
+    "finish": "3:45 – 4:15",
+    "grind": "14 ¾",
+    "grindNote": "PURE.F: 14 ¼",
+    "name": "Rwanda Musasa Ruli",
+    "order": 999,
+    "origin": "Ruli Sector, Gakenke",
+    "pourTitle": "3 stages, bigger pours",
+    "pours": [
+     {
+      "action": "Bloom, swirl, wait 45 s",
+      "rate": 6,
+      "time": "0:00",
+      "to": "90 g"
+     },
+     {
+      "action": "One steady spiral pour",
+      "rate": 7,
+      "time": "0:45",
+      "to": "300 g"
+     },
+     {
+      "action": "Steady spiral, then swirl",
+      "rate": 7,
+      "time": "1:30",
+      "to": "500 g"
+     }
+    ],
+    "process": "Washed",
+    "producer": "Musasa Dukunde Kawa",
+    "recipes": [
+     {
+      "dose": "30 g / 500 g",
+      "filter": "TH-2",
+      "filterNote": "for body",
+      "finish": "3:45 – 4:15",
+      "grind": "14 ¾",
+      "grindNote": "PURE.F: 14 ¼",
+      "label": "30 g · NEO",
+      "pourTitle": "3 stages, bigger pours",
+      "pours": [
+       {
+        "action": "Bloom, swirl, wait 45 s",
+        "rate": 6,
+        "time": "0:00",
+        "to": "90 g"
+       },
+       {
+        "action": "One steady spiral pour",
+        "rate": 7,
+        "time": "0:45",
+        "to": "300 g"
+       },
+       {
+        "action": "Steady spiral, then swirl",
+        "rate": 7,
+        "time": "1:30",
+        "to": "500 g"
+       }
+      ],
+      "tip": "Expect jammy dark fruit and a rounder, sweeter cup. If it's flat or muddy, go back to 15 or raise to 95°C.",
+      "water": "93–94°C"
+     },
+     {
+      "dose": "15 g / 250 g",
+      "filter": "Hario tabbed",
+      "filterNote": "rinse well",
+      "finish": "2:25 – 2:55",
+      "grind": "14 ½",
+      "grindNote": "¼ number finer than the NEO · shallow bed",
+      "label": "15 g · V60-01",
+      "pourTitle": "3 stages",
+      "pours": [
+       {
+        "action": "Bloom, swirl, wait 40 s",
+        "rate": 4,
+        "time": "0:00",
+        "to": "45 g"
+       },
+       {
+        "action": "One slow spiral pour",
+        "rate": 4,
+        "time": "0:40",
+        "to": "150 g"
+       },
+       {
+        "action": "Slow spiral, then a light swirl",
+        "rate": 4,
+        "time": "1:20",
+        "to": "250 g"
+       }
+      ],
+      "tip": "Small cone, shallow bed: pour low and centred, keep the kettle slow, and keep water off the paper walls. Under 2:30 and sour means go half a number finer.",
+      "water": "93–94°C"
+     },
+     {
+      "dose": "20 g / 335 g",
+      "filter": "TH-2",
+      "filterNote": "for body",
+      "finish": "2:40 – 3:10",
+      "grind": "14 ¾",
+      "grindNote": "same as the NEO",
+      "label": "20 g · Switch",
+      "pourTitle": "immersion-led: closed, then open",
+      "pours": [
+       {
+        "action": "Switch CLOSED · bloom, swirl, wait 40 s",
+        "rate": 5,
+        "time": "0:00",
+        "to": "60 g"
+       },
+       {
+        "action": "CLOSED · one pour, one gentle stir",
+        "rate": 8,
+        "time": "0:40",
+        "to": "335 g"
+       },
+       {
+        "action": "OPEN · let it drain",
+        "time": "1:45",
+        "to": "—"
+       }
+      ],
+      "tip": "Immersion keeps the fruit jammy and the body round. If it's muddy or heavy, open the switch 15 s earlier or go half a number coarser; if thin, extend the steep to 2:00.",
+      "water": "93–94°C"
+     },
+     {
+      "dose": "30 g / 500 g",
+      "filter": "TH-2",
+      "filterNote": "or Abaca",
+      "finish": "3:45 – 4:15",
+      "grind": "14 ¾",
+      "grindNote": "same as the NEO",
+      "label": "30 g · Kinto SCS",
+      "pourTitle": "3 stages, same as a V60",
+      "pours": [
+       {
+        "action": "Bloom, swirl, wait 45 s",
+        "rate": 6,
+        "time": "0:00",
+        "to": "90 g"
+       },
+       {
+        "action": "One steady spiral pour",
+        "rate": 7,
+        "time": "0:45",
+        "to": "300 g"
+       },
+       {
+        "action": "Steady spiral, then a light swirl",
+        "rate": 7,
+        "time": "1:30",
+        "to": "500 g"
+       }
+      ],
+      "tip": "The SCS-S01 has a V60-sized outlet, so it drains like the NEO: same grind, same window. The porcelain holds heat but also steals it, so rinse with plenty of hot water and let it sit a minute before dosing. Expect a slightly softer, rounder cup than the NEO from the smooth wall.",
+      "water": "93–94°C"
+     },
+     {
+      "dose": "30 g / 500 g",
+      "filter": "TH-2",
+      "filterNote": "or Hario / Abaca",
+      "finish": "3:30 – 4:00",
+      "grind": "15",
+      "grindNote": "medium-coarse · each pour must drain",
+      "label": "30 g · 4:6",
+      "pourTitle": "Kasuya 4:6 · 5 pours every 45 s",
+      "pours": [
+       {
+        "action": "1st of 40% · smaller pour for sweetness, let it drain",
+        "rate": 7,
+        "time": "0:00",
+        "to": "85 g"
+       },
+       {
+        "action": "2nd of 40% · let it drain fully",
+        "rate": 7,
+        "time": "0:45",
+        "to": "200 g"
+       },
+       {
+        "action": "1st of 60% · let it drain",
+        "rate": 7,
+        "time": "1:30",
+        "to": "300 g"
+       },
+       {
+        "action": "2nd of 60% · let it drain",
+        "rate": 7,
+        "time": "2:15",
+        "to": "400 g"
+       },
+       {
+        "action": "3rd of 60% · let it drain",
+        "rate": 7,
+        "time": "3:00",
+        "to": "500 g"
+       }
+      ],
+      "tip": "Set up for sweetness with an 85/115 first 40%. Go to 100/100 if it reads flat, or 70/130 for even more sweetness. For a stronger cup, make the 60% two pours of 150 g. If a pour hasn't drained by the next one, grind coarser.",
+      "water": "91°C"
+     }
+    ],
+    "roasted": "2026-09-08",
+    "roaster": "Apartment Coffee",
+    "tasting": "Prune, mulberry, hawthorn",
+    "tip": "Expect jammy dark fruit and a rounder, sweeter cup. If it's flat or muddy, go back to 15 or raise to 95°C.",
+    "variety": "Red Bourbon",
+    "water": "93–94°C"
+   }
+  }
+ ],
+ "brews": [
+  {
+   "id": "mi426zcaeeb7465uc4uu",
+   "coffee_id": "bolivia-los-rodriguez",
+   "brewed_on": "2026-10-24",
+   "data": {
+    "createdAt": "2026-10-24T00:43:00.115Z",
+    "date": "2026-10-24",
+    "dose": "30 g / 500 g",
+    "filter": "TH-2",
+    "finish": "3:25",
+    "grind": "14 ½",
+    "notes": "Better at 92 and 14.5 grind.",
+    "rating": 3,
+    "recipe": "30 g · NEO",
+    "temp": "92°C"
+   }
+  },
+  {
+   "id": "tl8jcmvhqqszuobbaquj",
+   "coffee_id": "colombia-monteverde",
+   "brewed_on": "2026-10-25",
+   "data": {
+    "createdAt": "2026-10-25T00:21:26.574Z",
+    "date": "2026-10-25",
+    "dose": "30 g / 500 g",
+    "filter": "PURE.F",
+    "finish": "3:00",
+    "grind": "15",
+    "notes": "maybe a little dry when hot. nice one it cools a few degrees",
+    "rating": 4,
+    "recipe": "30 g · NEO",
+    "temp": "92°C"
+   }
+  },
+  {
+   "id": "f1c9u8r0g76g4sohv1pz",
+   "coffee_id": "costa-rica-aquiares",
+   "brewed_on": "2026-10-21",
+   "data": {
+    "createdAt": "2026-10-21T23:49:23.794Z",
+    "date": "2026-10-21",
+    "dose": "30 g / 500 g",
+    "filter": "TH-2",
+    "finish": "3:25",
+    "grind": "15",
+    "notes": "",
+    "rating": 0,
+    "recipe": "30 g · NEO",
+    "temp": "92°C"
+   }
+  },
+  {
+   "id": "rjolr9ri6tecfu4plsj0",
+   "coffee_id": "ethiopia-chelbesa",
+   "brewed_on": "2026-10-22",
+   "data": {
+    "createdAt": "2026-10-22T23:59:23.340Z",
+    "date": "2026-10-22",
+    "dose": "30 g / 500 g",
+    "filter": "PURE.F",
+    "finish": "3:05",
+    "grind": "1/4 to 14",
+    "notes": "Much better at 34 and slightly courser",
+    "rating": 5,
+    "recipe": "30 g · NEO",
+    "temp": "94°C"
+   }
+  }
+ ]
+}
