@@ -60,7 +60,10 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
 .btn:disabled { opacity: .45; cursor: default; }
 
 /* Top bar */
-.top { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.top { display: flex; align-items: center; justify-content: space-between; gap: 10px 12px; flex-wrap: wrap; }
+.top .tools { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.top .tools .btn { padding: 5px 10px; font-size: 12.5px; line-height: 1.3; }
+.status:empty { display: none; }
 .top h1 { font: 500 26px/1.1 var(--display); margin: 0; }
 .top .sub { font: 500 11px/1 var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--muted); margin-top: 6px; }
 .status { font: 12.5px/1.3 var(--mono); color: var(--muted); }
@@ -247,7 +250,7 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
       <h1>Brew Deck</h1>
       <div class="sub">V60 NEO · Lagom Casa 65 · 1 : 16.7</div>
     </div>
-    <div style="display:flex;gap:8px;align-items:center">
+    <div class="tools">
       <span class="status" id="status" aria-live="polite"></span>
       <button class="btn" id="account" type="button" aria-haspopup="dialog">Account</button>
       <button class="btn" id="openGuide" type="button">Grind guide</button>
