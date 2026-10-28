@@ -541,7 +541,7 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
   const state = { user: null, loaded: false, canWrite: false, coffees: [], active: 0, brews: [], editingId: null, brewRating: 0, pendingDelete: null, view: "grid", pendingFocus: null, brewsFor: null, variant: {}, editRecipes: [], editIdx: 0, info: {}, dose: 30, grinder: "casa", filterBy: {}, settingsFor: null, arrange: false };
   try { if (localStorage.getItem("brewdeck.grinder") === "c40") state.grinder = "c40"; } catch {}
   try { const d = Number(localStorage.getItem("brewdeck.dose")); if ([15, 20, 30].includes(d)) state.dose = d; } catch {}
-  try { if (localStorage.getItem("brewdeck.view") === "card") state.view = "card"; } catch {}
+  // Always open on the dashboard; a card is something you navigate to.
 
   const rail = $("rail"), dots = $("dots"), counter = $("counter"), status = $("status");
 
@@ -772,7 +772,6 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
     $("nav").hidden = isGrid || state.coffees.length === 0;
     if (!isGrid) { jumpTo(state.active); subscribeBrews(); window.scrollTo({ top: 0, behavior: "auto" }); document.documentElement.scrollTop = 0; document.body.scrollTop = 0; }
     else if (!wasGrid) { const y = state.gridScroll || 0; requestAnimationFrame(() => { window.scrollTo({ top: y, behavior: "auto" }); requestAnimationFrame(() => window.scrollTo({ top: y, behavior: "auto" })); }); }
-    try { localStorage.setItem("brewdeck.view", view); } catch {}
   };
 
   const renderDeck = () => {
