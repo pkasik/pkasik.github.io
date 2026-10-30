@@ -249,12 +249,10 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
 .tile.archived { background: var(--chip); color: var(--fg); border-color: var(--line); }
 .tile.archived .t-roaster, .tile.archived .t-notes { color: var(--muted); }
 .tile.archived .t-key { border-top-color: var(--line); color: var(--muted); }
-.tile.draggable { touch-action: none; user-select: none; -webkit-user-select: none; cursor: grab; }
+.tile.draggable { touch-action: pan-y; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+.tile.draggable:active { cursor: grabbing; }
 .tile.dragging { outline: 3px solid var(--fg); outline-offset: 2px; transform: scale(1.03); z-index: 2; cursor: grabbing; box-shadow: 0 10px 24px rgb(0 0 0 / .25); }
 .grid.drag-on .tile.draggable:not(.dragging) { transition: transform .12s ease; }
-.tile-tools { position: absolute; top: 6px; right: 6px; display: flex; gap: 4px; }
-.tile-tools button { width: 28px; height: 28px; border-radius: 50%; border: 1px solid color-mix(in srgb, var(--amber-ink) 25%, var(--amber)); background: color-mix(in srgb, var(--amber-ink) 10%, var(--amber)); color: var(--amber-ink); font: 500 13px/1 var(--mono); display: grid; place-items: center; padding: 0; }
-.tile.archived .tile-tools button { border-color: var(--line); background: var(--paper); color: var(--fg); }
 .grid-divider { grid-column: 1 / -1; margin-top: 8px; font: 600 10.5px/1.2 var(--body); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); border-top: 1px solid var(--line); padding-top: 10px; }
 .tile.add { background: var(--paper); color: var(--muted); border: 1px dashed var(--line); place-items: center; display: grid; grid-template-rows: none; font-weight: 500; }
 .tile.add span { font-size: 28px; line-height: 1; }
@@ -284,7 +282,6 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
       <span class="status" id="status" aria-live="polite"></span>
       <button class="btn" id="account" type="button" aria-haspopup="dialog">Account</button>
       <button class="btn" id="openGuide" type="button">Grind guide</button>
-      <button class="btn" id="arrange" type="button" hidden aria-pressed="false">Arrange</button>
       <button class="btn primary" id="addCard" type="button" hidden>+ Add card</button>
     </div>
   </header>
@@ -538,7 +535,7 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
   const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const todayISO = () => new Date().toISOString().slice(0, 10);
 
-  const state = { user: null, loaded: false, canWrite: false, coffees: [], active: 0, brews: [], editingId: null, brewRating: 0, pendingDelete: null, view: "grid", pendingFocus: null, brewsFor: null, variant: {}, editRecipes: [], editIdx: 0, info: {}, dose: 30, grinder: "casa", filterBy: {}, settingsFor: null, arrange: false };
+  const state = { user: null, loaded: false, canWrite: false, coffees: [], active: 0, brews: [], editingId: null, brewRating: 0, pendingDelete: null, view: "grid", pendingFocus: null, brewsFor: null, variant: {}, editRecipes: [], editIdx: 0, info: {}, dose: 30, grinder: "casa", filterBy: {}, settingsFor: null };
   try { if (localStorage.getItem("brewdeck.grinder") === "c40") state.grinder = "c40"; } catch {}
   try { const d = Number(localStorage.getItem("brewdeck.dose")); if ([15, 20, 30].includes(d)) state.dose = d; } catch {}
   // Always open on the dashboard; a card is something you navigate to.
@@ -675,7 +672,7 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
         ${scaledNote}
         ${filterNote}
         ${r.tip ? `<p class="tip">${esc(r.tip)}</p>` : ""}
-        ${state.canWrite ? `<div class="card-actions"><button class="btn edit" type="button" data-id="${esc(c.id)}">Edit</button></div>` : ""}
+        ${state.canWrite ? `<div class="card-actions"><button class="btn archive" type="button" data-id="${esc(c.id)}">${c.archived ? "Unarchive" : "Archive"}</button><button class="btn edit" type="button" data-id="${esc(c.id)}">Edit</button></div>` : ""}
       </div></article>`;
   };
 
@@ -691,31 +688,26 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
   const renderGrid = () => {
     const groups = [state.coffees.filter((c) => !c.archived), state.coffees.filter((c) => c.archived)];
     let html = "";
-    const add = state.canWrite && !state.arrange ? `<button class="tile add" type="button" id="addTile" aria-label="Add a card"><span>+</span>Add card</button>` : "";
+    const add = state.canWrite ? `<button class="tile add" type="button" id="addTile" aria-label="Add a card"><span>+</span>Add card</button>` : "";
     groups.forEach((group, g) => {
       if (g === 1) { html += add; if (group.length) html += `<div class="grid-divider">Archived</div>`; }
-      html += group.map((c, i) => {
+      html += group.map((c) => {
         const idx = state.coffees.indexOf(c);
-        if (!state.arrange) return `<button class="tile${c.archived ? " archived" : ""}" type="button" data-i="${idx}" aria-label="Open ${esc(c.name)}">${tileBody(c)}</button>`;
-        return `<div class="tile draggable${c.archived ? " archived" : ""}" role="group" data-id="${esc(c.id)}" data-group="${g}" aria-label="${esc(c.name)} (drag to reorder)">${tileBody(c)}
-          <div class="tile-tools">
-            <button type="button" data-archive="${esc(c.id)}" aria-label="${c.archived ? "Unarchive" : "Archive"}" title="${c.archived ? "Unarchive" : "Archive"}">${c.archived ? "↩" : "▣"}</button>
-          </div></div>`;
+        const draggable = state.canWrite && !c.archived;
+        return `<button class="tile${c.archived ? " archived" : ""}${draggable ? " draggable" : ""}" type="button" data-i="${idx}" data-id="${esc(c.id)}" aria-label="Open ${esc(c.name)}${draggable ? " (press and hold to reorder)" : ""}">${tileBody(c)}</button>`;
       }).join("");
     });
     $("grid").innerHTML = html;
-    $("arrange").hidden = !state.canWrite || state.view !== "grid";
-    $("arrange").textContent = state.arrange ? "Done" : "Arrange";
-    $("arrange").setAttribute("aria-pressed", String(state.arrange));
   };
   const sortCoffees = (list) => [...list].sort((a, b) => (Number(!!a.archived) - Number(!!b.archived)) || ((a.order ?? 0) - (b.order ?? 0)) || String(a.createdAt || "").localeCompare(String(b.createdAt || "")));
-  // Drag to reorder (Arrange mode): hold a tile briefly, then move it; the tile follows the finger within its group.
-  const drag = { id: null, el: null, timer: null, active: false, group: null, startX: 0, startY: 0 };
+  // Drag to reorder: press and hold an active tile, then move it; a plain tap still opens the card. Archived tiles stay where they are.
+  const drag = { id: null, el: null, timer: null, active: false, startX: 0, startY: 0, suppressClick: false };
   const endDrag = async () => {
     clearTimeout(drag.timer); drag.timer = null;
     if (!drag.active) { drag.id = null; drag.el = null; return; }
-    drag.active = false; drag.el?.classList.remove("dragging"); $("grid").classList.remove("drag-on");
-    const ids = [...$("grid").querySelectorAll(`.tile[data-group="${drag.group}"]`)].map((t) => t.dataset.id);
+    drag.active = false; drag.suppressClick = true; setTimeout(() => { drag.suppressClick = false; }, 400);
+    drag.el?.classList.remove("dragging"); $("grid").classList.remove("drag-on");
+    const ids = [...$("grid").querySelectorAll(".tile.draggable")].map((t) => t.dataset.id);
     drag.id = null; drag.el = null;
     const byId = new Map(state.coffees.map((c) => [c.id, c]));
     const changed = [];
@@ -725,18 +717,26 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
     cache.setCoffees(state.coffees);
   };
   $("grid").addEventListener("pointerdown", (e) => {
-    if (!state.arrange || e.target.closest("button")) return;
     const el = e.target.closest(".tile.draggable"); if (!el) return;
-    drag.id = el.dataset.id; drag.el = el; drag.group = el.dataset.group; drag.startX = e.clientX; drag.startY = e.clientY;
-    drag.timer = setTimeout(() => { drag.active = true; el.classList.add("dragging"); $("grid").classList.add("drag-on"); try { el.setPointerCapture(e.pointerId); } catch {} }, 180);
+    if (e.pointerType === "mouse" && e.button !== 0) return;
+    drag.id = el.dataset.id; drag.el = el; drag.startX = e.clientX; drag.startY = e.clientY;
+    const pointerId = e.pointerId;
+    drag.timer = setTimeout(() => {
+      drag.active = true; el.classList.add("dragging"); $("grid").classList.add("drag-on");
+      try { el.setPointerCapture(pointerId); } catch {}
+      try { navigator.vibrate?.(10); } catch {}
+    }, 350);
   });
+  // Once a drag is live, keep the page from scrolling under the finger; before that, a swipe simply scrolls and cancels the hold.
+  $("grid").addEventListener("touchmove", (e) => { if (drag.active) e.preventDefault(); }, { passive: false });
+  $("grid").addEventListener("contextmenu", (e) => { if (e.target.closest(".tile.draggable")) e.preventDefault(); });
   $("grid").addEventListener("pointermove", (e) => {
     if (!drag.id) return;
     if (!drag.active) { if (Math.hypot(e.clientX - drag.startX, e.clientY - drag.startY) > 8) { clearTimeout(drag.timer); drag.id = null; drag.el = null; } return; }
     e.preventDefault();
-    const over = document.elementFromPoint(e.clientX, e.clientY)?.closest(`.tile.draggable[data-group="${drag.group}"]`);
+    const over = document.elementFromPoint(e.clientX, e.clientY)?.closest(".tile.draggable");
     if (!over || over === drag.el) return;
-    const tiles = [...$("grid").querySelectorAll(`.tile[data-group="${drag.group}"]`)];
+    const tiles = [...$("grid").querySelectorAll(".tile.draggable")];
     const from = tiles.indexOf(drag.el), to = tiles.indexOf(over);
     if (from < to) over.after(drag.el); else over.before(drag.el);
   });
@@ -747,7 +747,14 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
     const archived = !c.archived;
     try { await store.updateCoffee(id, { archived, order: 999 }); await refresh(); } catch (err) { setStatus(friendly(err, archived ? "archive the card" : "unarchive the card")); }
   };
-  $("arrange").addEventListener("click", () => { state.arrange = !state.arrange; renderGrid(); });
+  // From the card: archive or unarchive, then land back on the dashboard where the tile has moved.
+  const archiveFromCard = async (id) => {
+    const c = state.coffees.find((x) => x.id === id); if (!c) return;
+    const name = c.name, archiving = !c.archived;
+    await toggleArchive(id);
+    showView("grid");
+    setStatus(`${archiving ? "Archived" : "Unarchived"} ${name}`); setTimeout(() => { if (status.textContent.endsWith(name)) setStatus(""); }, 2500);
+  };
 
   // Land on a card with no scroll animation (used when opening from the dashboard or after a data refresh).
   const jumpTo = (i) => {
@@ -765,7 +772,6 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
     $("dash").hidden = !isGrid;
     $("deck").hidden = isGrid;
     $("addCard").hidden = !isGrid || !state.canWrite;
-    $("arrange").hidden = !isGrid || !state.canWrite;
     $("top").classList.toggle("compact", !isGrid);
     $("log").hidden = isGrid || state.coffees.length === 0;
     $("emptyDeck").hidden = state.coffees.length > 0 || !isGrid;
@@ -788,7 +794,7 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
   };
 
   $("grid").addEventListener("click", (e) => {
-    const ar = e.target.closest("button[data-archive]"); if (ar) { toggleArchive(ar.dataset.archive); return; }
+    if (drag.suppressClick) { e.preventDefault(); return; }
     const add = e.target.closest("#addTile"); if (add) { openCardEditor(null); return; }
     const t = e.target.closest("button.tile[data-i]"); if (!t) return;
     state.active = Number(t.dataset.i); updateNav(); showView("card");
@@ -1023,6 +1029,8 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
     if (set) { openSettings(set.dataset.id); return; }
     const go = e.target.closest("button.start");
     if (go) { openTimer(go.dataset.start); return; }
+    const ar = e.target.closest("button.archive");
+    if (ar) { archiveFromCard(ar.dataset.id); return; }
     const b = e.target.closest("button.edit"); if (b) openCardEditor(b.dataset.id);
   });
 
