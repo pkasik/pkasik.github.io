@@ -60,7 +60,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
 .btn:disabled { opacity: .45; cursor: default; }
 
 /* Top bar */
-.top { display: flex; align-items: center; justify-content: space-between; gap: 10px 12px; flex-wrap: wrap; }
+.top { display: grid; gap: 10px; justify-items: start; }
 .top .tools { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
 .top .tools .btn { padding: 5px 10px; font-size: 12.5px; line-height: 1.3; }
 .status:empty { display: none; }
@@ -107,6 +107,7 @@ td.w { font: 500 14px/1.3 var(--mono); width: 76px; white-space: nowrap; }
 .finish b { font: 500 14px/1.3 var(--mono); }
 .tip { font-size: 13.5px; color: var(--c-muted); margin: 0; }
 .card { position: relative; }
+.card.archived { --c-bg: var(--chip); --c-fg: var(--fg); --c-muted: var(--muted); --c-line: var(--line); --c-soft: color-mix(in srgb, var(--fg) 6%, var(--chip)); }
 .card .close { position: absolute; top: 10px; right: 10px; z-index: 1; width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--c-line); background: var(--c-bg); color: var(--c-fg); font: 400 22px/1 var(--display); display: grid; place-items: center; padding: 0 0 2px; }
 .card .close:hover { background: var(--c-soft); }
 .top.compact { display: none; }
@@ -653,7 +654,7 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
       return `<tr><td class="t">${esc(p.time)}</td><td class="w">→ ${esc(p.to)}</td><td>${esc(p.action)}${flow ? `<div class="flow">${flow}</div>` : ""}</td></tr>`;
     }).join("");
     const infoOpen = !!state.info[c.id];
-    return `<article class="card" data-id="${esc(c.id)}" aria-label="${esc(c.name)} recipe">
+    return `<article class="card${c.archived ? " archived" : ""}" data-id="${esc(c.id)}" aria-label="${esc(c.name)} recipe${c.archived ? " (archived)" : ""}">
       <button class="close" type="button" aria-label="Close and return to the dashboard">×</button>
       <div class="main">
         <div>${c.roaster ? `<p class="roaster">${esc(c.roaster)}</p>` : ""}
