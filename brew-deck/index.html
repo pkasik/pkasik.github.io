@@ -257,6 +257,8 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
 .grid-divider { grid-column: 1 / -1; margin-top: 8px; font: 600 10.5px/1.2 var(--body); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); border-top: 1px solid var(--line); padding-top: 10px; }
 .tile.add { background: var(--paper); color: var(--muted); border: 1px dashed var(--line); place-items: center; display: grid; grid-template-rows: none; font-weight: 500; }
 .tile.add span { font-size: 28px; line-height: 1; }
+.tile.more { background: var(--paper); color: var(--muted); border: 1px dashed var(--line); place-items: center; display: grid; grid-template-rows: none; font-weight: 500; text-align: center; }
+.tile.more b { font: 500 26px/1 var(--display); color: var(--fg); }
 .view-head { display: flex; align-items: center; gap: 10px; }
 .view-head .btn { padding: 6px 12px; font-size: 13px; }
 
@@ -545,7 +547,7 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
   const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const todayISO = () => new Date().toISOString().slice(0, 10);
 
-  const state = { user: null, loaded: false, canWrite: false, coffees: [], active: 0, brews: [], editingId: null, brewRating: 0, pendingDelete: null, view: "grid", pendingFocus: null, brewsFor: null, variant: {}, editRecipes: [], editIdx: 0, info: {}, dose: 30, grinder: "casa", filterBy: {}, settingsFor: null };
+  const state = { user: null, loaded: false, canWrite: false, coffees: [], active: 0, brews: [], editingId: null, brewRating: 0, pendingDelete: null, view: "grid", pendingFocus: null, brewsFor: null, variant: {}, editRecipes: [], editIdx: 0, info: {}, dose: 30, grinder: "casa", filterBy: {}, settingsFor: null, showAllArchived: false };
   try { const g = localStorage.getItem("brewdeck.grinder"); if (["c40", "ode"].includes(g)) state.grinder = g; } catch {}
   try { const d = Number(localStorage.getItem("brewdeck.dose")); if ([15, 20, 30].includes(d)) state.dose = d; } catch {}
   // Always open on the dashboard; a card is something you navigate to.
@@ -716,11 +718,17 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
     const add = state.canWrite ? `<button class="tile add" type="button" id="addTile" aria-label="Add a card"><span>+</span>Add card</button>` : "";
     groups.forEach((group, g) => {
       if (g === 1) { html += add; if (group.length) html += `<div class="grid-divider">Archived</div>`; }
-      html += group.map((c) => {
+      // Archived: the first six, then a "more" tile for the rest (and a "less" tile once expanded).
+      const ARCHIVED_SHOWN = 6;
+      const hidden = g === 1 && !state.showAllArchived ? Math.max(0, group.length - ARCHIVED_SHOWN) : 0;
+      const shown = hidden ? group.slice(0, ARCHIVED_SHOWN) : group;
+      html += shown.map((c) => {
         const idx = state.coffees.indexOf(c);
         const draggable = state.canWrite && !c.archived;
         return `<button class="tile${c.archived ? " archived" : ""}${draggable ? " draggable" : ""}" type="button" data-i="${idx}" data-id="${esc(c.id)}" aria-label="Open ${esc(c.name)}${draggable ? " (press and hold to reorder)" : ""}">${tileBody(c)}</button>`;
       }).join("");
+      if (hidden) html += `<button class="tile more" type="button" id="moreTile" aria-label="Show ${hidden} more archived coffees"><span><b>+${hidden}</b><br>Show more</span></button>`;
+      else if (g === 1 && state.showAllArchived && group.length > ARCHIVED_SHOWN) html += `<button class="tile more" type="button" id="moreTile" aria-label="Show fewer archived coffees"><span>Show less</span></button>`;
     });
     $("grid").innerHTML = html;
     if (state.canWrite) mountSortable();
@@ -743,7 +751,7 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
     if (sortable || !window.Sortable) return;
     sortable = new Sortable($("grid"), {
       draggable: ".tile.draggable",
-      filter: ".tile.archived, .tile.add, .grid-divider",
+      filter: ".tile.archived, .tile.add, .tile.more, .grid-divider",
       preventOnFilter: false,
       animation: 180,
       easing: "cubic-bezier(.2, .8, .2, 1)",
@@ -816,6 +824,7 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
   $("grid").addEventListener("click", (e) => {
     if (drag.suppressClick) { e.preventDefault(); return; }
     const add = e.target.closest("#addTile"); if (add) { openCardEditor(null); return; }
+    if (e.target.closest("#moreTile")) { state.showAllArchived = !state.showAllArchived; renderGrid(); return; }
     const t = e.target.closest("button.tile[data-i]"); if (!t) return;
     state.active = Number(t.dataset.i); updateNav(); showView("card");
   });
