@@ -339,7 +339,14 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
       <div><b>Fast, thin or sour</b><p>Grind ½ number finer, then a full number if the cup doesn't move. Change temperature only once the drawdown lands in the window.</p></div>
       <div><b>Slow, drying or bitter</b><p>Grind ½ number coarser, or drop 1°C. On naturals that read winey after a fast brew, go finer first, not cooler.</p></div>
     </div>
-    <p class="guide-note">Micron figures are estimates from published grind charts (Casa ≈ 50 µm per number; Red Clix ≈ 15 µm per click), not manufacturer specifications; use them to compare settings, not as absolutes.</p>
+    <h3 class="guide-sub">Fellow Ode Gen 2 · stock Gen 2 burrs</h3>
+    <div class="guide-grid" id="guideOde">
+      <div><b>≈ 30 µm per click</b><p>Dial 1–11 with two clicks between numbers, so "6.1" is one click past 6. A click is the smallest change worth tasting; a full number (≈ 90 µm) is a big step, nearly two Casa numbers.</p></div>
+      <div><b>Casa 15 ≈ 6.1</b><p>The deck converts each Casa setting through its micron estimate (Ode range ≈ 275–1160 µm). The Gen 2 flat burrs make a similar, clean particle spread to the Casa, so expect to land within a click of the number shown.</p></div>
+      <div><b>Fast, thin or sour</b><p>1 click finer, then 2 more if the cup doesn't move. Change temperature only once the drawdown lands in the window.</p></div>
+      <div><b>Slow, drying or bitter</b><p>1 click coarser, or drop 1°C. On naturals that read winey after a fast brew, go finer first, not cooler.</p></div>
+    </div>
+    <p class="guide-note">Micron figures are estimates from published grind charts (Casa ≈ 50 µm per number; Red Clix ≈ 15 µm per click; Ode Gen 2 ≈ 30 µm per click), not manufacturer specifications; use them to compare settings, not as absolutes.</p>
   </section>
   </dialog>
 
@@ -447,6 +454,7 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
       <div class="seg" id="grinderSeg" role="radiogroup" aria-label="Grinder">
         <button type="button" data-g="casa" role="radio" aria-checked="true">Casa</button>
         <button type="button" data-g="c40" role="radio" aria-checked="false">C40</button>
+        <button type="button" data-g="ode" role="radio" aria-checked="false">Ode</button>
       </div>
     </div>
     <div class="setting"><span class="dose-label">Dose</span>
@@ -537,7 +545,7 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
   const todayISO = () => new Date().toISOString().slice(0, 10);
 
   const state = { user: null, loaded: false, canWrite: false, coffees: [], active: 0, brews: [], editingId: null, brewRating: 0, pendingDelete: null, view: "grid", pendingFocus: null, brewsFor: null, variant: {}, editRecipes: [], editIdx: 0, info: {}, dose: 30, grinder: "casa", filterBy: {}, settingsFor: null };
-  try { if (localStorage.getItem("brewdeck.grinder") === "c40") state.grinder = "c40"; } catch {}
+  try { const g = localStorage.getItem("brewdeck.grinder"); if (["c40", "ode"].includes(g)) state.grinder = g; } catch {}
   try { const d = Number(localStorage.getItem("brewdeck.dose")); if ([15, 20, 30].includes(d)) state.dose = d; } catch {}
   // Always open on the dashboard; a card is something you navigate to.
 
@@ -560,10 +568,25 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
   // Comandante C40 MK4 with Red Clix: ~15 µm per click, so clicks ≈ Casa microns / 15.
   const C40_UM_PER_CLICK = 15;
   const c40Of = (s) => { const v = dialValue(s); return v === null ? null : Math.round(v * 50 / C40_UM_PER_CLICK); };
+  // Fellow Ode Gen 2 with the stock Gen 2 burrs: dial 1–11 with two clicks between numbers (31 steps) over ≈ 275–1160 µm, so ≈ 29.5 µm per click. "6.1" = one click past 6.
+  const ODE_MIN_UM = 275, ODE_UM_PER_CLICK = 29.5;
+  const odeOf = (s) => {
+    const v = dialValue(s); if (v === null) return null;
+    const steps = Math.min(30, Math.max(0, Math.round((v * 50 - ODE_MIN_UM) / ODE_UM_PER_CLICK)));
+    const n = 1 + Math.floor(steps / 3), k = steps % 3;
+    return k ? `${n}.${k}` : String(n);
+  };
+  const GRINDERS = { casa: "Casa", c40: "C40", ode: "Ode" };
   const grindDisplay = (grind) => {
-    if (state.grinder !== "c40") return { main: grind || "—", small: micronsOf(grind) };
-    const clicks = c40Of(grind);
-    return clicks === null ? { main: grind || "—", small: "no C40 equivalent" } : { main: `${clicks} clicks`, small: `${micronsOf(grind)} · Casa ${grind}` };
+    if (state.grinder === "c40") {
+      const clicks = c40Of(grind);
+      return clicks === null ? { main: grind || "—", small: "no C40 equivalent" } : { main: `${clicks} clicks`, small: `${micronsOf(grind)} · Casa ${grind}` };
+    }
+    if (state.grinder === "ode") {
+      const o = odeOf(grind);
+      return o === null ? { main: grind || "—", small: "no Ode equivalent" } : { main: o, small: `${micronsOf(grind)} · Casa ${grind}` };
+    }
+    return { main: grind || "—", small: micronsOf(grind) };
   };
   const grams = (s) => { const m = String(s || "").match(/^(\d+(?:\.\d+)?)\s*g/); return m ? Number(m[1]) : null; };
   // "≈ 7 g/s · 15 s" for a pour with a rate; the poured amount is this step's target minus the previous step's.
@@ -637,12 +660,12 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
     const specs = [["Origin", c.origin], ["Producer", c.producer], ["Variety", c.variety], ["Altitude", c.altitude], ["Process", c.process]]
       .map(([k, v]) => `<div><dt>${esc(k)}</dt><dd>${v ? esc(v) : "—"}</dd></div>`).join("");
     const rs = methodsOf(c), vi = variantIndex(c), r = applyFilter(scaleRecipe(rs[vi], state.dose), filterFor(c, rs[vi]));
-    const summary = [state.grinder === "c40" ? "C40" : "Casa", `${state.dose} g`, methodLabel(rs[vi]), r.filter || "—"].join(" · ");
+    const summary = [GRINDERS[state.grinder] || "Casa", `${state.dose} g`, methodLabel(rs[vi]), r.filter || "—"].join(" · ");
     const tabs = `<div><button class="setline" type="button" data-id="${esc(c.id)}" aria-haspopup="dialog" aria-label="Brew settings: ${esc(summary)}"><span class="gear" aria-hidden="true">⚙</span><span class="txt">${esc(summary)}</span></button></div>`;
     const filterNote = r.filterChanged ? `<p class="scaled">Paper changed from ${esc(r.filterChanged.from)} to ${esc(r.filterChanged.to)}: grind and finish window adjusted.</p>` : "";
     const grindHint = (() => {
-      const d = state.dose - r.scaledFrom, c40 = state.grinder === "c40";
-      const big = c40 ? "3 clicks" : "1 number", small = c40 ? "2 clicks" : "½ number";
+      const d = state.dose - r.scaledFrom;
+      const big = { c40: "3 clicks", ode: "2 clicks" }[state.grinder] || "1 number", small = { c40: "2 clicks", ode: "1 click" }[state.grinder] || "½ number";
       if (d <= -12) return `start about ${big} finer than shown (shallower bed drains faster)`;
       if (d < 0) return `start about ${small} finer than shown (shallower bed drains faster)`;
       if (d >= 12) return `start about ${big} coarser than shown (deeper bed drains slower)`;
@@ -665,7 +688,7 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
         <div class="key">
           <div><span>Water</span><strong>${esc(r.water || "—")}</strong>${r.dose ? `<small>${esc(r.dose)}</small>` : ""}</div>
           <div><span>Filter</span><strong>${esc(r.filter || "—")}</strong></div>
-          <div><span>Grind${state.grinder === "c40" ? " · Red Clix" : ""}</span><strong>${esc(grindDisplay(r.grind).main)}</strong><small>${esc(grindDisplay(r.grind).small)}</small></div>
+          <div><span>Grind${{ c40: " · Red Clix", ode: " · Ode" }[state.grinder] || ""}</span><strong>${esc(grindDisplay(r.grind).main)}</strong><small>${esc(grindDisplay(r.grind).small)}</small></div>
         </div>
         ${pours ? `<div><h3>Pours${r.pourTitle ? " · " + esc(r.pourTitle) : ""}</h3><table>${pours}</table></div>` : ""}
         ${r.finish ? `<div class="finish"><span>Target finish</span><b>${esc(r.finish)}</b></div>` : ""}
@@ -685,7 +708,7 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
   const tileBody = (c) => `<span class="t-roaster">${esc(c.roaster || "")}</span>
       <span class="t-name">${esc(c.name)}</span>
       <span class="t-notes">${esc(c.tasting || "")}</span>
-      <span class="t-key"><span>${esc(c.water || "—")}</span><span>${esc(c.filter || "—")}</span><span>${esc(c.grind || "—")}</span></span>`;
+      <span class="t-key"><span>${esc(c.water || "—")}</span><span>${esc(c.filter || "—")}</span><span>${esc(grindDisplay(c.grind).main)}</span></span>`;
   const renderGrid = () => {
     const groups = [state.coffees.filter((c) => !c.archived), state.coffees.filter((c) => c.archived)];
     let html = "";
@@ -897,7 +920,7 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
     const b = e.target.closest("button[data-g]"); if (!b) return;
     state.grinder = b.dataset.g;
     try { localStorage.setItem("brewdeck.grinder", state.grinder); } catch {}
-    renderGrinderSeg(); state.coffees.forEach(rerenderCard);
+    renderGrinderSeg(); state.coffees.forEach(rerenderCard); renderGrid();
   });
   renderGrinderSeg();
 
