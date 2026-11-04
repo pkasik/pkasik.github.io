@@ -656,13 +656,21 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
     return recipesOf(c).filter((r) => { const k = methodLabel(r); if (seen.has(k)) return false; seen.add(k); return true; });
   };
   const variantIndex = (c) => { const rs = methodsOf(c); const i = state.variant[c.id] ?? 0; return Math.min(i, rs.length - 1); };
-  const activeRecipe = (c) => { const base = methodsOf(c)[variantIndex(c)]; return applyFilter(scaleRecipe(base, state.dose), filterFor(c, base)); };
+  // A method can be written for more than one dose ("20 g · Switch" and "30 g · Switch"): use the written recipe whose dose is nearest the selected dose, then scale.
+  const doseVariant = (c, m) => {
+    const cands = recipesOf(c).filter((r) => methodLabel(r) === methodLabel(m));
+    if (cands.length < 2) return m;
+    const gap = (r) => Math.abs((baseOf(r)?.dose ?? 1e9) - state.dose);
+    return cands.reduce((best, r) => (gap(r) < gap(best) ? r : best), cands[0]);
+  };
+  const baseRecipe = (c) => doseVariant(c, methodsOf(c)[variantIndex(c)]);
+  const activeRecipe = (c) => { const base = baseRecipe(c); return applyFilter(scaleRecipe(base, state.dose), filterFor(c, base)); };
 
   const renderCard = (c) => {
     // Always render all five rows so the block is the same height on every card.
     const specs = [["Origin", c.origin], ["Producer", c.producer], ["Variety", c.variety], ["Altitude", c.altitude], ["Process", c.process]]
       .map(([k, v]) => `<div><dt>${esc(k)}</dt><dd>${v ? esc(v) : "—"}</dd></div>`).join("");
-    const rs = methodsOf(c), vi = variantIndex(c), r = applyFilter(scaleRecipe(rs[vi], state.dose), filterFor(c, rs[vi]));
+    const rs = methodsOf(c), vi = variantIndex(c), base = doseVariant(c, rs[vi]), r = applyFilter(scaleRecipe(base, state.dose), filterFor(c, base));
     const summary = [GRINDERS[state.grinder] || "Casa", `${state.dose} g`, methodLabel(rs[vi]), r.filter || "—"].join(" · ");
     const tabs = `<div><button class="setline" type="button" data-id="${esc(c.id)}" aria-haspopup="dialog" aria-label="Brew settings: ${esc(summary)}"><span class="gear" aria-hidden="true">⚙</span><span class="txt">${esc(summary)}</span></button></div>`;
     const filterNote = r.filterChanged ? `<p class="scaled">Paper changed from ${esc(r.filterChanged.from)} to ${esc(r.filterChanged.to)}: grind and finish window adjusted.</p>` : "";
@@ -893,7 +901,7 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
   };
   const renderFilterSeg = () => {
     const c = state.coffees.find((x) => x.id === state.settingsFor); if (!c) return;
-    const cur = filterFor(c, methodsOf(c)[variantIndex(c)]);
+    const cur = filterFor(c, baseRecipe(c));
     [...$("filterSeg").children].forEach((b) => b.setAttribute("aria-checked", String(b.dataset.f === cur)));
   };
   $("resetSettings").addEventListener("click", () => {
