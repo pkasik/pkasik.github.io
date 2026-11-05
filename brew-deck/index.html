@@ -216,6 +216,31 @@ dialog.timer { background: var(--amber); color: var(--amber-ink); --c-bg: var(--
 dialog { border: 0; border-radius: 10px; padding: 0; background: var(--paper); color: var(--fg); width: min(640px, calc(100vw - 32px)); max-height: calc(100dvh - 32px); }
 dialog::backdrop { background: rgb(20 14 8 / .55); }
 dialog form { display: grid; gap: 14px; padding: 20px; }
+/* Editor sheets: fixed header and footer, scrolling body; full-screen on phones so Save is always within reach */
+dialog.sheet { overflow: hidden; }
+dialog.sheet form { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; gap: 0; padding: 0; max-height: calc(100dvh - 32px); }
+.sheet-head { padding: 16px 20px 12px; border-bottom: 1px solid var(--line); }
+.sheet-body { overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; padding: 16px 20px; display: grid; gap: 14px; align-content: start; min-width: 0; }
+.sheet-body > * { min-width: 0; max-width: 100%; }
+.sheet-foot { padding: 12px 20px; border-top: 1px solid var(--line); background: var(--paper); }
+html:has(dialog[open]), body:has(dialog[open]) { overflow: hidden; }
+html, body { overflow-x: hidden; max-width: 100%; }
+@media (max-width: 560px) {
+  /* 16px or larger: iOS Safari zooms the page when a smaller field is focused, and the layout then overflows sideways. */
+  input, select, textarea { font-size: 16px !important; }
+  .pour-row > * { min-width: 0; }
+}
+@media (max-width: 560px) {
+  dialog.sheet { width: 100%; max-width: 100%; height: 100dvh; max-height: 100dvh; margin: 0; border-radius: 0; inset: 0; }
+  .sheet-body { padding: 14px 16px; }
+  .variant-bar select { flex: 1 1 100%; }
+  .pour-row { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr) auto; }
+  .pour-row input:nth-child(4) { grid-column: 1 / -1; }
+  dialog.sheet form { height: 100dvh; max-height: 100dvh; }
+  .sheet-head { padding-top: calc(14px + env(safe-area-inset-top, 0px)); }
+  .sheet-foot { padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px)); }
+  .sheet-foot .btn { padding: 10px 16px; font-size: 15px; }
+}
 dialog h2 { font: 500 24px/1.15 var(--display); margin: 0; }
 .grid2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 12px; }
 .grid3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px 12px; }
@@ -270,7 +295,6 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
   .main { padding: 16px; }
   .key strong { font-size: 16px; }
   .grid3 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .pour-row { grid-template-columns: 56px 66px 48px minmax(0, 1fr) auto; }
 }
 @media (prefers-reduced-motion: no-preference) { .rail { scroll-behavior: smooth; } }
 </style>
@@ -360,9 +384,10 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
 </div>
 
 <!-- Card editor -->
-<dialog id="cardDialog" aria-labelledby="cardDialogTitle">
+<dialog id="cardDialog" class="sheet" aria-labelledby="cardDialogTitle">
   <form id="cardForm" method="dialog" novalidate>
-    <h2 id="cardDialogTitle">New card</h2>
+    <div class="sheet-head"><h2 id="cardDialogTitle">New card</h2></div>
+    <div class="sheet-body">
     <div class="grid2">
       <label class="f">Coffee name<input id="f_name" name="name" required autocomplete="off" placeholder="Kenya Maganio"></label>
       <label class="f">Roaster<input id="f_roaster" name="roaster" autocomplete="off" placeholder="Apartment Coffee"></label>
@@ -401,7 +426,8 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
     </fieldset>
     <label class="f">Tip<textarea id="f_tip" name="tip" placeholder="What to expect, and what to change if it's off."></textarea></label>
     <p class="err" id="cardErr" hidden></p>
-    <div class="actions">
+    </div>
+    <div class="actions sheet-foot">
       <button class="btn danger" id="deleteCard" type="button" hidden>Delete card</button>
       <div class="right">
         <button class="btn" type="button" id="cancelCard">Cancel</button>
@@ -412,9 +438,10 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
 </dialog>
 
 <!-- Brew editor -->
-<dialog id="brewDialog" aria-labelledby="brewDialogTitle">
+<dialog id="brewDialog" class="sheet" aria-labelledby="brewDialogTitle">
   <form id="brewForm" method="dialog" novalidate>
-    <h2 id="brewDialogTitle">Log a brew</h2>
+    <div class="sheet-head"><h2 id="brewDialogTitle">Log a brew</h2></div>
+    <div class="sheet-body">
     <div class="grid3">
       <label class="f">Date<input id="b_date" name="date" type="date" required></label>
       <label class="f">Grind<input id="b_grind" name="grind" autocomplete="off" placeholder="15"></label>
@@ -435,7 +462,8 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
     </div>
     <label class="f">Notes<textarea id="b_notes" name="notes" placeholder="Taste, body, what to change next time."></textarea></label>
     <p class="err" id="brewErr" hidden></p>
-    <div class="actions">
+    </div>
+    <div class="actions sheet-foot">
       <div class="right">
         <button class="btn" type="button" id="cancelBrew">Cancel</button>
         <button class="btn primary" type="submit">Save brew</button>
@@ -1240,7 +1268,7 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
   const subscribeBrews = () => { loadBrews(false); };
 
   // ---------- Helpers ----------
-  const showErr = (id, msg) => { const el = $(id); el.textContent = msg; el.hidden = false; };
+  const showErr = (id, msg) => { const el = $(id); el.textContent = msg; el.hidden = false; try { el.scrollIntoView({ block: "nearest" }); } catch {} };
   const setStatus = (msg) => { status.textContent = msg; };
   const friendly = (err, what) => {
     const msg = String(err?.message || "");
