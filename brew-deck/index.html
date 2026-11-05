@@ -188,7 +188,7 @@ dialog.timer { background: var(--amber); color: var(--amber-ink); --c-bg: var(--
 .timer-ctl .btn.go { background: var(--c-fg); color: var(--c-bg); }
 .timer-note { margin: 0; font-size: 12.5px; color: var(--c-muted); }
 
-.nav { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 10px; }
+.nav { display: flex; align-items: center; justify-content: center; gap: 12px; margin-top: 10px; }
 .dots { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; }
 .dots button { width: 8px; height: 8px; border-radius: 50%; border: 0; background: var(--line); padding: 0; }
 .dots button[aria-current="true"] { background: var(--amber); width: 20px; border-radius: 4px; }
@@ -317,10 +317,7 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
   <section class="deck" id="deck" aria-label="Recipe cards" hidden>
     <div class="rail" id="rail" tabindex="0" aria-roledescription="carousel"></div>
     <div class="nav" id="nav" hidden>
-      <button class="btn quiet" id="prev" type="button" aria-label="Previous card">‹ Prev</button>
       <div class="dots" id="dots" role="tablist" aria-label="Cards"></div>
-      <span class="counter" id="counter"></span>
-      <button class="btn quiet" id="next" type="button" aria-label="Next card">Next ›</button>
     </div>
   </section>
 
@@ -552,7 +549,7 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
   try { const d = Number(localStorage.getItem("brewdeck.dose")); if ([15, 20, 30].includes(d)) state.dose = d; } catch {}
   // Always open on the dashboard; a card is something you navigate to.
 
-  const rail = $("rail"), dots = $("dots"), counter = $("counter"), status = $("status");
+  const rail = $("rail"), dots = $("dots"), status = $("status");
 
   // ---------- Rendering ----------
   const RECIPE_FIELDS = ["label", "dose", "water", "filter", "filterNote", "grind", "grindNote", "finish", "pourTitle", "tip"];
@@ -792,9 +789,19 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
     setStatus(`${archiving ? "Archived" : "Unarchived"} ${name}`); setTimeout(() => { if (status.textContent.endsWith(name)) setStatus(""); }, 2500);
   };
 
+  // The rail holds only the group the active card belongs to (active or archived), so swiping never crosses from one into the other.
+  // state.active indexes state.coffees (actives first, then archived); the rail index is that minus the group's offset.
+  const inArchived = () => !!state.coffees[state.active]?.archived;
+  const deckOffset = () => (inArchived() ? state.coffees.filter((c) => !c.archived).length : 0);
+  const deckList = () => { const g = inArchived(); return state.coffees.filter((c) => !!c.archived === g); };
+  const renderRail = () => {
+    const off = deckOffset();
+    rail.innerHTML = deckList().map(renderCard).join("");
+    dots.innerHTML = deckList().map((c, i) => `<button type="button" role="tab" data-i="${i + off}" aria-label="${esc(c.name)}" aria-current="${i + off === state.active}"></button>`).join("");
+  };
   // Land on a card with no scroll animation (used when opening from the dashboard or after a data refresh).
   const jumpTo = (i) => {
-    const el = rail.children[i]; if (!el) return;
+    const el = rail.children[i - deckOffset()]; if (!el) return;
     rail.style.scrollBehavior = "auto";
     rail.scrollLeft = el.offsetLeft - rail.offsetLeft;
     rail.style.scrollBehavior = "";
@@ -823,8 +830,7 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
     $("nav").hidden = !has || isGrid;
     $("log").hidden = !has || isGrid;
     renderGrid();
-    rail.innerHTML = state.coffees.map(renderCard).join("");
-    dots.innerHTML = state.coffees.map((c, i) => `<button type="button" role="tab" data-i="${i}" aria-label="${esc(c.name)}" aria-current="${i === state.active}"></button>`).join("");
+    renderRail();
     updateNav();
     if (has && !isGrid) jumpTo(state.active);
   };
@@ -834,14 +840,11 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
     const add = e.target.closest("#addTile"); if (add) { openCardEditor(null); return; }
     if (e.target.closest("#moreTile")) { state.showAllArchived = !state.showAllArchived; renderGrid(); return; }
     const t = e.target.closest("button.tile[data-i]"); if (!t) return;
-    state.active = Number(t.dataset.i); updateNav(); showView("card");
+    state.active = Number(t.dataset.i); renderRail(); updateNav(); showView("card");
   });
 
   const updateNav = () => {
-    const n = state.coffees.length;
-    counter.textContent = n ? `${state.active + 1} / ${n}` : "";
-    [...dots.children].forEach((d, i) => d.setAttribute("aria-current", String(i === state.active)));
-    $("prev").disabled = state.active === 0; $("next").disabled = state.active >= n - 1;
+    [...dots.children].forEach((d) => d.setAttribute("aria-current", String(Number(d.dataset.i) === state.active)));
     $("logName").textContent = state.coffees[state.active]?.name || "";
   };
 
@@ -864,12 +867,11 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
   // ---------- Navigation ----------
   const goTo = (i) => {
     if (!state.coffees.length) return;
-    state.active = Math.max(0, Math.min(state.coffees.length - 1, i));
-    rail.children[state.active]?.scrollIntoView({ block: "nearest", inline: "start" });
+    const off = deckOffset(), n = deckList().length;
+    state.active = Math.max(off, Math.min(off + n - 1, i));
+    rail.children[state.active - off]?.scrollIntoView({ block: "nearest", inline: "start" });
     updateNav(); subscribeBrews();
   };
-  $("prev").addEventListener("click", () => goTo(state.active - 1));
-  $("next").addEventListener("click", () => goTo(state.active + 1));
   dots.addEventListener("click", (e) => { const b = e.target.closest("button[data-i]"); if (b) goTo(Number(b.dataset.i)); });
   rail.addEventListener("keydown", (e) => { if (e.key === "ArrowRight") goTo(state.active + 1); if (e.key === "ArrowLeft") goTo(state.active - 1); });
   let scrollT;
@@ -877,8 +879,8 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
     clearTimeout(scrollT);
     scrollT = setTimeout(() => {
       const w = rail.children[0]?.getBoundingClientRect().width || 1;
-      const i = Math.round(rail.scrollLeft / (w + 12));
-      if (i !== state.active && state.coffees[i]) { state.active = i; updateNav(); subscribeBrews(); }
+      const i = Math.round(rail.scrollLeft / (w + 12)) + deckOffset();
+      if (i !== state.active && state.coffees[i] && !!state.coffees[i].archived === inArchived()) { state.active = i; updateNav(); subscribeBrews(); }
     }, 80);
   });
   const renderDoseSeg = () => { [...$("doseSeg").children].forEach((b) => b.setAttribute("aria-checked", String(Number(b.dataset.d) === state.dose))); };
