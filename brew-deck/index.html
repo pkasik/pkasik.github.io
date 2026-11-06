@@ -190,6 +190,14 @@ dialog.timer { background: var(--amber); color: var(--amber-ink); --c-bg: var(--
 .timer-clock .time { font: 500 56px/1 var(--mono); font-variant-numeric: tabular-nums; letter-spacing: -.02em; }
 .timer-clock .phase { font: 500 13px/1.3 var(--body); color: var(--c-muted); text-align: center; min-height: 1.3em; }
 .timer-stage { display: grid; grid-template-columns: 120px 1fr; gap: 14px; align-items: center; }
+/* Espresso: pressure guide beside the yield — the target band over time, drawn as bars that appear as the shot runs */
+.timer-press { display: grid; gap: 6px; }
+.timer-press .pbox { position: relative; height: 96px; border: 1px solid var(--c-line); border-radius: 4px; background: var(--c-soft); overflow: hidden; }
+.timer-press .band { position: absolute; left: 0; right: 0; background: rgb(42 22 7 / .16); }
+.timer-press .band span { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); font: 500 10px/1 var(--mono); color: var(--c-fg); }
+.timer-press .bars { position: absolute; left: 6px; right: 56px; bottom: 6px; top: 6px; display: flex; align-items: flex-end; gap: 3px; }
+.timer-press .bars i { display: block; flex: 1 1 0; max-width: 6px; background: var(--c-fg); border-radius: 1px 1px 0 0; }
+.timer-ctl .btn.log { background: var(--c-fg); color: var(--c-bg); }
 .timer-art { width: 120px; height: auto; display: block; }
 .timer-art .stream { stroke: var(--c-fg); stroke-width: 3; stroke-linecap: round; stroke-dasharray: 2 7; animation: pour .5s linear infinite; opacity: 0; transition: opacity .2s; }
 .timer-art.pouring .stream { opacity: .9; }
@@ -593,15 +601,22 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
         <rect x="30" y="116" width="60" height="30" rx="5" fill="none" stroke="var(--c-fg)" stroke-width="2.5"/>
       </svg>
       <div class="timer-water">
+        <span class="goal" id="t_waterLabel" hidden>Yield</span>
         <span class="now" id="t_water">0 g</span>
         <span class="goal" id="t_goal"></span>
         <div class="bar"><i id="t_bar"></i></div>
+      </div>
+      <div class="timer-press" id="t_press" hidden>
+        <span class="goal">Pressure guide</span>
+        <div class="pbox" id="t_pbox"><div class="bars" id="t_bars"></div></div>
+        <span class="goal">target band, by time</span>
       </div>
     </div>
     <ol class="timer-steps" id="t_steps"></ol>
     <div class="timer-ctl">
       <button class="btn go" id="t_go" type="button">Start</button>
       <button class="btn" id="t_stop" type="button" hidden>Stop</button>
+      <button class="btn log" id="t_log" type="button" hidden>Log this shot</button>
     </div>
     <p class="timer-note" id="t_note"></p>
   </div>
@@ -1125,7 +1140,17 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
     for (let t = dt, L = 0; t <= end + dt; t += dt) { L = Math.max(0, L + (water(t) - water(t - dt)) - (L / tau) * dt); levels.push(L); peak = Math.max(peak, L); }
     const level = (t) => { const i = Math.min(levels.length - 1, Math.max(0, t / dt)); const a = Math.floor(i), f = i - a; return levels[a] + (levels[Math.min(levels.length - 1, a + 1)] - levels[a]) * f; };
     const drained = (t) => Math.max(0, water(t) - level(t));
-    return { steps, total: prev, winStart, winEnd, end, water, drained, level, peak };
+    // Espresso: a pressure band per stage (from "2–3 bar" in the stage's target or action); between stages the target ramps over ~4 s.
+    const bands = steps.map((st) => { const m = `${st.label || ""} ${st.action || ""}`.match(/(\d+(?:\.\d+)?)\s*[–-]\s*(\d+(?:\.\d+)?)\s*bar/i); return m ? { t: st.t, lo: Number(m[1]), hi: Number(m[2]) } : null; }).filter(Boolean);
+    const pressure = (t) => {
+      if (!bands.length) return 0;
+      let cur = bands[0], prevB = null;
+      for (const b of bands) { if (t >= b.t) { prevB = cur === b ? prevB : cur; cur = b; } }
+      const mid = (b) => (b.lo + b.hi) / 2;
+      if (prevB && cur !== bands[0] && t < cur.t + 4) return mid(prevB) + (mid(cur) - mid(prevB)) * ((t - cur.t) / 4);
+      return t < bands[0].t ? 0 : mid(cur);
+    };
+    return { steps, total: prev, winStart, winEnd, end, water, drained, level, peak, bands, pressure };
   };
   const timer = { tl: null, coffee: null, start: 0, raf: 0, running: false, lock: null, audio: null, cued: new Set() };
   const beep = (n = 1) => {
@@ -1174,45 +1199,68 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
     const cupH = 30 * Math.min(1, tl.total ? tl.drained(t) / tl.total : 0);
     const cup = $("t_cupfill"); cup.setAttribute("y", String(146 - cupH)); cup.setAttribute("height", String(cupH));
     $("t_drip").setAttribute("opacity", inCone > 0.5 && t > 5 ? "0.7" : "0");
+    if (timer.esp && tl.bands.length) {
+      const stepS = 2, n = Math.ceil(tl.end / stepS), shown = Math.min(n, Math.floor(t / stepS) + (t > 0 ? 1 : 0));
+      const pmax = Math.max(10, ...tl.bands.map((b) => b.hi + 1));
+      $("t_bars").innerHTML = Array.from({ length: n }, (_, i) => `<i style="height:${i < shown ? Math.max(2, Math.round(tl.pressure(i * stepS) / pmax * 100)) : 0}%"></i>`).join("");
+    }
     renderTimerSteps(cur >= 0 && (pouring || (s && !s.pour)) ? cur : -1, cur + (s && !(pouring || (s && !s.pour)) ? 1 : 0));
     // Sound cues: two beeps at each pour, three when the target window opens.
     if (!timer.running) return;
-    tl.steps.forEach((st, i) => { if (t >= st.t && t < st.t + 1.5 && !timer.cued.has(i)) { timer.cued.add(i); beep(2); } });
-    if (tl.winStart !== null && t >= tl.winStart && !timer.cued.has("win")) { timer.cued.add("win"); beep(3); }
+    tl.steps.forEach((st, i) => { if (t >= st.t && t < st.t + 1.5 && !timer.cued.has(i)) { timer.cued.add(i); if (i > 0 || !timer.esp) beep(timer.esp ? 1 : 2); } });
+    if (tl.winStart !== null && t >= tl.winStart && !timer.cued.has("win")) { timer.cued.add("win"); beep(timer.esp ? 2 : 3); }
   };
   const tick = () => {
     if (!timer.running) return;
-    const t = (performance.now() - timer.start) / 1000;
+    const t = (performance.now() - timer.start) / 1000; timer.elapsed = t;
     if (t >= timer.tl.end) { paintTimer(timer.tl.end); finishTimer("Done — enjoy."); return; }
     paintTimer(t);
     timer.raf = requestAnimationFrame(tick);
   };
   const finishTimer = (note) => {
     timer.running = false; cancelAnimationFrame(timer.raf); keepAwake(false);
-    $("t_go").hidden = false; $("t_go").textContent = "Start again"; $("t_stop").hidden = true;
+    $("t_go").hidden = false; $("t_go").textContent = "Start again"; $("t_stop").hidden = true; $("t_log").hidden = !timer.esp || !state.canWrite;
     $("t_note").textContent = note;
   };
   const resetTimer = () => {
     timer.running = false; cancelAnimationFrame(timer.raf); timer.cued = new Set(); timer.start = 0; keepAwake(false);
     paintTimer(0);
-    $("t_go").hidden = false; $("t_go").textContent = "Start"; $("t_stop").hidden = true;
-    $("t_note").textContent = timer.esp ? `Runs to the end of the target shot window (${mmss(timer.tl.end).replace(/^0:/, "")} s). Two beeps at each stage, three when the window opens; stop on weight.` : timer.tl.winEnd !== null ? `Runs to the end of the target window (${mmss(timer.tl.end)}). Two beeps at each pour, three when the window opens; the screen stays awake while it runs.` : "Runs until 45 s after the last pour.";
+    $("t_go").hidden = false; $("t_go").textContent = "Start"; $("t_stop").hidden = true; $("t_log").hidden = true; timer.elapsed = 0;
+    $("t_note").textContent = timer.esp ? `One beep when preinfusion should end, two at the target window. The pressure guide is the target band over time; the Robot has no sensor, so you read the gauge and the bars are a reminder, not a measurement.` : timer.tl.winEnd !== null ? `Runs to the end of the target window (${mmss(timer.tl.end)}). Two beeps at each pour, three when the window opens; the screen stays awake while it runs.` : "Runs until 45 s after the last pour.";
   };
   const openTimer = (id) => {
     const c = state.coffees.find((x) => x.id === id); if (!c) return;
     const r = activeRecipe(c);
     timer.coffee = c; timer.tl = buildTimeline(r, isEsp(c));
     $("t_name").textContent = c.name; $("t_method").textContent = `${methodLabel(r)} · ${r.dose || ""} · ${r.water || ""}`.replace(/( · )+$/, "");
-    timer.esp = isEsp(c); $("t_art").hidden = timer.esp; $("t_art").parentElement.style.gridTemplateColumns = timer.esp ? "1fr" : "";
+    timer.esp = isEsp(c); $("t_art").style.display = timer.esp ? "none" : ""; $("t_press").hidden = !timer.esp || !timer.tl.bands.length; $("t_waterLabel").hidden = !timer.esp;
+    $("t_art").parentElement.style.gridTemplateColumns = timer.esp ? "1fr 1fr" : "";
+    if (timer.esp) {
+      const pmax = Math.max(10, ...timer.tl.bands.map((b) => b.hi + 1));
+      const seen = new Set();
+      $("t_pbox").innerHTML = timer.tl.bands.filter((b) => { const k = b.lo + "-" + b.hi; if (seen.has(k)) return false; seen.add(k); return true; })
+        .map((b) => `<div class="band" style="bottom:${(b.lo / pmax * 100).toFixed(1)}%;height:${((b.hi - b.lo) / pmax * 100).toFixed(1)}%"><span>${b.lo}–${b.hi} bar</span></div>`).join("") + `<div class="bars" id="t_bars"></div>`;
+    }
     resetTimer();
     $("timerDialog").showModal();
   };
   $("t_go").addEventListener("click", () => {
     timer.cued = new Set(); timer.start = performance.now(); timer.running = true; keepAwake(true);
-    $("t_go").hidden = true; $("t_stop").hidden = false; $("t_note").textContent = "Tap Stop to end the run early.";
+    $("t_go").hidden = true; $("t_stop").hidden = false; $("t_log").hidden = !timer.esp || !state.canWrite; $("t_note").textContent = timer.esp ? "Tap Log this shot when you stop the shot; the time goes into the log." : "Tap Stop to end the run early.";
     tick();
   });
   $("t_stop").addEventListener("click", () => resetTimer());
+  // Espresso: log the shot straight from the timer, with the elapsed time as the shot time.
+  $("t_log").addEventListener("click", () => {
+    const secs = Math.round(timer.elapsed || 0);
+    const c = timer.coffee; if (!c) return;
+    timer.running = false; cancelAnimationFrame(timer.raf); keepAwake(false);
+    $("timerDialog").close();
+    const i = state.coffees.indexOf(c); if (i >= 0) state.active = i;
+    $("addBrew").click();
+    if (secs > 0) $("b_finish").value = `${secs} s`;
+    $("b_notes").focus();
+  });
   $("t_close").addEventListener("click", () => { resetTimer(); $("timerDialog").close(); });
   $("timerDialog").addEventListener("cancel", () => resetTimer());
   $("timerDialog").addEventListener("click", (e) => { if (e.target === $("timerDialog")) { resetTimer(); $("timerDialog").close(); } });
