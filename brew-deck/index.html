@@ -60,9 +60,27 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
 .btn:disabled { opacity: .45; cursor: default; }
 
 /* Top bar */
-.top { display: grid; gap: 10px; justify-items: start; }
-.top .tools { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
-.top .tools .btn { padding: 5px 10px; font-size: 12.5px; line-height: 1.3; }
+.top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.top .tools { display: flex; gap: 10px; align-items: center; }
+.gear { width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--line); background: var(--paper); color: var(--fg); display: inline-flex; align-items: center; justify-content: center; padding: 0; }
+.gear svg { width: 20px; height: 20px; }
+/* Settings sheet behind the gear: a list of rows, bottom sheet on phones */
+.menu-list { display: flex; flex-direction: column; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+.menu-list .row { display: flex; align-items: center; gap: 12px; border: 0; border-bottom: 1px solid var(--line); background: var(--paper); color: var(--fg); padding: 14px 16px; text-align: left; font: 500 15px/1.3 var(--body); width: 100%; }
+.menu-list .row:last-child { border-bottom: 0; }
+.menu-list .row:disabled, .menu-list .row.disabled { opacity: .45; cursor: default; pointer-events: none; }
+.menu-list .row svg { width: 20px; height: 20px; flex: none; }
+.menu-list .row .grow { flex: 1; }
+.menu-list .row .hint { color: var(--muted); font-size: 13px; }
+.menu-list .row .chev { color: var(--muted); }
+.who { display: flex; align-items: center; justify-content: space-between; gap: 12px; border: 1px solid var(--line); border-radius: 10px; padding: 12px 16px; }
+.who .k { font: 600 10.5px/1.2 var(--body); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.who .v { font: 500 14px/1.3 var(--mono); overflow-wrap: anywhere; }
+.grabber { width: 36px; height: 4px; border-radius: 2px; background: var(--line); margin: 0 auto; }
+@media (max-width: 560px) {
+  dialog.menu { position: fixed; inset: auto 0 0 0; width: 100%; max-width: 100%; margin: 0; border-radius: 14px 14px 0 0; max-height: calc(100dvh - 40px); }
+  dialog.menu .settings { padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px)); }
+}
 .status:empty { display: none; }
 .top h1 { font: 500 26px/1.1 var(--display); margin: 0; }
 .top .sub { font: 500 11px/1 var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--muted); margin-top: 6px; }
@@ -312,9 +330,9 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
     </div>
     <div class="tools">
       <span class="status" id="status" aria-live="polite"></span>
-      <button class="btn" id="account" type="button" aria-haspopup="dialog">Account</button>
-      <button class="btn" id="openGuide" type="button">Grind guide</button>
-      <button class="btn primary" id="addCard" type="button" hidden>+ Add card</button>
+      <button class="gear" id="account" type="button" aria-haspopup="dialog" aria-label="Settings">
+        <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3h.1a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8v.1a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"></path></svg>
+      </button>
     </div>
   </header>
 
@@ -525,17 +543,32 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
 </dialog>
 
 <!-- Account -->
-<dialog id="accountDialog" aria-labelledby="accountTitle">
+<dialog id="accountDialog" class="menu" aria-labelledby="accountTitle">
   <div class="settings">
-    <div class="guide-head"><h2 id="accountTitle">Account</h2><button class="btn quiet" id="closeAccount" type="button" aria-label="Close">Done</button></div>
-    <p class="settings-for" id="accountEmail"></p>
-    <div class="actions" style="justify-content:flex-start">
-      <button class="btn" id="exportDeck" type="button">Export deck (JSON)</button>
-      <label class="btn" for="importFile">Import deck (JSON)</label>
+    <div class="grabber" aria-hidden="true"></div>
+    <div class="guide-head"><h2 id="accountTitle">Settings</h2><button class="btn quiet" id="closeAccount" type="button" aria-label="Close">Done</button></div>
+    <div class="menu-list">
+      <button class="row" id="openGuide" type="button">
+        <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
+        <span class="grow">Grind guide</span><span class="hint">Casa · C40 · Ode</span><span class="chev" aria-hidden="true">›</span>
+      </button>
+      <button class="row" id="exportDeck" type="button">
+        <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+        <span class="grow">Export deck</span><span class="hint">JSON</span>
+      </button>
+      <label class="row" for="importFile" id="importRow">
+        <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+        <span class="grow">Import deck</span><span class="hint">merge a file</span>
+      </label>
       <input id="importFile" type="file" accept="application/json,.json" hidden>
     </div>
     <p class="guide-note" id="accountNote">Export writes every coffee, recipe variant and brew to a file you can keep or move to another account. Import merges a file into this deck; existing coffees with the same id are replaced.</p>
-    <div class="actions"><button class="btn danger" id="signOut" type="button">Sign out</button></div>
+    <div class="who">
+      <div><div class="k" id="whoLabel">Signed in as</div><div class="v" id="accountEmail"></div></div>
+      <button class="btn danger" id="signOut" type="button">Sign out</button>
+      <button class="btn primary" id="goSignIn" type="button" hidden>Sign in</button>
+    </div>
+    <p class="guide-note" id="deckCounts"></p>
   </div>
 </dialog>
 
@@ -915,7 +948,6 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
     const isGrid = view === "grid";
     $("dash").hidden = !isGrid;
     $("deck").hidden = isGrid;
-    $("addCard").hidden = !isGrid || !state.canWrite;
     $("top").classList.toggle("compact", !isGrid);
     $("log").hidden = isGrid || state.coffees.length === 0;
     $("emptyDeck").hidden = state.coffees.length > 0 || !isGrid;
@@ -1054,7 +1086,7 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
     try { localStorage.setItem("brewdeck.filter." + c.id, b.dataset.f); } catch {}
     renderFilterSeg(); rerenderCard(c);
   });
-  $("openGuide").addEventListener("click", () => $("guideDialog").showModal());
+  $("openGuide").addEventListener("click", () => { $("accountDialog").close(); $("guideDialog").showModal(); });
   $("closeGuide").addEventListener("click", () => $("guideDialog").close());
   $("grinderSeg").addEventListener("click", (e) => {
     const b = e.target.closest("button[data-g]"); if (!b || b.hidden) return;
@@ -1263,7 +1295,6 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
     loadRecipeForm(state.editRecipes[state.editIdx]); renderVariantSel();
     cardDialog.showModal(); $("f_name").focus();
   };
-  $("addCard").addEventListener("click", () => openCardEditor(null));
   $("addFirst").addEventListener("click", () => openCardEditor(null));
   $("cancelCard").addEventListener("click", () => cardDialog.close());
 
@@ -1450,7 +1481,7 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
     state.active = idx >= 0 ? idx : Math.min(state.active, Math.max(0, state.coffees.length - 1));
     if (state.pendingFocus && idx >= 0) { state.pendingFocus = null; state.view = "card"; }
     renderDeck();
-    $("dash").hidden = state.view !== "grid"; $("deck").hidden = state.view === "grid"; $("addCard").hidden = state.view !== "grid" || !state.canWrite; $("top").classList.toggle("compact", state.view !== "grid");
+    $("dash").hidden = state.view !== "grid"; $("deck").hidden = state.view === "grid"; $("top").classList.toggle("compact", state.view !== "grid");
     if (state.view === "card") { jumpTo(state.active); if (state.brewsFor !== state.coffees[state.active]?.id) subscribeBrews(); }
   };
 
@@ -1471,8 +1502,9 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
     const signedIn = !!state.user;
     state.canWrite = signedIn;
     $("authPanel").hidden = signedIn;
-    $("account").textContent = signedIn ? "Account" : "Sign in";
-    $("addCard").hidden = !signedIn || state.view !== "grid"; $("addFirst").hidden = !signedIn; $("addBrew").hidden = !signedIn; $("importStarter").hidden = !signedIn;
+    $("addFirst").hidden = !signedIn; $("addBrew").hidden = !signedIn; $("importStarter").hidden = !signedIn;
+    $("exportDeck").disabled = !signedIn; $("importRow").classList.toggle("disabled", !signedIn); $("importFile").disabled = !signedIn;
+    $("signOut").hidden = !signedIn; $("goSignIn").hidden = signedIn; $("whoLabel").textContent = signedIn ? "Signed in as" : "Not signed in";
     $("emptyDeck").querySelector("h2").textContent = signedIn ? "No cards yet" : "Your deck is waiting";
     $("emptyText").textContent = signedIn
       ? "Import your deck to start with your coffees, or add a card by hand. Each card holds the bag details, water, filter, grind and pour schedule."
@@ -1521,10 +1553,12 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
   // ---------- Account: export / import / sign out ----------
   const accountDialog = $("accountDialog");
   $("account").addEventListener("click", () => {
-    if (!state.user) { $("authPanel").scrollIntoView({ behavior: "smooth", block: "start" }); $("authEmail").focus(); return; }
     $("accountNote").className = "guide-note"; $("accountNote").textContent = "Export writes every coffee, recipe variant and brew to a file you can keep or move to another account. Import merges a file into this deck; existing coffees with the same id are replaced.";
+    const f = state.coffees.filter((c) => !isEsp(c) && !c.archived).length, e = state.coffees.filter((c) => isEsp(c) && !c.archived).length, a = state.coffees.filter((c) => c.archived).length;
+    $("deckCounts").textContent = state.coffees.length ? `${f} filter · ${e} espresso · ${a} archived` : "";
     accountDialog.showModal();
   });
+  $("goSignIn").addEventListener("click", () => { accountDialog.close(); $("authPanel").scrollIntoView({ behavior: "smooth", block: "start" }); $("authEmail").focus(); });
   $("closeAccount").addEventListener("click", () => accountDialog.close());
   accountDialog.addEventListener("click", (e) => { if (e.target === accountDialog) accountDialog.close(); });
   const accountNote = (text, kind) => { const el = $("accountNote"); el.textContent = text; el.className = "guide-note" + (kind ? " auth-msg " + kind : ""); };
