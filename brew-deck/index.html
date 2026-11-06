@@ -357,10 +357,10 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
     </div>
     <h3 class="guide-sub">Lagom Casa</h3>
     <div class="guide-grid" id="guideCasa">
-      <div><b>≈ 50 µm per number</b><p>10 numbers per rotation, so one full turn is about 500 µm. Half a number (25 µm) is the smallest change worth tasting; a full number is a real step.</p></div>
-      <div><b>15 ≈ 750 µm</b><p>Your anchor sits at the coarse end of the usual V60 window (600–800 µm). For most of these coffees the working range is 13.5–15.</p></div>
-      <div><b>Fast, thin or sour</b><p>Grind ½ number finer, then a full number if the cup doesn't move. Change temperature only once the drawdown lands in the window.</p></div>
-      <div><b>Slow, drying or bitter</b><p>Grind ½ number coarser, or drop 1°C. On naturals that read winey after a fast brew, go finer first, not cooler.</p></div>
+      <div><b>≈ 10 µm per tick</b><p>Four tick marks between numbers, so a tick is a fifth of a number and a number is about 50 µm; 10 numbers per rotation. Settings read number.ticks: 14.2 is the 2nd tick after 14. One tick is the smallest change worth tasting; two is a real step.</p></div>
+      <div><b>15.0 ≈ 750 µm</b><p>Your anchor sits at the coarse end of the usual V60 window (600–800 µm). For most of these coffees the working range is 13.3 to 15.0; Honest Coffee Guide writes the same settings as rotation.number.tick, so 15.0 is their 1.5.0.</p></div>
+      <div><b>Fast, thin or sour</b><p>2 ticks finer, then a full number if the cup doesn't move. Change temperature only once the drawdown lands in the window.</p></div>
+      <div><b>Slow, drying or bitter</b><p>2 ticks coarser, or drop 1°C. On naturals that read winey after a fast brew, go finer first, not cooler.</p></div>
     </div>
     <h3 class="guide-sub">Fellow Ode Gen 2 · stock Gen 2 burrs</h3>
     <div class="guide-grid" id="guideOde">
@@ -369,7 +369,7 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
       <div><b>Fast, thin or sour</b><p>1 click finer, then 2 more if the cup doesn't move. Change temperature only once the drawdown lands in the window.</p></div>
       <div><b>Slow, drying or bitter</b><p>1 click coarser, or drop 1°C. On naturals that read winey after a fast brew, go finer first, not cooler.</p></div>
     </div>
-    <p class="guide-note">Micron figures are estimates from published grind charts (Casa ≈ 50 µm per number; Red Clix ≈ 15 µm per click; Ode Gen 2 ≈ 30 µm per click), not manufacturer specifications; use them to compare settings, not as absolutes.</p>
+    <p class="guide-note">Micron figures are estimates from published grind charts (Casa ≈ 50 µm per number, 10 µm per tick; Red Clix ≈ 15 µm per click; Ode Gen 2 ≈ 30 µm per click), not manufacturer specifications; use them to compare settings, not as absolutes.</p>
   </section>
   </dialog>
 
@@ -415,9 +415,9 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
       <div class="grid3">
         <label class="f">Water<input id="f_water" name="water" autocomplete="off" placeholder="96°C"></label>
         <label class="f">Filter<input id="f_filter" name="filter" autocomplete="off" placeholder="TH-2"></label>
-        <label class="f">Grind<input id="f_grind" name="grind" autocomplete="off" placeholder="14 ¾"></label>
+        <label class="f">Grind<input id="f_grind" name="grind" autocomplete="off" placeholder="14.4"></label>
         <label class="f">Filter note<input id="f_filterNote" name="filterNote" autocomplete="off" placeholder="or PURE.F"></label>
-        <label class="f">Grind note<input id="f_grindNote" name="grindNote" autocomplete="off" placeholder="PURE.F: ½ way to 14"></label>
+        <label class="f">Grind note<input id="f_grindNote" name="grindNote" autocomplete="off" placeholder="PURE.F: 14.2"></label>
         <label class="f">Target finish<input id="f_finish" name="finish" autocomplete="off" placeholder="3:45 – 4:15"></label>
       </div>
       <label class="f">Pour style<input id="f_pourTitle" name="pourTitle" autocomplete="off" placeholder="5 stages, gentle"></label>
@@ -500,7 +500,7 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
       </div>
     </div>
     <div class="actions"><button class="btn" id="resetSettings" type="button">Reset to recipe</button></div>
-    <p class="guide-note">Choosing a different paper from the one the recipe was written for moves the grind by its offset (PURE.F ½ number finer than TH-2, Abaca ¼ finer) and adjusts the finish window. Method and filter are remembered per coffee; dose and grinder apply to every card. Reset returns this coffee to its written recipe: Casa, its base dose, first method and paper.</p>
+    <p class="guide-note">Choosing a different paper from the one the recipe was written for moves the grind by its offset (PURE.F 2 ticks finer than TH-2, Abaca 1 tick finer) and adjusts the finish window. Method and filter are remembered per coffee; dose and grinder apply to every card. Reset returns this coffee to its written recipe: Casa, its base dose, first method and paper.</p>
   </div>
 </dialog>
 
@@ -582,11 +582,13 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
   // ---------- Rendering ----------
   const RECIPE_FIELDS = ["label", "dose", "water", "filter", "filterNote", "grind", "grindNote", "finish", "pourTitle", "tip"];
   // Casa dial → approximate burr gap: ~50 µm per number, 10 numbers per rotation (Honest Coffee Guide / Beeancoffee model, not an Option-O figure).
-  // Dial notation: "15", "14 ½", "14¾", "14.75" (quarters between numbers). Legacy "¼ → 14" (a quarter from 15 toward 14) still reads.
+  // Dial notation: number.ticks — the Casa has four tick marks between numbers, so "14.2" is the 2nd tick after 14 (a fifth of a number, ≈ 10 µm, each).
+  // Legacy forms still read: quarters ("14 ½", "14¾"), two-decimal values ("14.75") and "¼ → 14" (a quarter from 15 toward 14).
   const FRAC = { "¼": 0.25, "½": 0.5, "¾": 0.75 };
   const dialValue = (s) => {
     const t = String(s || "").trim();
-    let m = t.match(/^(\d+(?:\.\d+)?)$/); if (m) return Number(m[1]);
+    let m = t.match(/^(\d+)\.([0-4])$/); if (m) return Number(m[1]) + Number(m[2]) / 5;
+    m = t.match(/^(\d+)(?:\.(\d+))?$/); if (m) return Number(m[1]) + (m[2] ? Number("0." + m[2]) : 0);
     m = t.match(/^(\d+)\s*([¼½¾])$/); if (m) return Number(m[1]) + FRAC[m[2]];
     m = t.match(/^([¼½¾])\s*(?:→|->|toward|to)\s*(\d+)$/i);
     if (m) { const frac = FRAC[m[1]], n = Number(m[2]); return n > 15 ? 15 + (n - 15) * frac : 15 - (15 - n) * frac; }
@@ -614,7 +616,8 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
       const o = odeOf(grind);
       return o === null ? { main: grind || "—", small: "no Ode equivalent" } : { main: o, small: `${micronsOf(grind)} · Casa ${grind}` };
     }
-    return { main: grind || "—", small: micronsOf(grind) };
+    const v = dialValue(grind);
+    return { main: v === null ? (grind || "—") : fmtDial(v), small: micronsOf(grind) };
   };
   const grams = (s) => { const m = String(s || "").match(/^(\d+(?:\.\d+)?)\s*g/); return m ? Number(m[1]) : null; };
   // "≈ 7 g/s · 15 s" for a pour with a rate; the poured amount is this step's target minus the previous step's.
@@ -662,9 +665,13 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
     return { ...r, dose: `${dose} g / ${water} g`, pours, finish, scaled: true, scaledFrom: base.dose };
   };
   // Filter papers: grind offset in Casa numbers relative to TH-2, and the drawdown they add or remove.
-  const FILTERS = { "PURE.F": { off: -0.5, time: -20 }, "TH-2": { off: 0, time: 0 }, "Abaca": { off: -0.25, time: -10 }, "Hario": { off: 0, time: 0 } };
+  // Filter offsets in Casa numbers (tick-aligned: PURE.F two ticks finer than TH-2, Abaca one tick finer).
+  const FILTERS = { "PURE.F": { off: -0.4, time: -20 }, "TH-2": { off: 0, time: 0 }, "Abaca": { off: -0.2, time: -10 }, "Hario": { off: 0, time: 0 } };
   const filterKey = (s) => { const t = String(s || ""); if (/pure/i.test(t)) return "PURE.F"; if (/th-?2/i.test(t)) return "TH-2"; if (/abaca/i.test(t)) return "Abaca"; if (/hario/i.test(t)) return "Hario"; return null; };
-  const fmtDial = (v) => { const w = Math.floor(v + 1e-9), f = v - w; const q = f >= 0.74 ? " ¾" : f >= 0.49 ? " ½" : f >= 0.24 ? " ¼" : ""; return `${w}${q}`; };
+  // Format a dial value as number.ticks; a position between ticks (legacy half numbers) rounds to the finer tick.
+  const fmtDial = (v) => { let w = Math.floor(v + 1e-9); let t = Math.floor((v - w) * 5 + 0.5 - 1e-6); if (t > 4) { t = 0; w += 1; } return `${w}.${t}`; };
+  const ticksOf = (delta) => Math.round(Math.abs(delta) * 5);
+  const tickWord = (n) => `${n} tick${n === 1 ? "" : "s"}`;
   // The paper in force for a coffee: what you chose for it, else the paper its active recipe was written for.
   const filterFor = (c, r) => state.filterBy[c.id] || filterKey(r.filter) || "TH-2";
   const applyFilter = (r, to) => {
@@ -674,7 +681,7 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
     const delta = FILTERS[to].off - FILTERS[from].off;
     const grind = fmtDial(v + delta);
     const finish = shiftFinish(r.finish, FILTERS[to].time - FILTERS[from].time);
-    return { ...r, filter: to, filterNote: `recipe written for ${from}`, grind, grindNote: `${fmtDial(Math.abs(delta)).replace(/^0\s*/, "")} number ${delta < 0 ? "finer" : "coarser"} for ${to}`, finish, filterChanged: { from, to } };
+    return { ...r, filter: to, filterNote: `recipe written for ${from}`, grind, grindNote: `${tickWord(ticksOf(delta))} ${delta < 0 ? "finer" : "coarser"} for ${to}`, finish, filterChanged: { from, to } };
   };
   const methodsOf = (c) => {
     const seen = new Set();
@@ -701,7 +708,7 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
     const filterNote = r.filterChanged ? `<p class="scaled">Paper changed from ${esc(r.filterChanged.from)} to ${esc(r.filterChanged.to)}: grind and finish window adjusted.</p>` : "";
     const grindHint = (() => {
       const d = state.dose - r.scaledFrom;
-      const big = { c40: "3 clicks", ode: "2 clicks" }[state.grinder] || "1 number", small = { c40: "2 clicks", ode: "1 click" }[state.grinder] || "½ number";
+      const big = { c40: "3 clicks", ode: "2 clicks" }[state.grinder] || "5 ticks (a full number)", small = { c40: "2 clicks", ode: "1 click" }[state.grinder] || "2 ticks";
       if (d <= -12) return `start about ${big} finer than shown (shallower bed drains faster)`;
       if (d < 0) return `start about ${small} finer than shown (shallower bed drains faster)`;
       if (d >= 12) return `start about ${big} coarser than shown (deeper bed drains slower)`;
