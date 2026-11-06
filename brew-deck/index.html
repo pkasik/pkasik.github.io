@@ -320,6 +320,8 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
   .grid3 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 @media (prefers-reduced-motion: no-preference) { .rail { scroll-behavior: smooth; } }
+/* Installed on an iPhone the status bar sits over the page and blurs what's under it: push the first row down out of that band. */
+@media (display-mode: standalone) { body { padding-block-start: calc(10px + 26px); } }
 </style>
 </head>
 <body>
