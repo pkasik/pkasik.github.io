@@ -734,7 +734,11 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
   // Two decks: filter coffees and espresso coffees are separate cards; a coffee's kind is stored on it (default filter).
   const kindOf = (c) => (c?.kind === "espresso" ? "espresso" : "filter");
   const isEsp = (c) => kindOf(c) === "espresso";
-  const doseFor = (c) => (isEsp(c) ? state.espDose : state.dose);
+  // Some brewers cannot hold every dose: the V60-01 tops out at 20 g, so 30 g is not offered with it and a 30 g setting brews as 20 g on that card.
+  // The dose setting itself stays global and untouched, so other cards keep brewing at 30 g.
+  const METHOD_MAX_DOSE = [[/v60[\s-]*01/i, 20]];
+  const maxDoseOf = (c) => { const label = methodLabel(methodsOf(c)[variantIndex(c)] || {}); return METHOD_MAX_DOSE.find(([test]) => test.test(label))?.[1] ?? Infinity; };
+  const doseFor = (c) => (isEsp(c) ? state.espDose : Math.min(state.dose, maxDoseOf(c)));
   try { const g = localStorage.getItem("brewdeck.grinder"); if (["c40", "ode"].includes(g)) state.grinder = g; } catch {}
   try { const d = Number(localStorage.getItem("brewdeck.dose")); if ([15, 20, 30].includes(d)) state.dose = d; } catch {}
   // Always open on the dashboard; a card is something you navigate to.
@@ -882,11 +886,11 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
     const esp = isEsp(c);
     const rs = methodsOf(c), vi = variantIndex(c), base = doseVariant(c, rs[vi]), r = activeRecipe(c);
     const gName = esp && state.grinder === "ode" ? "Casa" : (GRINDERS[state.grinder] || "Casa");
-    const summary = esp ? [methodLabel(rs[vi]), `${state.espDose} g`, ratioLabel(r.ratio), gName].join(" · ") : [gName, `${state.dose} g`, methodLabel(rs[vi]), r.filter || "—"].join(" · ");
+    const summary = esp ? [methodLabel(rs[vi]), `${state.espDose} g`, ratioLabel(r.ratio), gName].join(" · ") : [gName, `${doseFor(c)} g`, methodLabel(rs[vi]), r.filter || "—"].join(" · ");
     const tabs = `<div><button class="setline" type="button" data-id="${esc(c.id)}" aria-haspopup="dialog" aria-label="Brew settings: ${esc(summary)}"><span class="gear" aria-hidden="true">⚙</span><span class="txt">${esc(summary)}</span></button></div>`;
     const filterNote = r.filterChanged ? `<p class="scaled">Paper changed from ${esc(r.filterChanged.from)} to ${esc(r.filterChanged.to)}: grind and finish window adjusted.</p>` : "";
     const grindHint = (() => {
-      const d = state.dose - r.scaledFrom;
+      const d = doseFor(c) - r.scaledFrom;
       const big = { c40: "3 clicks", ode: "2 clicks" }[state.grinder] || "5 ticks (a full number)", small = { c40: "2 clicks", ode: "1 click" }[state.grinder] || "2 ticks";
       if (d <= -12) return `start about ${big} finer than shown (shallower bed drains faster)`;
       if (d < 0) return `start about ${small} finer than shown (shallower bed drains faster)`;
@@ -1261,14 +1265,15 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
   });
   const settingsCoffee = () => state.coffees.find((x) => x.id === state.settingsFor);
   const renderDoseSeg = () => {
-    const esp = isEsp(settingsCoffee());
-    const opts = esp ? [16, 18] : [15, 20, 30], cur = esp ? state.espDose : state.dose;
+    const coffee = settingsCoffee(), esp = isEsp(coffee);
+    const maxDose = coffee && !esp ? maxDoseOf(coffee) : Infinity;
+    const opts = esp ? [16, 18] : [15, 20, 30].filter((d) => d <= maxDose), cur = esp ? state.espDose : Math.min(state.dose, maxDose);
     $("doseSeg").innerHTML = opts.map((d) => `<button type="button" data-d="${d}" role="radio" aria-checked="${d === cur}">${d} g</button>`).join("");
     $("ratioRow").hidden = !esp; $("methodRow").hidden = esp || methodsOf(settingsCoffee() || {}).length < 2; $("filterRow").hidden = esp;
     $("grinderSeg").querySelector('[data-g="ode"]').hidden = esp;
     $("settingsNote").textContent = esp
       ? "Dose and ratio set the yield (18 g × 2.4 = 43 g); the deck uses the written recipe nearest your dose and keeps its shot timing. The Ode is not offered for espresso. Reset returns this coffee to its written recipe: Casa, its base dose and ratio."
-      : "Choosing a different paper from the one the recipe was written for moves the grind by its offset (PURE.F 2 ticks finer than TH-2, Abaca 1 tick finer) and adjusts the finish window. Method and filter are remembered per coffee; dose and grinder apply to every card. Reset returns this coffee to its written recipe: Casa, its base dose, first method and paper.";
+      : "Choosing a different paper from the one the recipe was written for moves the grind by its offset (PURE.F 2 ticks finer than TH-2, Abaca 1 tick finer) and adjusts the finish window. Method and filter are remembered per coffee; dose and grinder apply to every card. Reset returns this coffee to its written recipe: Casa, its base dose, first method and paper." + (maxDose < 30 ? ` The ${methodLabel(methodsOf(coffee)[variantIndex(coffee)])} holds ${maxDose} g at most, so 30 g is not offered with it.` : "");
     [...$("ratioSeg").children].forEach((b) => b.setAttribute("aria-checked", String((b.dataset.r ? Number(b.dataset.r) : null) === state.espRatio)));
   };
   $("doseSeg").addEventListener("click", (e) => {
@@ -1314,7 +1319,7 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
     const c = state.coffees.find((x) => x.id === state.settingsFor); if (!c) return;
     state.variant[c.id] = Number(b.dataset.v);
     try { localStorage.setItem("brewdeck.variant." + c.id, b.dataset.v); } catch {}
-    renderMethodSeg(); renderFilterSeg(); rerenderCard(c);
+    renderMethodSeg(); renderFilterSeg(); renderDoseSeg(); rerenderCard(c);
   });
   $("filterSeg").addEventListener("click", (e) => {
     const b = e.target.closest("button[data-f]"); if (!b) return;
