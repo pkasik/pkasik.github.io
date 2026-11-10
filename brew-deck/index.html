@@ -250,6 +250,28 @@ dialog.timer { background: var(--amber); color: var(--amber-ink); --c-bg: var(--
 .chips button { padding: 6px 12px; font-size: 13px; }
 .chips button[aria-pressed="true"] { background: var(--amber); color: var(--amber-ink); border-color: var(--amber); }
 /* Flavour: the bag's notes as a checklist, plus notes ticked from the SCA tasting wheel (families > groups > notes) */
+/* Coffee Filter: the funnel in the header, and the sheet it opens */
+.iconbtn { position: relative; width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--line); background: var(--paper); color: var(--fg); display: grid; place-items: center; padding: 0; flex: none; }
+.iconbtn.on { background: var(--amber); color: var(--amber-ink); border-color: color-mix(in srgb, var(--amber-ink) 22%, var(--amber)); }
+.iconbtn .badge { position: absolute; top: -4px; right: -4px; min-width: 18px; height: 18px; border-radius: 9px; padding: 0 4px; background: var(--fg); color: var(--bg); font: 500 11px/18px var(--mono); text-align: center; }
+dialog.find { overflow: hidden; }
+.find-wrap { display: flex; flex-direction: column; max-height: calc(100dvh - 32px); }
+.find-grab { display: none; width: 36px; height: 4px; border-radius: 2px; background: var(--line); margin: 10px auto -6px; flex: none; }
+.find-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 20px 12px; border-bottom: 1px solid var(--line); }
+.find-head h2:focus { outline: none; }
+.find-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; padding: 14px 20px; display: grid; gap: 14px; align-content: start; min-width: 0; }
+.find-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 20px; border-top: 1px solid var(--line); }
+.find-foot .said { font: 500 12.5px/1.3 var(--mono); color: var(--muted); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.find-foot .btn { flex: none; }
+.chips button .n { font: 500 11px/1 var(--mono); color: var(--muted); margin-left: 5px; }
+.chips button[aria-pressed="true"] .n { color: inherit; opacity: .7; }
+@media (max-width: 560px) {
+  /* A bottom sheet on phones: anchored to the bottom edge, as tall as its content up to most of the screen */
+  dialog.find { position: fixed; inset: auto 0 0 0; width: 100%; max-width: 100%; margin: 0; border-radius: 14px 14px 0 0; max-height: calc(100dvh - 40px); }
+  .find-grab { display: block; }
+  .find-wrap { max-height: calc(100dvh - 40px); }
+  .find-foot { padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px)); }
+}
 .fgroup { display: grid; gap: 8px; min-width: 0; }
 .fgroup[hidden], .wheel[hidden] { display: none; }
 .flabel { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
@@ -388,6 +410,7 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
     </div>
     <div class="tools">
       <span class="status" id="status" aria-live="polite"></span>
+      <button class="iconbtn" id="openFind" type="button" aria-label="Coffee Filter" aria-haspopup="dialog"><svg aria-hidden="true" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.5 10 19 14 21 14 12.5 22 3"></polygon></svg><span class="badge" id="findBadge" hidden></span></button>
       <button class="gearbtn" id="account" type="button" aria-haspopup="dialog" aria-label="Settings">
         <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3h.1a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8v.1a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"></path></svg>
       </button>
@@ -599,6 +622,35 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
       </div>
     </div>
   </form>
+</dialog>
+
+<!-- Coffee Filter: narrow the dashboard -->
+<dialog id="findDialog" class="find" aria-labelledby="findTitle">
+  <div class="find-wrap">
+    <div class="find-grab" aria-hidden="true"></div>
+    <div class="find-head">
+      <h2 id="findTitle" tabindex="-1" autofocus>Coffee Filter</h2>
+      <button class="btn quiet" type="button" id="findClear">Clear all</button>
+    </div>
+    <div class="find-body">
+      <label class="f">Search<input id="findSearch" type="search" autocomplete="off" placeholder="Name, roaster, notes, region"></label>
+      <div class="fgroup"><span class="flabel" id="findRoasterLabel">Roaster</span><div class="chips" id="findRoaster" data-key="roaster" role="group" aria-labelledby="findRoasterLabel"></div></div>
+      <div class="fgroup"><span class="flabel" id="findOriginLabel">Origin</span><div class="chips" id="findOrigin" data-key="origin" role="group" aria-labelledby="findOriginLabel"></div></div>
+      <div class="fgroup"><span class="flabel" id="findProcessLabel">Process</span><div class="chips" id="findProcess" data-key="process" role="group" aria-labelledby="findProcessLabel"></div></div>
+      <div class="fgroup"><span class="flabel" id="findRatingLabel">Your rating</span>
+        <div class="seg even" id="findRating" role="radiogroup" aria-labelledby="findRatingLabel">
+          <button type="button" role="radio" data-r="" aria-checked="true">Any</button>
+          <button type="button" role="radio" data-r="3" aria-checked="false">3 and up</button>
+          <button type="button" role="radio" data-r="4" aria-checked="false">4 and up</button>
+          <button type="button" role="radio" data-r="none" aria-checked="false">Not rated</button>
+        </div>
+      </div>
+    </div>
+    <div class="find-foot">
+      <span class="said" id="findSaid" aria-live="polite"></span>
+      <button class="btn primary" type="button" id="findShow">Show coffees</button>
+    </div>
+  </div>
 </dialog>
 
 <!-- Brew settings -->
@@ -983,29 +1035,114 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
       <span class="t-notes">${esc(c.tasting || "")}</span>
       <span class="t-key">${key}</span>`;
   };
+  // ---------- Coffee Filter: narrow the dashboard by search, roaster, origin, process and your rating ----------
+  // Nothing here is stored: the filter starts empty each time the app opens.
+  const find = { q: "", roaster: new Set(), origin: new Set(), process: new Set(), rating: "", best: new Map(), ratingsLoaded: false };
+  const COUNTRIES = ["Ethiopia", "Kenya", "Rwanda", "Burundi", "Uganda", "Tanzania", "Malawi", "Zambia", "Zimbabwe", "Cameroon", "DR Congo", "Congo", "Yemen",
+    "Colombia", "Brazil", "Peru", "Bolivia", "Ecuador", "Venezuela", "Guatemala", "Costa Rica", "Panama", "Honduras", "El Salvador", "Nicaragua", "Mexico",
+    "Jamaica", "Dominican Republic", "Cuba", "Haiti", "Indonesia", "Papua New Guinea", "Timor-Leste", "India", "Nepal", "Vietnam", "Thailand", "Myanmar", "Laos",
+    "China", "Taiwan", "Philippines", "Malaysia", "Australia", "Hawaii"]
+    .sort((a, b) => b.length - a.length).map((name) => ({ name, test: new RegExp("(^|[^a-z])" + name.toLowerCase() + "([^a-z]|$)") }));
+  const NO_COUNTRY = "Blend / unknown";
+  // Every country named in a piece of text, longest names first so "Papua New Guinea" is not also read as a shorter one.
+  const countriesIn = (text) => {
+    let rest = String(text || "").toLowerCase();
+    return COUNTRIES.filter(({ name, test }) => { if (!test.test(rest)) return false; rest = rest.replace(name.toLowerCase(), " "); return true; }).map(({ name }) => name);
+  };
+  // The origin field holds a region ("Tolima, Colombia"), so the country is read from it, else from the card's name ("Guatemala La Joya").
+  // Two countries in the origin means a blend.
+  const countryOf = (c) => {
+    const fromOrigin = countriesIn(c.origin);
+    if (fromOrigin.length > 1) return NO_COUNTRY;
+    return fromOrigin[0] || countriesIn(c.name)[0] || NO_COUNTRY;
+  };
+  const PROCESS_GROUPS = ["Washed", "Natural", "Honey / other", "Blend"];
+  const processGroupOf = (c) => {
+    const text = String(c.process || "").toLowerCase();
+    if (/natural/.test(text) && /washed/.test(text)) return "Blend";
+    const process = processOf(c);
+    return process === "natural" ? "Natural" : process === "washed" ? "Washed" : "Honey / other";
+  };
+  const roasterOf = (c) => String(c.roaster || "").trim() || "Unknown";
+  // "Common Man Coffee Roasters" reads "Common Man" on its chip.
+  const shortRoaster = (name) => name.replace(/(\s+(coffee|roasters?|roasts?|roastery|co\.?))+$/i, "").trim() || name;
+  const byCountThenName = (counts) => (a, b) => counts.get(b) - counts.get(a) || a.localeCompare(b);
+  const FIND_GROUPS = [
+    { key: "roaster", el: "findRoaster", valueOf: roasterOf, labelOf: shortRoaster, order: byCountThenName },
+    { key: "origin", el: "findOrigin", valueOf: countryOf, labelOf: (v) => v, order: (counts) => (a, b) => (a === NO_COUNTRY) - (b === NO_COUNTRY) || byCountThenName(counts)(a, b) },
+    { key: "process", el: "findProcess", valueOf: processGroupOf, labelOf: (v) => v, order: () => (a, b) => PROCESS_GROUPS.indexOf(a) - PROCESS_GROUPS.indexOf(b) },
+  ];
+  const RATING_WORDS = { 3: "3 and up", 4: "4 and up", none: "not rated" };
+  const bestRatingOf = (brews) => Math.max(0, ...brews.map((b) => Number(b.rating) || 0));
+  const findCount = () => find.roaster.size + find.origin.size + find.process.size + (find.q.trim() ? 1 : 0) + (find.rating ? 1 : 0);
+  // Within a group the ticked options add up (Ethiopia or Kenya); across groups, search and rating they narrow.
+  const matchesFind = (c) => {
+    if (FIND_GROUPS.some(({ key, valueOf }) => find[key].size && !find[key].has(valueOf(c)))) return false;
+    const words = find.q.toLowerCase().split(/\s+/).filter(Boolean);
+    if (words.length) { const text = [c.name, c.roaster, c.tasting, c.origin, c.producer, c.variety, c.process].join(" ").toLowerCase(); if (!words.every((word) => text.includes(word))) return false; }
+    if (!find.rating) return true;
+    const best = find.best.get(c.id) || 0;
+    return find.rating === "none" ? best === 0 : best >= Number(find.rating);
+  };
+  const deckCoffees = () => state.coffees.filter((c) => kindOf(c) === state.kind);
+  const paintFindButton = () => {
+    const n = findCount();
+    $("openFind").classList.toggle("on", n > 0); $("openFind").setAttribute("aria-label", n ? `Coffee Filter, ${n} on` : "Coffee Filter");
+    $("findBadge").hidden = n === 0; $("findBadge").textContent = String(n);
+  };
+  const renderFind = () => {
+    const mine = deckCoffees();
+    FIND_GROUPS.forEach(({ key, el, valueOf, labelOf, order }) => {
+      const counts = new Map(); mine.forEach((c) => counts.set(valueOf(c), (counts.get(valueOf(c)) || 0) + 1));
+      [...find[key]].forEach((value) => { if (!counts.has(value)) find[key].delete(value); }); // a choice the other deck doesn't have is dropped
+      $(el).innerHTML = [...counts.keys()].sort(order(counts)).map((value) => `<button type="button" data-v="${esc(value)}" aria-pressed="${find[key].has(value)}">${esc(labelOf(value))} <span class="n">${counts.get(value)}</span></button>`).join("");
+    });
+    [...$("findRating").children].forEach((b) => b.setAttribute("aria-checked", String(b.dataset.r === find.rating)));
+    const said = [...FIND_GROUPS.map(({ key, labelOf }) => [...find[key]].map(labelOf).join(" or ")), find.rating ? RATING_WORDS[find.rating] : "", find.q.trim() ? `"${find.q.trim()}"` : ""].filter(Boolean).join(" · ");
+    const shown = mine.filter(matchesFind).length;
+    $("findSaid").textContent = said; $("findShow").textContent = findCount() ? `Show ${shown} ${shown === 1 ? "coffee" : "coffees"}` : "Show all";
+    paintFindButton();
+  };
+  const applyFind = () => { state.showAllArchived = false; renderFind(); renderGrid(); };
+  // A coffee's rating is the best rating in its brew log. Logs load per card, so the first time the sheet opens every rating is read in one request.
+  const loadBestRatings = async () => {
+    if (find.ratingsLoaded || !state.user) return;
+    find.ratingsLoaded = true;
+    try {
+      const byCoffee = new Map();
+      (await store.listRatings()).forEach(({ coffee_id, data }) => byCoffee.set(coffee_id, [...(byCoffee.get(coffee_id) || []), data || {}]));
+      state.coffees.forEach((c) => find.best.set(c.id, bestRatingOf(byCoffee.get(c.id) || [])));
+    } catch (err) { find.ratingsLoaded = false; setStatus(friendly(err, "load your ratings")); }
+    if (find.rating) applyFind();
+  };
+
   const renderGrid = () => {
-    const mine = state.coffees.filter((c) => kindOf(c) === state.kind);
+    const finding = findCount() > 0;
+    const mine = deckCoffees().filter((c) => !finding || matchesFind(c));
     const groups = [mine.filter((c) => !c.archived), mine.filter((c) => c.archived)];
     const counts = { filter: state.coffees.filter((c) => !isEsp(c) && !c.archived).length, espresso: state.coffees.filter((c) => isEsp(c) && !c.archived).length };
     [...$("modeSeg").children].forEach((b) => { b.setAttribute("aria-checked", String(b.dataset.k === state.kind)); b.textContent = `${b.dataset.k === "espresso" ? "Espresso" : "Filter"} · ${counts[b.dataset.k]}`; });
     let html = "";
-    const add = state.canWrite ? `<button class="tile add" type="button" id="addTile" aria-label="Add a card"><span>+</span>${state.kind === "espresso" ? "Add espresso" : "Add card"}</button>` : "";
-    if (!mine.length && state.coffees.length) html += `<p class="empty">No ${state.kind} cards yet. ${state.kind === "espresso" ? "Add one for a coffee you pull on the Robot." : "Add a coffee you brew as filter."}</p>`;
+    const add = state.canWrite && !finding ? `<button class="tile add" type="button" id="addTile" aria-label="Add a card"><span>+</span>${state.kind === "espresso" ? "Add espresso" : "Add card"}</button>` : "";
+    if (finding && !mine.length) html += `<p class="empty">No coffees match. Change or clear the Coffee Filter.</p>`;
+    else if (!mine.length && state.coffees.length) html += `<p class="empty">No ${state.kind} cards yet. ${state.kind === "espresso" ? "Add one for a coffee you pull on the Robot." : "Add a coffee you brew as filter."}</p>`;
     groups.forEach((group, g) => {
       if (g === 1) { html += add; if (group.length) html += `<div class="grid-divider">Archived</div>`; }
       // Archived: the first six, then a "more" tile for the rest (and a "less" tile once expanded).
       const ARCHIVED_SHOWN = 6;
-      const hidden = g === 1 && !state.showAllArchived ? Math.max(0, group.length - ARCHIVED_SHOWN) : 0;
+      // With the Coffee Filter on, every archived match is shown and nothing can be dragged: you would be reordering part of the list.
+      const hidden = g === 1 && !state.showAllArchived && !finding ? Math.max(0, group.length - ARCHIVED_SHOWN) : 0;
       const shown = hidden ? group.slice(0, ARCHIVED_SHOWN) : group;
       html += shown.map((c) => {
         const idx = state.coffees.indexOf(c);
-        const draggable = state.canWrite && !c.archived;
+        const draggable = state.canWrite && !c.archived && !finding;
         return `<button class="tile${c.archived ? " archived" : ""}${isEsp(c) ? " espresso" : ""}${draggable ? " draggable" : ""}" type="button" data-i="${idx}" data-id="${esc(c.id)}" aria-label="Open ${esc(c.name)}${draggable ? " (press and hold to reorder)" : ""}">${tileBody(c)}</button>`;
       }).join("");
       if (hidden) html += `<button class="tile more" type="button" id="moreTile" aria-label="Show ${hidden} more archived coffees"><span><b>+${hidden}</b><br>Show more</span></button>`;
-      else if (g === 1 && state.showAllArchived && group.length > ARCHIVED_SHOWN) html += `<button class="tile more" type="button" id="moreTile" aria-label="Show fewer archived coffees"><span>Show less</span></button>`;
+      else if (g === 1 && state.showAllArchived && !finding && group.length > ARCHIVED_SHOWN) html += `<button class="tile more" type="button" id="moreTile" aria-label="Show fewer archived coffees"><span>Show less</span></button>`;
     });
     $("grid").innerHTML = html;
+    paintFindButton();
     if (state.canWrite) mountSortable();
   };
   const sortCoffees = (list) => [...list].sort((a, b) => (Number(!!a.archived) - Number(!!b.archived)) || ((a.order ?? 0) - (b.order ?? 0)) || String(a.createdAt || "").localeCompare(String(b.createdAt || "")));
@@ -1062,7 +1199,7 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
   // The rail holds only the group the active card belongs to (active or archived), so swiping never crosses from one into the other.
   // state.active indexes state.coffees (actives first, then archived); the rail index is that minus the group's offset.
   const inArchived = () => !!state.coffees[state.active]?.archived;
-  const deckList = () => { const a = state.coffees[state.active]; const g = !!a?.archived, k = kindOf(a); return state.coffees.filter((c) => !!c.archived === g && kindOf(c) === k); };
+  const deckList = () => { const a = state.coffees[state.active]; const g = !!a?.archived, k = kindOf(a); const finding = findCount() > 0; return state.coffees.filter((c) => !!c.archived === g && kindOf(c) === k && (!finding || c === a || matchesFind(c))); };
   const railIndexOf = (i) => { const id = state.coffees[i]?.id; return deckList().findIndex((c) => c.id === id); };
   const globalIndex = (railIdx) => { const c = deckList()[railIdx]; return c ? state.coffees.indexOf(c) : -1; };
   const renderRail = () => {
@@ -1108,8 +1245,23 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
     const b = e.target.closest("button[data-k]"); if (!b || b.dataset.k === state.kind) return;
     state.kind = b.dataset.k; state.showAllArchived = false;
     try { localStorage.setItem("brewdeck.kind", state.kind); } catch {}
-    renderGrid();
+    renderFind(); renderGrid();
   });
+  const findDialog = $("findDialog");
+  // Opens with nothing focused but the heading, so no keyboard appears until the search box is tapped.
+  $("openFind").addEventListener("click", () => { $("findSearch").value = find.q; renderFind(); loadBestRatings(); findDialog.showModal(); $("findTitle").focus({ preventScroll: true }); });
+  FIND_GROUPS.forEach(({ key, el }) => $(el).addEventListener("click", (e) => {
+    const chip = e.target.closest("button[data-v]"); if (!chip) return;
+    if (find[key].has(chip.dataset.v)) find[key].delete(chip.dataset.v); else find[key].add(chip.dataset.v);
+    applyFind();
+  }));
+  $("findRating").addEventListener("click", (e) => { const b = e.target.closest("button[data-r]"); if (!b) return; find.rating = b.dataset.r; applyFind(); });
+  $("findSearch").addEventListener("input", (e) => { find.q = e.target.value; applyFind(); });
+  $("findSearch").addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); e.target.blur(); } }); // Enter puts the keyboard away
+  $("findClear").addEventListener("click", () => { find.q = ""; find.rating = ""; FIND_GROUPS.forEach(({ key }) => find[key].clear()); $("findSearch").value = ""; applyFind(); });
+  $("findShow").addEventListener("click", () => findDialog.close());
+  // A tap on the dimmed area outside the sheet closes it too; the filter is already applied, so nothing is lost.
+  findDialog.addEventListener("click", (e) => { if (e.target === findDialog) findDialog.close(); });
   $("grid").addEventListener("click", (e) => {
     if (drag.suppressClick) { e.preventDefault(); return; }
     const add = e.target.closest("#addTile"); if (add) { openCardEditor(null); return; }
@@ -1769,7 +1921,7 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
     try {
       const rows = await store.listBrews(c.id);
       if (state.brewsFor !== c.id) return;
-      state.brews = rows; cache.setBrews(c.id, rows); renderBrews();
+      state.brews = rows; cache.setBrews(c.id, rows); find.best.set(c.id, bestRatingOf(rows)); renderBrews();
     } catch (err) { setStatus(friendly(err, "load the brew log")); }
   };
   const subscribeBrews = () => { loadBrews(false); };
@@ -1812,6 +1964,7 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
     updateCoffee: async (id, patch) => { unwrap(await requireClient().from("coffees").update({ ...patch, updated_at: new Date().toISOString() }).eq("id", id)); },
     deleteCoffee: async (id) => { unwrap(await requireClient().from("coffees").delete().eq("id", id)); }, // brews cascade
     listBrews: async (coffeeId) => unwrap(await requireClient().from("brews").select("id,data,brewed_on,created_at").eq("coffee_id", coffeeId).order("brewed_on", { ascending: false }).order("created_at", { ascending: false })).map(rowToBrew),
+    listRatings: async () => unwrap(await requireClient().from("brews").select("coffee_id,data")),
     addBrew: async (coffeeId, data) => { unwrap(await requireClient().from("brews").insert(brewToRow(brewId(), coffeeId, data))); },
     updateBrew: async (id, coffeeId, data) => { const row = brewToRow(id, coffeeId, data); unwrap(await requireClient().from("brews").update({ data: row.data, brewed_on: row.brewed_on }).eq("id", id)); },
     deleteBrew: async (id) => { unwrap(await requireClient().from("brews").delete().eq("id", id)); },
@@ -1972,7 +2125,7 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
   $("signOut").addEventListener("click", async () => {
     try { await requireClient().auth.signOut(); } catch {}
     accountDialog.close();
-    cache.clear(); state.coffees = []; state.brews = []; state.brewsFor = null; pendingEmail = "";
+    cache.clear(); state.coffees = []; state.brews = []; state.brewsFor = null; find.best.clear(); find.ratingsLoaded = false; pendingEmail = "";
     $("authCodeRow").hidden = true; authMsg("");
     showView("grid");
     renderDeck();
