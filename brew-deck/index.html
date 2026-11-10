@@ -286,6 +286,9 @@ dialog h2 { font: 500 24px/1.15 var(--display); margin: 0; }
 label.f { display: grid; gap: 4px; font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); min-width: 0; }
 label.f input, label.f textarea, label.f select { font: 15px/1.4 var(--body); letter-spacing: 0; text-transform: none; color: var(--fg); background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; width: 100%; min-width: 0; }
 label.f textarea { min-height: 72px; resize: vertical; }
+/* iOS gives date fields an intrinsic width and its own look, which pushed them past their grid column */
+label.f input[type="date"] { -webkit-appearance: none; appearance: none; display: block; min-width: 0; max-width: 100%; min-height: 2.9em; text-align: left; }
+label.f input[type="date"]::-webkit-date-and-time-value { text-align: left; }
 fieldset { border: 1px solid var(--line); border-radius: 6px; padding: 10px 12px 12px; margin: 0; display: grid; gap: 8px; min-width: 0; }
 legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); padding-inline: 4px; }
 .pour-row { display: grid; grid-template-columns: 64px 76px 54px minmax(0, 1fr) auto; gap: 6px; align-items: center; }
