@@ -242,7 +242,7 @@ dialog.timer { background: var(--amber); color: var(--amber-ink); --c-bg: var(--
 .chips button { padding: 6px 12px; font-size: 13px; }
 .chips button[aria-pressed="true"] { background: var(--amber); color: var(--amber-ink); border-color: var(--amber); }
 .brew .rating { font: 500 13px/1.2 var(--mono); color: var(--amber); letter-spacing: .08em; white-space: nowrap; }
-.brew .rm { grid-column: 2; justify-self: end; }
+.brew .acts { grid-column: 2; justify-self: end; display: flex; gap: 2px; }
 .empty { color: var(--muted); font-size: 14px; margin: 0; }
 .empty-deck { background: var(--paper); border: 1px dashed var(--line); border-radius: 8px; padding: 36px 24px; text-align: center; display: grid; gap: 10px; justify-items: center; }
 .empty-deck h2 { font: 500 24px/1.15 var(--display); margin: 0; }
@@ -1032,7 +1032,7 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
         <div class="when">${esc(b.date)}</div>
         <div class="rating" aria-label="${b.rating || 0} out of 5">${b.rating ? "●".repeat(b.rating) + "○".repeat(5 - b.rating) : ""}</div>
         <div class="params">${params}</div>
-        ${state.canWrite ? `<button class="btn quiet rm" type="button" data-id="${esc(b.id)}" aria-label="Delete this brew">Remove</button>` : ""}
+        ${state.canWrite ? `<div class="acts"><button class="btn quiet ed" type="button" data-id="${esc(b.id)}" aria-label="Edit this brew">Edit</button><button class="btn quiet rm" type="button" data-id="${esc(b.id)}" aria-label="Delete this brew">Remove</button></div>` : ""}
         ${Array.isArray(b.taste) && b.taste.length ? `<div class="taste">${b.taste.map((t) => `<span>${esc(t)}</span>`).join("")}</div>` : ""}
         ${b.notes ? `<p class="text">${esc(b.notes)}</p>` : ""}
       </li>`;
@@ -1242,6 +1242,7 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
     $("t_note").textContent = note;
   };
   const resetTimer = () => {
+    clearTimeout(timer.countdown); timer.countdown = null;
     timer.running = false; cancelAnimationFrame(timer.raf); timer.cued = new Set(); timer.start = 0; keepAwake(false);
     paintTimer(0);
     $("t_go").hidden = false; $("t_go").textContent = "Start"; $("t_stop").hidden = true; $("t_log").hidden = true; timer.elapsed = 0;
@@ -1263,11 +1264,24 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
     resetTimer();
     $("timerDialog").showModal();
   };
-  $("t_go").addEventListener("click", () => {
-    timer.cued = new Set(); timer.start = performance.now(); timer.running = true; keepAwake(true);
-    $("t_go").hidden = true; $("t_stop").hidden = false; $("t_log").hidden = !state.canWrite; $("t_log").textContent = timer.esp ? "Log this shot" : "Log this brew";
+  const beginRun = () => {
+    timer.cued = new Set(); timer.start = performance.now(); timer.running = true;
+    $("t_log").hidden = !state.canWrite; $("t_log").textContent = timer.esp ? "Log this shot" : "Log this brew";
     $("t_note").textContent = timer.esp ? "Tap Log this shot when you stop the shot; the time goes into the log." : "Tap Log this brew when the drawdown finishes; the time goes into the log.";
     tick();
+  };
+  // Start: a 3-second countdown first (one beep per second), so there is time to start the scale's own timer.
+  $("t_go").addEventListener("click", () => {
+    keepAwake(true);
+    $("t_go").hidden = true; $("t_stop").hidden = false; $("t_log").hidden = true;
+    $("t_note").textContent = "Get ready: start your scale timer on go.";
+    let n = 3;
+    const count = () => {
+      if (n === 0) { timer.countdown = null; beginRun(); return; }
+      $("t_time").textContent = String(n); $("t_phase").textContent = "Starting in…"; beep(1);
+      n -= 1; timer.countdown = setTimeout(count, 1000);
+    };
+    count();
   });
   $("t_stop").addEventListener("click", () => resetTimer());
   // Log straight from the timer: the elapsed time becomes the shot time (seconds) or the finish time (m:ss).
@@ -1431,6 +1445,7 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
     const c = state.coffees[state.active]; if (!c) return;
     if (!state.canWrite) { setStatus("Sign in to log brews."); return; }
     const r = activeRecipe(c);
+    state.editingBrew = null; $("brewForm").querySelector('button[type="submit"]').textContent = "Save brew";
     $("brewDialogTitle").textContent = "Log a brew · " + c.name + (r.label ? " · " + r.label : "");
     $("b_date").value = todayISO(); $("b_grind").value = r.grind || ""; $("b_temp").value = r.water || ""; $("b_filter").value = r.filter || "";
     $("b_dose").value = r.dose || ""; $("b_finish").value = ""; $("b_notes").value = ""; $("brewErr").hidden = true;
@@ -1443,10 +1458,25 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
     e.preventDefault();
     const c = state.coffees[state.active]; if (!c) return;
     const data = { date: $("b_date").value || todayISO(), recipe: activeRecipe(c).label || "", grind: $("b_grind").value.trim(), temp: $("b_temp").value.trim(), filter: $("b_filter").value.trim(), dose: $("b_dose").value.trim(), finish: $("b_finish").value.trim(), rating: state.brewRating, taste: [...$("tasteChips").querySelectorAll('button[aria-pressed="true"]')].map((b) => b.dataset.t), notes: $("b_notes").value.trim(), createdAt: new Date().toISOString() };
-    try { await store.addBrew(c.id, data); brewDialog.close(); await loadBrews(true); }
+    const editing = state.editingBrew;
+    if (editing) { data.recipe = editing.recipe || data.recipe; data.createdAt = editing.createdAt || data.createdAt; }
+    try { if (editing) await store.updateBrew(editing.id, c.id, data); else await store.addBrew(c.id, data); state.editingBrew = null; brewDialog.close(); await loadBrews(true); }
     catch (err) { showErr("brewErr", friendly(err, "save the brew")); }
   });
   $("brews").addEventListener("click", (e) => {
+    const ed = e.target.closest("button.ed");
+    if (ed) {
+      const c = state.coffees[state.active], br = state.brews.find((x) => x.id === ed.dataset.id); if (!c || !br) return;
+      state.editingBrew = br;
+      $("brewDialogTitle").textContent = "Edit brew · " + c.name + (br.recipe ? " · " + br.recipe : "");
+      $("brewForm").querySelector('button[type="submit"]').textContent = "Save changes";
+      $("b_date").value = br.date || todayISO(); $("b_grind").value = br.grind || ""; $("b_temp").value = br.temp || ""; $("b_filter").value = br.filter || "";
+      $("b_dose").value = br.dose || ""; $("b_finish").value = br.finish || ""; $("b_notes").value = br.notes || ""; $("brewErr").hidden = true;
+      state.brewRating = br.rating || 0; [...stars.children].forEach((s) => s.setAttribute("aria-pressed", String(Number(s.dataset.v) <= state.brewRating)));
+      const taste = Array.isArray(br.taste) ? br.taste : [];
+      [...$("tasteChips").children].forEach((b) => b.setAttribute("aria-pressed", String(taste.includes(b.dataset.t))));
+      brewDialog.showModal(); return;
+    }
     const b = e.target.closest("button.rm"); if (!b) return;
     const c = state.coffees[state.active]; if (!c) return;
     state.pendingDelete = { kind: "brew", id: b.dataset.id, coffeeId: c.id };
@@ -1510,6 +1540,7 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
     deleteCoffee: async (id) => { unwrap(await requireClient().from("coffees").delete().eq("id", id)); }, // brews cascade
     listBrews: async (coffeeId) => unwrap(await requireClient().from("brews").select("id,data,brewed_on,created_at").eq("coffee_id", coffeeId).order("brewed_on", { ascending: false }).order("created_at", { ascending: false })).map(rowToBrew),
     addBrew: async (coffeeId, data) => { unwrap(await requireClient().from("brews").insert(brewToRow(brewId(), coffeeId, data))); },
+    updateBrew: async (id, coffeeId, data) => { const row = brewToRow(id, coffeeId, data); unwrap(await requireClient().from("brews").update({ data: row.data, brewed_on: row.brewed_on }).eq("id", id)); },
     deleteBrew: async (id) => { unwrap(await requireClient().from("brews").delete().eq("id", id)); },
     exportAll: async () => {
       const client = requireClient();
