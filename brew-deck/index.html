@@ -789,11 +789,16 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
   // Some brewers cannot hold every dose: the V60-01 tops out at 20 g, so 30 g is not offered with it and a 30 g setting brews as 20 g on that card.
   // The dose setting itself stays global and untouched, so other cards keep brewing at 30 g.
   // It also takes its own 01 papers, so the paper is fixed to the one its recipe is written for; a paper chosen for the coffee's other methods is kept for those.
-  const METHOD_RULES = [[/v60[\s-]*01/i, { maxDose: 20, paperLocked: true, note: "The V60-01 holds 20 g at most and takes Hario 01 papers only, so 30 g and the other papers are not offered with it." }]];
+  // A method can also be written for one dose only: the Triple Bloom (Lance Hedrick's 2-cup V60 recipe) is a 30 g recipe, so the smaller doses are not offered with it.
+  const METHOD_RULES = [
+    [/v60[\s-]*01/i, { maxDose: 20, paperLocked: true, note: "The V60-01 holds 20 g at most and takes Hario 01 papers only, so 30 g and the other papers are not offered with it." }],
+    [/triple bloom/i, { minDose: 30, note: "The Triple Bloom is a 30 g recipe, so 15 g and 20 g are not offered with it." }],
+  ];
   const methodRuleOf = (c) => { const label = methodLabel(methodsOf(c)[variantIndex(c)] || {}); return METHOD_RULES.find(([test]) => test.test(label))?.[1] || {}; };
   const maxDoseOf = (c) => methodRuleOf(c).maxDose ?? Infinity;
+  const minDoseOf = (c) => methodRuleOf(c).minDose ?? 0;
   const isPaperLocked = (c) => Boolean(methodRuleOf(c).paperLocked);
-  const doseFor = (c) => (isEsp(c) ? state.espDose : Math.min(state.dose, maxDoseOf(c)));
+  const doseFor = (c) => (isEsp(c) ? state.espDose : Math.max(minDoseOf(c), Math.min(state.dose, maxDoseOf(c))));
   try { const g = localStorage.getItem("brewdeck.grinder"); if (["c40", "ode"].includes(g)) state.grinder = g; } catch {}
   try { const d = Number(localStorage.getItem("brewdeck.dose")); if ([15, 20, 30].includes(d)) state.dose = d; } catch {}
   // Always open on the dashboard; a card is something you navigate to.
@@ -1448,8 +1453,8 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
   const settingsCoffee = () => state.coffees.find((x) => x.id === state.settingsFor);
   const renderDoseSeg = () => {
     const coffee = settingsCoffee(), esp = isEsp(coffee);
-    const maxDose = coffee && !esp ? maxDoseOf(coffee) : Infinity;
-    const opts = esp ? [16, 18] : [15, 20, 30].filter((d) => d <= maxDose), cur = esp ? state.espDose : Math.min(state.dose, maxDose);
+    const maxDose = coffee && !esp ? maxDoseOf(coffee) : Infinity, minDose = coffee && !esp ? minDoseOf(coffee) : 0;
+    const opts = esp ? [16, 18] : [15, 20, 30].filter((d) => d >= minDose && d <= maxDose), cur = esp ? state.espDose : Math.max(minDose, Math.min(state.dose, maxDose));
     $("doseSeg").innerHTML = opts.map((d) => `<button type="button" data-d="${d}" role="radio" aria-checked="${d === cur}">${d} g</button>`).join("");
     $("ratioRow").hidden = !esp; $("methodRow").hidden = esp || methodsOf(settingsCoffee() || {}).length < 2; $("filterRow").hidden = esp;
     $("grinderSeg").querySelector('[data-g="ode"]').hidden = esp;
