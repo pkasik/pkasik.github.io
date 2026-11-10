@@ -91,7 +91,8 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
 .rail { display: flex; gap: 12px; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; margin-inline: -16px; padding-inline: 16px; scroll-padding-inline: 16px; }
 .rail::-webkit-scrollbar { display: none; }
 /* The rail and dialogs take focus when a sheet closes; they are not controls, so no focus ring. */
-.rail:focus, .rail:focus-visible, dialog:focus, dialog:focus-visible, .card:focus { outline: none; }
+.rail, .rail:focus, .rail:focus-visible, .deck, .deck:focus, dialog:focus, dialog:focus-visible, .card, .card:focus { outline: none !important; -webkit-tap-highlight-color: transparent; }
+:focus:not(:focus-visible) { outline: none; }
 .card { flex: 0 0 100%; scroll-snap-align: start; min-width: 0;
   --c-bg: var(--amber); --c-fg: var(--amber-ink);
   --c-muted: color-mix(in srgb, var(--amber-ink) 68%, var(--amber));
@@ -383,7 +384,7 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
   </section>
 
   <section class="deck" id="deck" aria-label="Recipe cards" hidden>
-    <div class="rail" id="rail" tabindex="0" aria-roledescription="carousel"></div>
+    <div class="rail" id="rail" aria-roledescription="carousel"></div>
     <div class="nav" id="nav" hidden>
       <div class="dots" id="dots" role="tablist" aria-label="Cards"></div>
     </div>
@@ -1050,7 +1051,10 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
   };
   const step = (by) => { const n = deckList().length; const ri = Math.max(0, Math.min(n - 1, railIndexOf(state.active) + by)); goTo(globalIndex(ri)); };
   dots.addEventListener("click", (e) => { const b = e.target.closest("button[data-i]"); if (b) goTo(Number(b.dataset.i)); });
-  rail.addEventListener("keydown", (e) => { if (e.key === "ArrowRight") step(1); if (e.key === "ArrowLeft") step(-1); });
+  // Arrow keys page through the cards while card view is showing (the rail itself is no longer focusable, so nothing draws a focus ring around it).
+  document.addEventListener("keydown", (e) => { if (state.view !== "card" || document.querySelector("dialog[open]") || /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) return; if (e.key === "ArrowRight") step(1); if (e.key === "ArrowLeft") step(-1); });
+  // When a sheet closes, don't leave focus parked on whatever the browser falls back to.
+  document.querySelectorAll("dialog").forEach((d) => d.addEventListener("close", () => { const a = document.activeElement; if (a && a !== document.body && !a.closest("dialog[open]")) a.blur(); }));
   let scrollT;
   rail.addEventListener("scroll", () => {
     clearTimeout(scrollT);
