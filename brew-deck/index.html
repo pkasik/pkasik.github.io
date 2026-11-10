@@ -160,8 +160,9 @@ td.w { font: 500 14px/1.3 var(--mono); width: 76px; white-space: nowrap; }
 .settings h2 { font: 500 24px/1.15 var(--display); margin: 0; }
 .settings-for { margin: -6px 0 0; color: var(--muted); font-size: 13.5px; }
 .setting { display: grid; gap: 6px; }
-.seg.wrap { flex-wrap: wrap; border-radius: 12px; }
+.seg.wrap { flex-wrap: wrap; border-radius: 12px; margin-inline: 0; } /* .wrap is also the page wrapper (margin-inline: auto), which centred these rows */
 .seg.wrap button { border-radius: 9px; }
+.seg .fixed { border-radius: 9px; padding: 6px 12px; font: 500 13px/1.2 var(--mono); background: var(--amber); color: var(--amber-ink); }
 .setline { display: inline-flex; align-items: center; gap: 8px; border: 1px solid var(--c-line); background: var(--c-soft); color: var(--c-fg); border-radius: 999px; padding: 6px 12px 6px 10px; font: 500 12.5px/1.2 var(--mono); font-variant-numeric: tabular-nums; max-width: 100%; }
 .setline .gear { font-size: 15px; line-height: 1; }
 .setline span.txt { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -601,13 +602,7 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
   <div class="settings">
     <div class="guide-head"><h2 id="settingsTitle">Brew settings</h2><button class="btn quiet" id="closeSettings" type="button" aria-label="Close">Done</button></div>
     <p class="settings-for" id="settingsFor"></p>
-    <div class="setting"><span class="dose-label">Grinder</span>
-      <div class="seg" id="grinderSeg" role="radiogroup" aria-label="Grinder">
-        <button type="button" data-g="casa" role="radio" aria-checked="true">Casa</button>
-        <button type="button" data-g="c40" role="radio" aria-checked="false">C40</button>
-        <button type="button" data-g="ode" role="radio" aria-checked="false">Ode</button>
-      </div>
-    </div>
+    <div class="setting" id="methodRow"><span class="dose-label">Method</span><div class="seg wrap" id="methodSeg" role="radiogroup" aria-label="Brew method"></div></div>
     <div class="setting"><span class="dose-label">Dose</span>
       <div class="seg" id="doseSeg" role="radiogroup" aria-label="Coffee dose">
         <button type="button" data-d="15" role="radio" aria-checked="false">15 g</button>
@@ -624,12 +619,19 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
         <button type="button" data-r="2.6" role="radio" aria-checked="false">1:2.6</button>
       </div>
     </div>
-    <div class="setting" id="methodRow"><span class="dose-label">Method</span><div class="seg wrap" id="methodSeg" role="radiogroup" aria-label="Brew method"></div></div>
     <div class="setting" id="filterRow"><span class="dose-label">Filter</span>
       <div class="seg wrap" id="filterSeg" role="radiogroup" aria-label="Filter paper">
         <button type="button" data-f="PURE.F" role="radio" aria-checked="false">PURE.F</button>
         <button type="button" data-f="TH-2" role="radio" aria-checked="false">TH-2</button>
         <button type="button" data-f="Abaca" role="radio" aria-checked="false">Abaca</button>
+      </div>
+      <div class="seg wrap" id="filterLocked" hidden><span class="fixed" id="filterLockedName"></span></div>
+    </div>
+    <div class="setting"><span class="dose-label">Grinder</span>
+      <div class="seg" id="grinderSeg" role="radiogroup" aria-label="Grinder">
+        <button type="button" data-g="casa" role="radio" aria-checked="true">Casa</button>
+        <button type="button" data-g="c40" role="radio" aria-checked="false">C40</button>
+        <button type="button" data-g="ode" role="radio" aria-checked="false">Ode</button>
       </div>
     </div>
     <div class="actions"><button class="btn" id="resetSettings" type="button">Reset to recipe</button></div>
@@ -736,8 +738,11 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
   const isEsp = (c) => kindOf(c) === "espresso";
   // Some brewers cannot hold every dose: the V60-01 tops out at 20 g, so 30 g is not offered with it and a 30 g setting brews as 20 g on that card.
   // The dose setting itself stays global and untouched, so other cards keep brewing at 30 g.
-  const METHOD_MAX_DOSE = [[/v60[\s-]*01/i, 20]];
-  const maxDoseOf = (c) => { const label = methodLabel(methodsOf(c)[variantIndex(c)] || {}); return METHOD_MAX_DOSE.find(([test]) => test.test(label))?.[1] ?? Infinity; };
+  // It also takes its own 01 papers, so the paper is fixed to the one its recipe is written for; a paper chosen for the coffee's other methods is kept for those.
+  const METHOD_RULES = [[/v60[\s-]*01/i, { maxDose: 20, paperLocked: true, note: "The V60-01 holds 20 g at most and takes Hario 01 papers only, so 30 g and the other papers are not offered with it." }]];
+  const methodRuleOf = (c) => { const label = methodLabel(methodsOf(c)[variantIndex(c)] || {}); return METHOD_RULES.find(([test]) => test.test(label))?.[1] || {}; };
+  const maxDoseOf = (c) => methodRuleOf(c).maxDose ?? Infinity;
+  const isPaperLocked = (c) => Boolean(methodRuleOf(c).paperLocked);
   const doseFor = (c) => (isEsp(c) ? state.espDose : Math.min(state.dose, maxDoseOf(c)));
   try { const g = localStorage.getItem("brewdeck.grinder"); if (["c40", "ode"].includes(g)) state.grinder = g; } catch {}
   try { const d = Number(localStorage.getItem("brewdeck.dose")); if ([15, 20, 30].includes(d)) state.dose = d; } catch {}
@@ -852,7 +857,7 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
   const ticksOf = (delta) => Math.round(Math.abs(delta) * 5);
   const tickWord = (n) => `${n} tick${n === 1 ? "" : "s"}`;
   // The paper in force for a coffee: what you chose for it, else the paper its active recipe was written for.
-  const filterFor = (c, r) => state.filterBy[c.id] || filterKey(r.filter) || "TH-2";
+  const filterFor = (c, r) => (!isPaperLocked(c) && state.filterBy[c.id]) || filterKey(r.filter) || "TH-2";
   const applyFilter = (r, to) => {
     const from = filterKey(r.filter);
     if (!from || from === to || !FILTERS[from] || !FILTERS[to]) return r;
@@ -886,7 +891,7 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
     const esp = isEsp(c);
     const rs = methodsOf(c), vi = variantIndex(c), base = doseVariant(c, rs[vi]), r = activeRecipe(c);
     const gName = esp && state.grinder === "ode" ? "Casa" : (GRINDERS[state.grinder] || "Casa");
-    const summary = esp ? [methodLabel(rs[vi]), `${state.espDose} g`, ratioLabel(r.ratio), gName].join(" · ") : [gName, `${doseFor(c)} g`, methodLabel(rs[vi]), r.filter || "—"].join(" · ");
+    const summary = esp ? [methodLabel(rs[vi]), `${state.espDose} g`, ratioLabel(r.ratio), gName].join(" · ") : [methodLabel(rs[vi]), `${doseFor(c)} g`, r.filter || "—", gName].join(" · ");
     const tabs = `<div><button class="setline" type="button" data-id="${esc(c.id)}" aria-haspopup="dialog" aria-label="Brew settings: ${esc(summary)}"><span class="gear" aria-hidden="true">⚙</span><span class="txt">${esc(summary)}</span></button></div>`;
     const filterNote = r.filterChanged ? `<p class="scaled">Paper changed from ${esc(r.filterChanged.from)} to ${esc(r.filterChanged.to)}: grind and finish window adjusted.</p>` : "";
     const grindHint = (() => {
@@ -1273,7 +1278,7 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
     $("grinderSeg").querySelector('[data-g="ode"]').hidden = esp;
     $("settingsNote").textContent = esp
       ? "Dose and ratio set the yield (18 g × 2.4 = 43 g); the deck uses the written recipe nearest your dose and keeps its shot timing. The Ode is not offered for espresso. Reset returns this coffee to its written recipe: Casa, its base dose and ratio."
-      : "Choosing a different paper from the one the recipe was written for moves the grind by its offset (PURE.F 2 ticks finer than TH-2, Abaca 1 tick finer) and adjusts the finish window. Method and filter are remembered per coffee; dose and grinder apply to every card. Reset returns this coffee to its written recipe: Casa, its base dose, first method and paper." + (maxDose < 30 ? ` The ${methodLabel(methodsOf(coffee)[variantIndex(coffee)])} holds ${maxDose} g at most, so 30 g is not offered with it.` : "");
+      : "Choosing a different paper from the one the recipe was written for moves the grind by its offset (PURE.F 2 ticks finer than TH-2, Abaca 1 tick finer) and adjusts the finish window. Method and filter are remembered per coffee; dose and grinder apply to every card. Reset returns this coffee to its written recipe: Casa, its base dose, first method and paper." + (coffee && methodRuleOf(coffee).note ? " " + methodRuleOf(coffee).note : "");
     [...$("ratioSeg").children].forEach((b) => b.setAttribute("aria-checked", String((b.dataset.r ? Number(b.dataset.r) : null) === state.espRatio)));
   };
   $("doseSeg").addEventListener("click", (e) => {
@@ -1292,7 +1297,7 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
   const renderGrinderSeg = () => {
     [...$("grinderSeg").children].forEach((b) => b.setAttribute("aria-checked", String(b.dataset.g === state.grinder)));
   };
-  // Brew settings sheet: method is per coffee; filter, dose and grinder are global.
+  // Brew settings sheet, in the order the choices constrain each other: method (per coffee) decides which doses and papers are offered; dose and grinder apply to every card.
   const renderMethodSeg = () => {
     const c = state.coffees.find((x) => x.id === state.settingsFor); if (!c) return;
     const rs = methodsOf(c), vi = variantIndex(c);
@@ -1301,7 +1306,8 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
   };
   const renderFilterSeg = () => {
     const c = state.coffees.find((x) => x.id === state.settingsFor); if (!c) return;
-    const cur = filterFor(c, baseRecipe(c));
+    const base = baseRecipe(c), cur = filterFor(c, base), locked = isPaperLocked(c);
+    $("filterSeg").hidden = locked; $("filterLocked").hidden = !locked; $("filterLockedName").textContent = base.filter || "—";
     [...$("filterSeg").children].forEach((b) => b.setAttribute("aria-checked", String(b.dataset.f === cur)));
   };
   $("resetSettings").addEventListener("click", () => {
@@ -1323,7 +1329,7 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
   });
   $("filterSeg").addEventListener("click", (e) => {
     const b = e.target.closest("button[data-f]"); if (!b) return;
-    const c = state.coffees.find((x) => x.id === state.settingsFor); if (!c) return;
+    const c = state.coffees.find((x) => x.id === state.settingsFor); if (!c || isPaperLocked(c)) return;
     state.filterBy[c.id] = b.dataset.f;
     try { localStorage.setItem("brewdeck.filter." + c.id, b.dataset.f); } catch {}
     renderFilterSeg(); rerenderCard(c);
