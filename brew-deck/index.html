@@ -849,6 +849,30 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
   // Filter papers: grind offset in Casa numbers relative to TH-2, and the drawdown they add or remove.
   // Filter offsets in Casa numbers (tick-aligned: PURE.F two ticks finer than TH-2, Abaca one tick finer).
   const FILTERS = { "PURE.F": { off: -0.4, time: -20 }, "TH-2": { off: 0, time: 0 }, "Abaca": { off: -0.2, time: -10 }, "Hario": { off: 0, time: 0 } };
+  // What a paper swap changes in the brew and in the cup. These are tendencies taken from maker and retailer
+  // descriptions and from timings logged with this deck, so they are worded as expectations, not promises.
+  const PAPER_SWAPS = {
+    "TH-2>Abaca": "Abaca drains steadily where TH-2 slows late, so the brew finishes sooner. Expect a little less syrupy sweetness and more separation between notes.",
+    "TH-2>PURE.F": "PURE.F doesn't slow as fines build up, so it runs fastest and takes a finer grind. Expect a fuller, more intense cup with less polish than paper.",
+    "Abaca>TH-2": "TH-2 slows towards the end, so contact time goes up. Expect more body and sweetness; if the finish turns drying, go a tick coarser.",
+    "Abaca>PURE.F": "PURE.F is faster again and takes a finer grind. Expect more intensity and a heavier mouthfeel.",
+    "PURE.F>TH-2": "TH-2 is the slowest of the three and restricts late. Expect a rounder, sweeter cup; watch the finish time on 30 g brews.",
+    "PURE.F>Abaca": "Abaca is slower and holds back more fines. Expect a cleaner, lighter-bodied cup with a little less intensity.",
+  };
+  // "Natural", "Coco natural" and "Fully washed" count; blends of both and guesses ("likely washed") do not.
+  const processOf = (c) => {
+    const text = String(c?.process || "").toLowerCase(), natural = /natural/.test(text), washed = /washed/.test(text);
+    if (natural === washed || /likely|not stated/.test(text)) return "";
+    return natural ? "natural" : "washed";
+  };
+  const paperSwapNote = (c, from, to) => {
+    const process = processOf(c);
+    return [
+      PAPER_SWAPS[`${from}>${to}`],
+      process === "natural" && FILTERS[to] && FILTERS[from] && FILTERS[to].time < FILTERS[from].time ? "On a natural, a fast brew can read winey; go finer before going cooler." : "",
+      process === "washed" && to === "TH-2" ? "On a washed coffee this trades some clarity for sweetness." : "",
+    ].filter(Boolean).join(" ");
+  };
   const filterKey = (s) => { const t = String(s || ""); if (/pure/i.test(t)) return "PURE.F"; if (/th-?2/i.test(t)) return "TH-2"; if (/abaca/i.test(t)) return "Abaca"; if (/hario/i.test(t)) return "Hario"; return null; };
   // Format a dial value as number.ticks; a position between ticks (legacy half numbers) rounds to the finer tick.
   const fmtDial = (v) => { let w = Math.floor(v + 1e-9); let t = Math.floor((v - w) * 5 + 0.5 - 1e-6); if (t > 4) { t = 0; w += 1; } return `${w}.${t}`; };
@@ -894,7 +918,7 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
     const gName = esp && state.grinder === "ode" ? "Casa" : (GRINDERS[state.grinder] || "Casa");
     const summary = esp ? [methodLabel(rs[vi]), `${state.espDose} g`, ratioLabel(r.ratio), gName].join(" · ") : [methodLabel(rs[vi]), `${doseFor(c)} g`, r.filter || "—", gName].join(" · ");
     const tabs = `<div><button class="setline" type="button" data-id="${esc(c.id)}" aria-haspopup="dialog" aria-label="Brew settings: ${esc(summary)}"><span class="gear" aria-hidden="true">⚙</span><span class="txt">${esc(summary)}</span></button></div>`;
-    const filterNote = r.filterChanged ? `<p class="scaled">Paper changed from ${esc(r.filterChanged.from)} to ${esc(r.filterChanged.to)}: grind and finish window adjusted.</p>` : "";
+    const filterNote = r.filterChanged ? `<p class="scaled">Paper changed from ${esc(r.filterChanged.from)} to ${esc(r.filterChanged.to)}: grind and finish window adjusted. ${esc(paperSwapNote(c, r.filterChanged.from, r.filterChanged.to))}</p>` : "";
     const grindHint = (() => {
       const d = doseFor(c) - r.scaledFrom;
       const big = { c40: "3 clicks", ode: "2 clicks" }[state.grinder] || "5 ticks (a full number)", small = { c40: "2 clicks", ode: "1 click" }[state.grinder] || "2 ticks";
