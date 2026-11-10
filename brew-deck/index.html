@@ -244,6 +244,37 @@ dialog.timer { background: var(--amber); color: var(--amber-ink); --c-bg: var(--
 .chips { display: flex; flex-wrap: wrap; gap: 6px; }
 .chips button { padding: 6px 12px; font-size: 13px; }
 .chips button[aria-pressed="true"] { background: var(--amber); color: var(--amber-ink); border-color: var(--amber); }
+/* Flavour: the bag's notes as a checklist, plus notes ticked from the SCA tasting wheel (families > groups > notes) */
+.fgroup { display: grid; gap: 8px; min-width: 0; }
+.fgroup[hidden], .wheel[hidden] { display: none; }
+.flabel { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.checks, .wheel { border: 1px solid var(--line); border-radius: 10px; overflow: hidden; display: grid; }
+.checks input[type="checkbox"], .wheel input[type="checkbox"] { width: 20px; height: 20px; accent-color: var(--amber); margin: 0; flex: none; }
+.wrow { display: flex; align-items: center; gap: 10px; padding: 11px 14px; border-top: 1px solid var(--line); min-width: 0; font-size: 15px; }
+.checks > .wrow:first-child, .wheel > .wrow:first-child { border-top: 0; }
+.wheel > .wrow.open { background: var(--bg); }
+.wrow label { flex: 1; min-width: 0; font-weight: 500; }
+.wrow .where { font: 500 12px/1.3 var(--mono); color: var(--muted); text-align: right; max-width: 55%; }
+.wopen { flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; border: 0; background: none; padding: 0; font: inherit; color: inherit; text-align: left; }
+.wopen .wname { flex: 1; min-width: 0; font-weight: 600; }
+.wkids .wopen .wname { font-weight: 500; }
+.wopen .chev { width: 8px; height: 8px; border-right: 1.5px solid var(--muted); border-bottom: 1.5px solid var(--muted); transform: rotate(45deg); margin: 0 4px 4px; flex: none; }
+.wopen[aria-expanded="true"] .chev { transform: rotate(-135deg); margin-bottom: -4px; }
+.wkids { border-top: 1px solid var(--line); padding: 2px 14px 6px 44px; display: grid; }
+.wkids .wrow { padding: 9px 0; border-top: 1px solid color-mix(in srgb, var(--line) 55%, transparent); }
+.wkids > .wrow:first-child { border-top: 0; }
+.wleaves { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 12px; padding: 0 0 8px 30px; }
+.wleaves .wrow { border-top: 0; padding: 6px 0; gap: 8px; }
+.wleaves .wrow label { font-weight: 400; }
+.picks { display: flex; flex-wrap: wrap; gap: 6px; }
+.picks:empty { display: none; }
+.picks button { border: 1px solid var(--amber); border-radius: 999px; padding: 6px 12px; font: 500 13px/1.3 var(--body); background: var(--amber-soft); color: var(--fg); }
+.rowbtn { display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%; border: 1px solid var(--line); border-radius: 10px; background: var(--paper); color: var(--fg); padding: 12px 14px; font: 500 15px/1.3 var(--body); text-align: left; }
+.sheet-head label.f { margin-top: 10px; }
+label.f input[type="search"] { -webkit-appearance: none; appearance: none; }
+.brew .taste span.bag { background: var(--amber-soft); border-color: var(--amber); }
+.brew .taste span.own { background: transparent; border-style: dashed; border-color: var(--amber); }
+.brew .bagline { grid-column: 1 / -1; margin: 0; font-size: 13px; color: var(--muted); }
 .brew .rating { font: 500 13px/1.2 var(--mono); color: var(--amber); letter-spacing: .08em; white-space: nowrap; }
 .brew .acts { grid-column: 2; justify-self: end; display: flex; gap: 2px; }
 .empty { color: var(--muted); font-size: 14px; margin: 0; }
@@ -259,6 +290,7 @@ dialog form { display: grid; gap: 14px; padding: 20px; }
 dialog.sheet { overflow: hidden; }
 dialog.sheet form { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; gap: 0; padding: 0; max-height: calc(100dvh - 32px); }
 .sheet-head { padding: 16px 20px 12px; border-bottom: 1px solid var(--line); }
+.sheet-head h2:focus { outline: none; }
 .sheet-body { overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; padding: 16px 20px; display: grid; gap: 14px; align-content: start; min-width: 0; }
 .sheet-body > * { min-width: 0; max-width: 100%; }
 .sheet-foot { padding: 12px 20px; border-top: 1px solid var(--line); background: var(--paper); }
@@ -490,7 +522,7 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
 <!-- Brew editor -->
 <dialog id="brewDialog" class="sheet" aria-labelledby="brewDialogTitle">
   <form id="brewForm" method="dialog" novalidate>
-    <div class="sheet-head"><h2 id="brewDialogTitle">Log a brew</h2></div>
+    <div class="sheet-head"><h2 id="brewDialogTitle" tabindex="-1" autofocus>Log a brew</h2></div>
     <div class="sheet-body">
     <div class="grid3">
       <label class="f">Date<input id="b_date" name="date" type="date" required></label>
@@ -510,9 +542,9 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
         <button type="button" data-v="5" aria-pressed="false">5</button>
       </div>
     </div>
-    <div class="f" style="display:grid;gap:6px;font:600 10.5px/1.2 var(--body);letter-spacing:.06em;text-transform:uppercase;color:var(--muted)">
-      Taste · tap all that apply
-      <div class="chips" id="tasteChips" role="group" aria-label="Taste">
+    <div class="fgroup">
+      <span class="flabel" id="tasteLabel">Structure · tap all that apply</span>
+      <div class="chips" id="tasteChips" role="group" aria-labelledby="tasteLabel">
         <button type="button" data-t="sour" aria-pressed="false">Sour</button>
         <button type="button" data-t="sweet" aria-pressed="false">Sweet</button>
         <button type="button" data-t="balanced" aria-pressed="false">Balanced</button>
@@ -523,6 +555,15 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
         <button type="button" data-t="heavy" aria-pressed="false">Heavy</button>
       </div>
     </div>
+    <div class="fgroup" id="bagGroup" hidden>
+      <span class="flabel" id="bagLabel">On the bag · did you taste it?</span>
+      <div class="checks" id="bagChecks" role="group" aria-labelledby="bagLabel"></div>
+    </div>
+    <div class="fgroup">
+      <span class="flabel" id="picksLabel">Anything else?</span>
+      <div class="picks" id="flavourPicks" role="group" aria-labelledby="picksLabel"></div>
+      <button class="rowbtn" type="button" id="openWheel"><span>Add from the flavour list</span><span aria-hidden="true">›</span></button>
+    </div>
     <label class="f">Notes<textarea id="b_notes" name="notes" placeholder="Anything else: body, what to change next time."></textarea></label>
     <p class="err" id="brewErr" hidden></p>
     </div>
@@ -530,6 +571,26 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
       <div class="right">
         <button class="btn" type="button" id="cancelBrew">Cancel</button>
         <button class="btn primary" type="submit">Save brew</button>
+      </div>
+    </div>
+  </form>
+</dialog>
+
+<!-- Flavour list: the tasting wheel as a drill-down checklist -->
+<dialog id="flavourDialog" class="sheet" aria-labelledby="flavourTitle">
+  <form id="flavourForm" method="dialog" novalidate>
+    <div class="sheet-head">
+      <h2 id="flavourTitle">Flavour list</h2>
+      <label class="f">Search<input id="wheelSearch" type="search" autocomplete="off" placeholder="blueberry, honey, cocoa"></label>
+    </div>
+    <div class="sheet-body">
+      <div class="wheel" id="wheel" role="group" aria-labelledby="flavourTitle"></div>
+      <p class="empty" id="wheelEmpty" hidden>Nothing on the wheel matches that. Put it in Notes instead.</p>
+    </div>
+    <div class="actions sheet-foot">
+      <div class="right">
+        <button class="btn" type="button" id="clearWheel">Clear</button>
+        <button class="btn primary" type="submit" autofocus>Done</button>
       </div>
     </div>
   </form>
@@ -1028,6 +1089,136 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
     $("logName").textContent = state.coffees[state.active]?.name || "";
   };
 
+  // ---------- Flavour: the SCA / WCR Coffee Taster's Flavor Wheel (2016) as family > group > notes ----------
+  // Not on the standard wheel, added for this deck: the Tropical fruit group, Smoked plum, Osmanthus, Gula melaka, Kaya and Pandan.
+  const WHEEL = [
+    ["Fruity", [["Berry", ["Blackberry", "Raspberry", "Blueberry", "Strawberry"]], ["Dried fruit", ["Raisin", "Prune", "Smoked plum"]], ["Other fruit", ["Coconut", "Cherry", "Pomegranate", "Pineapple", "Grape", "Apple", "Peach", "Pear"]], ["Tropical fruit", ["Lychee", "Longan", "Mango", "Passionfruit"]], ["Citrus fruit", ["Grapefruit", "Orange", "Lemon", "Lime"]]]],
+    ["Floral", [["Black tea", []], ["Floral", ["Chamomile", "Rose", "Jasmine", "Osmanthus"]]]],
+    ["Sweet", [["Brown sugar", ["Molasses", "Maple syrup", "Caramelized", "Honey", "Gula melaka", "Kaya"]], ["Vanilla", []], ["Pandan", []], ["Vanillin", []], ["Overall sweet", []], ["Sweet aromatics", []]]],
+    ["Nutty / Cocoa", [["Nutty", ["Peanuts", "Hazelnut", "Almond"]], ["Cocoa", ["Chocolate", "Dark chocolate"]]]],
+    ["Spices", [["Pungent", []], ["Pepper", []], ["Brown spice", ["Anise", "Nutmeg", "Cinnamon", "Clove"]]]],
+    ["Roasted", [["Pipe tobacco", []], ["Tobacco", []], ["Burnt", ["Acrid", "Ashy", "Smoky", "Brown, roast"]], ["Cereal", ["Grain", "Malt"]]]],
+    ["Green / Vegetative", [["Olive oil", []], ["Raw", []], ["Green / Vegetative", ["Under-ripe", "Peapod", "Fresh", "Dark green", "Vegetative", "Hay-like", "Herb-like"]], ["Beany", []]]],
+    ["Sour / Fermented", [["Sour", ["Sour aromatics", "Acetic acid", "Butyric acid", "Isovaleric acid", "Citric acid", "Malic acid"]], ["Alcohol / Fermented", ["Winey", "Whiskey", "Fermented", "Overripe"]]]],
+    ["Other", [["Papery / Musty", ["Stale", "Cardboard", "Papery", "Woody", "Moldy / Damp", "Musty / Dusty", "Musty / Earthy", "Animalic", "Meaty / Brothy", "Phenolic"]], ["Chemical", ["Bitter", "Salty", "Medicinal", "Petroleum", "Skunky", "Rubber"]]]],
+  ];
+  const WHEEL_SEP = " › ";
+  // Every node on the wheel, flattened in wheel order. A node's path is its identity: "Fruity › Berry › Blueberry".
+  const WHEEL_NODES = WHEEL.flatMap(([family, groups]) => [
+    { path: family, label: family, parent: "", depth: 1 },
+    ...groups.flatMap(([group, notes]) => {
+      const groupPath = family + WHEEL_SEP + group;
+      return [{ path: groupPath, label: group, parent: family, depth: 2 }, ...notes.map((note) => ({ path: groupPath + WHEEL_SEP + note, label: note, parent: groupPath, depth: 3 }))];
+    }),
+  ]);
+  const wheelKids = (path) => WHEEL_NODES.filter((n) => n.parent === path);
+  const flavourLabel = (path) => String(path).split(WHEEL_SEP).pop();
+  const capFirst = (text) => text.charAt(0).toUpperCase() + text.slice(1);
+  // The bag's tasting notes, one per comma: "Berry compote, white grape, jasmine" gives three.
+  const bagNotesOf = (c) => String(c?.tasting || "").split(/[,;·]/).map((note) => note.trim()).filter(Boolean).map(capFirst);
+
+  // Bag notes are free text, so placing one on the wheel is a best-effort guess: a wheel word in the note wins (most specific first),
+  // then a short list of common notes the wheel has no word for. No match, no label; the note can still be ticked.
+  const wheelTermPattern = (term) => {
+    const word = term.toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const body = /[^aeiou]y$/.test(word) ? word.slice(0, -1) + "(y|ies)" : word.replace(/s$/, "") + "(s|es)?";
+    return new RegExp("(^|[^a-z])" + body + "([^a-z]|$)");
+  };
+  const WHEEL_MATCHERS = WHEEL_NODES.filter((n) => n.depth > 1 && !["raw", "fresh", "sour", "bitter"].includes(n.label.toLowerCase()))
+    .sort((a, b) => b.depth - a.depth || b.label.length - a.label.length)
+    .map((n) => ({ path: n.path, tests: n.label.split(" / ").map(wheelTermPattern) }));
+  const WHEEL_ALIASES = [
+    [/caramel|toffee|butterscotch|panela|muscovado|demerara|treacle|gula/, "Sweet › Brown sugar"],
+    [/cacao|choc/, "Nutty / Cocoa › Cocoa"],
+    [/berr(y|ies)|currant/, "Fruity › Berry"],
+    [/passion ?fruit|guava|papaya|banana|melon|kiwi|tropical/, "Fruity › Tropical fruit"],
+    [/plum|apricot|nectarine|stone ?fruit/, "Fruity › Other fruit"],
+    [/sultana|dried|(^|[^a-z])(dates?|figs?)([^a-z]|$)/, "Fruity › Dried fruit"],
+    [/citrus|mandarin|tangerine|clementine|bergamot|yuzu|pomelo|calamansi/, "Fruity › Citrus fruit"],
+    [/(^|[^a-z])tea([^a-z]|$)|earl grey|oolong/, "Floral › Black tea"],
+    [/blossom|lavender|hibiscus|osmanthus|honeysuckle|elderflower|violet|floral|flower/, "Floral › Floral"],
+    [/nut|praline|marzipan|pecan|cashew|pistachio|macadamia/, "Nutty / Cocoa › Nutty"],
+    [/wine|(^|[^a-z])rum([^a-z]|$)|brandy|liqueur|sherry|booz/, "Sour / Fermented › Alcohol / Fermented"],
+    [/cardamom|ginger|liquorice|licorice|spice/, "Spices › Brown spice"],
+    [/malt|biscuit|toast|bread|granola|(^|[^a-z])oats?([^a-z]|$)/, "Roasted › Cereal"],
+    [/smok/, "Roasted › Burnt"],
+    [/herb|grass|mint|sage/, "Green / Vegetative › Green / Vegetative"],
+    [/sugar|syrup|candy|nougat|marshmallow|fudge|jam|compote|sweet/, "Sweet › Overall sweet"],
+  ];
+  const wheelPlaceOf = (note) => {
+    const text = String(note).toLowerCase();
+    const node = WHEEL_MATCHERS.find((m) => m.tests.some((test) => test.test(text)));
+    if (node) return node.path;
+    const alias = WHEEL_ALIASES.find(([test]) => test.test(text));
+    return alias ? alias[1] : "";
+  };
+  // "Fruity › Berry › Blueberry" reads "Fruity › Berry" in the small label beside a note; "Floral › Floral" reads "Floral".
+  const wheelGroupOf = (path) => { const [family, group] = String(path).split(WHEEL_SEP); return !group || group === family ? family : family + WHEEL_SEP + group; };
+
+  // What is ticked in the open brew sheet: bag notes by name, wheel notes by path.
+  const flavour = { bagNotes: [], bag: new Set(), wheel: new Set(), open: new Set(), query: "" };
+  const wheelPicksUnder = (path) => [...flavour.wheel].filter((picked) => picked.startsWith(path + WHEEL_SEP));
+  const isWheelTicked = (path) => flavour.wheel.has(path) || wheelPicksUnder(path).length > 0;
+  // The most specific tick wins: ticking Blueberry replaces a tick on Berry or Fruity; unticking a family or group clears everything under it.
+  const toggleWheel = (path) => {
+    if (isWheelTicked(path)) { flavour.wheel.delete(path); wheelPicksUnder(path).forEach((picked) => flavour.wheel.delete(picked)); return; }
+    [...flavour.wheel].filter((picked) => path.startsWith(picked + WHEEL_SEP)).forEach((picked) => flavour.wheel.delete(picked));
+    flavour.wheel.add(path);
+  };
+  // Ticked wheel notes in wheel order (then any saved path the wheel no longer has).
+  const wheelPicks = () => [...WHEEL_NODES.filter((n) => flavour.wheel.has(n.path)).map((n) => n.path), ...[...flavour.wheel].filter((picked) => !WHEEL_NODES.some((n) => n.path === picked))];
+
+  const wheelBox = (node, labelled) => `<input type="checkbox" id="w_${WHEEL_NODES.indexOf(node)}" data-p="${esc(node.path)}"${isWheelTicked(node.path) ? " checked" : ""}${labelled ? "" : ` aria-label="${esc(node.label)}"`}>`;
+  const wheelRow = (node) => {
+    const kids = wheelKids(node.path);
+    if (!kids.length) return `<div class="wrow">${wheelBox(node, true)}<label for="w_${WHEEL_NODES.indexOf(node)}">${esc(node.label)}</label></div>`;
+    const open = flavour.open.has(node.path), below = wheelPicksUnder(node.path);
+    const picked = below.length === 1 ? flavourLabel(below[0]).toLowerCase() : below.length ? below.length + " picked" : "";
+    return `<div class="wrow${open ? " open" : ""}">${wheelBox(node, false)}<button class="wopen" type="button" data-open="${esc(node.path)}" aria-expanded="${open}"><span class="wname">${esc(node.label)}</span><span class="where">${esc(picked)}</span><span class="chev" aria-hidden="true"></span></button></div>`
+      + (open ? `<div class="${node.depth === 1 ? "wkids" : "wleaves"}">${kids.map(wheelRow).join("")}</div>` : "");
+  };
+  const renderWheel = () => {
+    const query = flavour.query.trim().toLowerCase();
+    const hits = query ? WHEEL_NODES.filter((n) => n.label.toLowerCase().includes(query)) : [];
+    $("wheel").innerHTML = query
+      ? hits.map((n) => `<div class="wrow">${wheelBox(n, true)}<label for="w_${WHEEL_NODES.indexOf(n)}">${esc(n.label)}</label><span class="where">${esc(n.parent)}</span></div>`).join("")
+      : WHEEL_NODES.filter((n) => n.depth === 1).map(wheelRow).join("");
+    $("wheel").hidden = Boolean(query) && !hits.length; $("wheelEmpty").hidden = !query || hits.length > 0;
+  };
+  const renderFlavour = () => {
+    $("bagGroup").hidden = !flavour.bagNotes.length;
+    $("bagChecks").innerHTML = flavour.bagNotes.map((note, i) => {
+      const place = wheelPlaceOf(note);
+      return `<div class="wrow"><input type="checkbox" id="bag_${i}" data-n="${esc(note)}"${flavour.bag.has(note.toLowerCase()) ? " checked" : ""}><label for="bag_${i}">${esc(note)}</label>${place ? `<span class="where">${esc(wheelGroupOf(place))}</span>` : ""}</div>`;
+    }).join("");
+    $("flavourPicks").innerHTML = wheelPicks().map((path) => `<button type="button" data-p="${esc(path)}" aria-label="Remove ${esc(flavourLabel(path))}">${esc(flavourLabel(path))} ×</button>`).join("");
+  };
+  // Fill the sheet's flavour section for a coffee: empty for a new brew, or from a saved entry's flavour list when editing.
+  const loadFlavour = (c, saved) => {
+    const entries = Array.isArray(saved) ? saved.filter((f) => f && f.n) : [];
+    const notes = bagNotesOf(c), known = new Set(notes.map((note) => note.toLowerCase()));
+    // A bag note ticked on an older entry stays on the list even if the card's tasting notes were edited since.
+    flavour.bagNotes = [...notes, ...entries.filter((f) => f.bag && !known.has(f.n.toLowerCase())).map((f) => f.n)];
+    flavour.bag = new Set(entries.filter((f) => f.bag).map((f) => f.n.toLowerCase()));
+    flavour.wheel = new Set(entries.filter((f) => !f.bag).map((f) => f.w || f.n));
+    flavour.open = new Set(); flavour.query = "";
+    renderFlavour();
+  };
+  // What gets saved on the brew: [{ n: "Berry compote", bag: true, w: "Fruity › Berry" }, { n: "Blueberry", w: "Fruity › Berry › Blueberry" }]
+  const readFlavour = () => [
+    ...flavour.bagNotes.filter((note) => flavour.bag.has(note.toLowerCase())).map((note) => { const place = wheelPlaceOf(note); return place ? { n: note, bag: true, w: place } : { n: note, bag: true }; }),
+    ...wheelPicks().map((path) => ({ n: flavourLabel(path), w: path })),
+  ];
+  // A log entry's flavours: bag notes filled, your own dashed, and how many of the bag's notes turned up.
+  const flavourHtml = (b, c) => {
+    const picks = Array.isArray(b.flavour) ? b.flavour.filter((f) => f && f.n) : [];
+    if (!picks.length) return "";
+    const notes = bagNotesOf(c), found = new Set(picks.filter((f) => f.bag).map((f) => f.n.toLowerCase()));
+    const missing = notes.filter((note) => !found.has(note.toLowerCase()));
+    const line = !notes.length ? "" : !missing.length ? "All the bag notes found." : `${notes.length - missing.length} of ${notes.length} bag ${notes.length === 1 ? "note" : "notes"} found. Not there yet: ${missing.join(", ").toLowerCase()}.`;
+    return `<div class="taste">${picks.map((f) => `<span class="${f.bag ? "bag" : "own"}">${esc(f.n.toLowerCase())}</span>`).join("")}</div>${line ? `<p class="bagline">${esc(line)}</p>` : ""}`;
+  };
+
   const renderBrews = () => {
     const list = $("brews");
     $("brewsEmpty").hidden = state.brews.length > 0;
@@ -1040,6 +1231,7 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
         <div class="params">${params}</div>
         ${state.canWrite ? `<div class="acts"><button class="btn quiet ed" type="button" data-id="${esc(b.id)}" aria-label="Edit this brew">Edit</button><button class="btn quiet rm" type="button" data-id="${esc(b.id)}" aria-label="Delete this brew">Remove</button></div>` : ""}
         ${Array.isArray(b.taste) && b.taste.length ? `<div class="taste">${b.taste.map((t) => `<span>${esc(t)}</span>`).join("")}</div>` : ""}
+        ${flavourHtml(b, state.coffees[state.active])}
         ${b.notes ? `<p class="text">${esc(b.notes)}</p>` : ""}
       </li>`;
     }).join("");
@@ -1302,7 +1494,6 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
     const i = state.coffees.indexOf(c); if (i >= 0) state.active = i;
     $("addBrew").click();
     if (secs > 0) $("b_finish").value = timer.esp ? `${secs} s` : mmss(secs);
-    $("b_notes").focus();
   });
   $("t_close").addEventListener("click", () => { resetTimer(); $("timerDialog").close(); });
   $("timerDialog").addEventListener("cancel", () => resetTimer());
@@ -1444,7 +1635,31 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
 
   // ---------- Brew log ----------
   const brewDialog = $("brewDialog"), stars = $("stars");
+  // The sheet opens with nothing to type into focused, so no keyboard or date picker appears until a field is tapped. Focus goes to the heading.
+  const openBrewSheet = () => { brewDialog.showModal(); $("brewDialogTitle").focus({ preventScroll: true }); brewDialog.querySelector(".sheet-body").scrollTop = 0; };
   $("tasteChips").addEventListener("click", (e) => { const b = e.target.closest("button[data-t]"); if (b) b.setAttribute("aria-pressed", String(b.getAttribute("aria-pressed") !== "true")); });
+  const flavourDialog = $("flavourDialog");
+  $("bagChecks").addEventListener("change", (e) => {
+    const box = e.target.closest("input[data-n]"); if (!box) return;
+    const key = box.dataset.n.toLowerCase();
+    if (box.checked) flavour.bag.add(key); else flavour.bag.delete(key);
+  });
+  $("flavourPicks").addEventListener("click", (e) => { const chip = e.target.closest("button[data-p]"); if (!chip) return; flavour.wheel.delete(chip.dataset.p); renderFlavour(); });
+  $("openWheel").addEventListener("click", () => { flavour.query = ""; $("wheelSearch").value = ""; flavour.open = new Set(); renderWheel(); flavourDialog.showModal(); });
+  $("wheel").addEventListener("change", (e) => {
+    const box = e.target.closest("input[data-p]"); if (!box) return;
+    toggleWheel(box.dataset.p); renderWheel(); $(box.id)?.focus({ preventScroll: true });
+  });
+  $("wheel").addEventListener("click", (e) => {
+    const opener = e.target.closest("button[data-open]"); if (!opener) return;
+    const path = opener.dataset.open;
+    if (flavour.open.has(path)) flavour.open.delete(path); else flavour.open.add(path);
+    renderWheel(); [...$("wheel").querySelectorAll("button[data-open]")].find((b) => b.dataset.open === path)?.focus({ preventScroll: true });
+  });
+  $("wheelSearch").addEventListener("input", (e) => { flavour.query = e.target.value; renderWheel(); });
+  $("wheelSearch").addEventListener("keydown", (e) => { if (e.key === "Enter") e.preventDefault(); }); // Enter in the search box must not press Done
+  $("clearWheel").addEventListener("click", () => { flavour.wheel.clear(); renderWheel(); });
+  flavourDialog.addEventListener("close", () => renderFlavour());
   stars.addEventListener("click", (e) => {
     const b = e.target.closest("button[data-v]"); if (!b) return;
     state.brewRating = Number(b.dataset.v) === state.brewRating ? 0 : Number(b.dataset.v);
@@ -1460,7 +1675,8 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
     $("b_dose").value = r.dose || ""; $("b_finish").value = ""; $("b_notes").value = ""; $("brewErr").hidden = true;
     state.brewRating = 0; [...stars.children].forEach((s) => s.setAttribute("aria-pressed", "false"));
     [...$("tasteChips").children].forEach((b) => b.setAttribute("aria-pressed", "false"));
-    brewDialog.showModal(); $("b_finish").focus();
+    loadFlavour(c, null);
+    openBrewSheet();
   });
   $("cancelBrew").addEventListener("click", () => brewDialog.close());
   $("brewForm").addEventListener("submit", async (e) => {
@@ -1468,7 +1684,7 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
     if (state.savingBrew) return; // a second tap while the first save is still in flight must not write again
     const c = state.coffees[state.active]; if (!c) return;
     const saveBtn = $("brewForm").querySelector('button[type="submit"]');
-    const data = { date: $("b_date").value || todayISO(), recipe: activeRecipe(c).label || "", grind: $("b_grind").value.trim(), temp: $("b_temp").value.trim(), filter: $("b_filter").value.trim(), dose: $("b_dose").value.trim(), finish: $("b_finish").value.trim(), rating: state.brewRating, taste: [...$("tasteChips").querySelectorAll('button[aria-pressed="true"]')].map((b) => b.dataset.t), notes: $("b_notes").value.trim(), createdAt: new Date().toISOString() };
+    const data = { date: $("b_date").value || todayISO(), recipe: activeRecipe(c).label || "", grind: $("b_grind").value.trim(), temp: $("b_temp").value.trim(), filter: $("b_filter").value.trim(), dose: $("b_dose").value.trim(), finish: $("b_finish").value.trim(), rating: state.brewRating, taste: [...$("tasteChips").querySelectorAll('button[aria-pressed="true"]')].map((b) => b.dataset.t), flavour: readFlavour(), notes: $("b_notes").value.trim(), createdAt: new Date().toISOString() };
     const editing = state.editingBrew;
     if (editing) { data.recipe = editing.recipe || data.recipe; data.createdAt = editing.createdAt || data.createdAt; }
     state.savingBrew = true; saveBtn.disabled = true;
@@ -1488,7 +1704,8 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
       state.brewRating = br.rating || 0; [...stars.children].forEach((s) => s.setAttribute("aria-pressed", String(Number(s.dataset.v) <= state.brewRating)));
       const taste = Array.isArray(br.taste) ? br.taste : [];
       [...$("tasteChips").children].forEach((b) => b.setAttribute("aria-pressed", String(taste.includes(b.dataset.t))));
-      brewDialog.showModal(); return;
+      loadFlavour(c, br.flavour);
+      openBrewSheet(); return;
     }
     const b = e.target.closest("button.rm"); if (!b) return;
     const c = state.coffees[state.active]; if (!c) return;
