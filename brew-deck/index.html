@@ -466,7 +466,7 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
 <!-- Card editor -->
 <dialog id="cardDialog" class="sheet" aria-labelledby="cardDialogTitle">
   <form id="cardForm" method="dialog" novalidate>
-    <div class="sheet-head"><h2 id="cardDialogTitle">New card</h2></div>
+    <div class="sheet-head"><h2 id="cardDialogTitle" tabindex="-1" autofocus>New card</h2></div>
     <div class="sheet-body">
     <div class="grid2">
       <label class="f">Coffee name<input id="f_name" name="name" required autocomplete="off" placeholder="Kenya Maganio"></label>
@@ -1516,6 +1516,8 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
   });
 
   // ---------- Card editor ----------
+  // Editor sheets open with nothing to type into focused, so no keyboard or date picker appears until a field is tapped. Focus goes to the heading.
+  const openSheet = (dialog) => { dialog.showModal(); dialog.querySelector(".sheet-head h2").focus({ preventScroll: true }); dialog.querySelector(".sheet-body").scrollTop = 0; };
   const cardDialog = $("cardDialog"), cardForm = $("cardForm"), pourRows = $("pourRows");
   const CARD_FIELDS = ["name", "roaster", "tasting", "origin", "producer", "variety", "altitude", "process", "roasted", "kind"];
   const DEFAULT_SHOT = [{ time: "0:00", to: "2–3 bar", action: "Preinfuse gently until the first drops" }, { time: "0:10", to: "43 g", rate: 1.9, action: "6–8 bar · ramp smoothly, hold steady" }, { time: "0:32", to: "—", action: "Stop on weight, not time" }];
@@ -1577,7 +1579,7 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
     state.editRecipes = c ? recipesOf(c).map((r) => ({ ...r, pours: (r.pours || []).map((p) => ({ ...p })) })) : [espNew ? { ...blankRecipe(), label: "18 g · Robot", dose: "18 g → 43 g", water: "92°C", pressure: "6–8 bar", finish: "0:30 – 0:35", pourTitle: "3 stages" } : { ...blankRecipe(), label: "30 g · NEO", dose: "30 g / 500 g" }];
     state.editIdx = c ? variantIndex(c) : 0;
     loadRecipeForm(state.editRecipes[state.editIdx]); renderVariantSel();
-    cardDialog.showModal(); $("f_name").focus();
+    openSheet(cardDialog);
   };
   $("addFirst").addEventListener("click", () => openCardEditor(null));
   $("cancelCard").addEventListener("click", () => cardDialog.close());
@@ -1635,8 +1637,6 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
 
   // ---------- Brew log ----------
   const brewDialog = $("brewDialog"), stars = $("stars");
-  // The sheet opens with nothing to type into focused, so no keyboard or date picker appears until a field is tapped. Focus goes to the heading.
-  const openBrewSheet = () => { brewDialog.showModal(); $("brewDialogTitle").focus({ preventScroll: true }); brewDialog.querySelector(".sheet-body").scrollTop = 0; };
   $("tasteChips").addEventListener("click", (e) => { const b = e.target.closest("button[data-t]"); if (b) b.setAttribute("aria-pressed", String(b.getAttribute("aria-pressed") !== "true")); });
   const flavourDialog = $("flavourDialog");
   $("bagChecks").addEventListener("change", (e) => {
@@ -1676,7 +1676,7 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
     state.brewRating = 0; [...stars.children].forEach((s) => s.setAttribute("aria-pressed", "false"));
     [...$("tasteChips").children].forEach((b) => b.setAttribute("aria-pressed", "false"));
     loadFlavour(c, null);
-    openBrewSheet();
+    openSheet(brewDialog);
   });
   $("cancelBrew").addEventListener("click", () => brewDialog.close());
   $("brewForm").addEventListener("submit", async (e) => {
@@ -1705,7 +1705,7 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
       const taste = Array.isArray(br.taste) ? br.taste : [];
       [...$("tasteChips").children].forEach((b) => b.setAttribute("aria-pressed", String(taste.includes(b.dataset.t))));
       loadFlavour(c, br.flavour);
-      openBrewSheet(); return;
+      openSheet(brewDialog); return;
     }
     const b = e.target.closest("button.rm"); if (!b) return;
     const c = state.coffees[state.active]; if (!c) return;
