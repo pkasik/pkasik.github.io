@@ -1456,12 +1456,16 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
   $("cancelBrew").addEventListener("click", () => brewDialog.close());
   $("brewForm").addEventListener("submit", async (e) => {
     e.preventDefault();
+    if (state.savingBrew) return; // a second tap while the first save is still in flight must not write again
     const c = state.coffees[state.active]; if (!c) return;
+    const saveBtn = $("brewForm").querySelector('button[type="submit"]');
     const data = { date: $("b_date").value || todayISO(), recipe: activeRecipe(c).label || "", grind: $("b_grind").value.trim(), temp: $("b_temp").value.trim(), filter: $("b_filter").value.trim(), dose: $("b_dose").value.trim(), finish: $("b_finish").value.trim(), rating: state.brewRating, taste: [...$("tasteChips").querySelectorAll('button[aria-pressed="true"]')].map((b) => b.dataset.t), notes: $("b_notes").value.trim(), createdAt: new Date().toISOString() };
     const editing = state.editingBrew;
     if (editing) { data.recipe = editing.recipe || data.recipe; data.createdAt = editing.createdAt || data.createdAt; }
+    state.savingBrew = true; saveBtn.disabled = true;
     try { if (editing) await store.updateBrew(editing.id, c.id, data); else await store.addBrew(c.id, data); state.editingBrew = null; brewDialog.close(); await loadBrews(true); }
     catch (err) { showErr("brewErr", friendly(err, "save the brew")); }
+    finally { state.savingBrew = false; saveBtn.disabled = false; }
   });
   $("brews").addEventListener("click", (e) => {
     const ed = e.target.closest("button.ed");
