@@ -162,6 +162,10 @@ td.w { font: 500 14px/1.3 var(--mono); width: 76px; white-space: nowrap; }
 .setting { display: grid; gap: 6px; }
 .seg.wrap { flex-wrap: wrap; border-radius: 12px; margin-inline: 0; } /* .wrap is also the page wrapper (margin-inline: auto), which centred these rows */
 .seg.wrap button { border-radius: 9px; }
+/* Options share the row equally, so five ratios still fit on one line on a phone */
+.seg.even { display: flex; }
+.seg.even button { flex: 1 1 0; min-width: 0; padding-inline: 4px; white-space: nowrap; }
+.seg button.written::after { content: ""; display: inline-block; width: 5px; height: 5px; border-radius: 50%; background: currentColor; margin-left: 5px; vertical-align: middle; }
 .seg .fixed { border-radius: 9px; padding: 6px 12px; font: 500 13px/1.2 var(--mono); background: var(--amber); color: var(--amber-ink); }
 .setline { display: inline-flex; align-items: center; gap: 8px; border: 1px solid var(--c-line); background: var(--c-soft); color: var(--c-fg); border-radius: 999px; padding: 6px 12px 6px 10px; font: 500 12.5px/1.2 var(--mono); font-variant-numeric: tabular-nums; max-width: 100%; }
 .setline .gear { font-size: 15px; line-height: 1; }
@@ -611,13 +615,7 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
       </div>
     </div>
     <div class="setting" id="ratioRow" hidden><span class="dose-label">Ratio</span>
-      <div class="seg" id="ratioSeg" role="radiogroup" aria-label="Brew ratio">
-        <button type="button" data-r="" role="radio" aria-checked="true">Recipe</button>
-        <button type="button" data-r="2" role="radio" aria-checked="false">1:2</button>
-        <button type="button" data-r="2.2" role="radio" aria-checked="false">1:2.2</button>
-        <button type="button" data-r="2.4" role="radio" aria-checked="false">1:2.4</button>
-        <button type="button" data-r="2.6" role="radio" aria-checked="false">1:2.6</button>
-      </div>
+      <div class="seg even" id="ratioSeg" role="radiogroup" aria-label="Brew ratio"></div>
     </div>
     <div class="setting" id="filterRow"><span class="dose-label">Filter</span>
       <div class="seg wrap" id="filterSeg" role="radiogroup" aria-label="Filter paper">
@@ -729,10 +727,10 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
   const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const todayISO = () => new Date().toISOString().slice(0, 10);
 
-  const state = { user: null, loaded: false, canWrite: false, coffees: [], active: 0, brews: [], editingId: null, brewRating: 0, pendingDelete: null, view: "grid", pendingFocus: null, brewsFor: null, variant: {}, editRecipes: [], editIdx: 0, info: {}, dose: 30, grinder: "casa", filterBy: {}, settingsFor: null, showAllArchived: false, kind: "filter", espDose: 18, espRatio: null };
+  const state = { user: null, loaded: false, canWrite: false, coffees: [], active: 0, brews: [], editingId: null, brewRating: 0, pendingDelete: null, view: "grid", pendingFocus: null, brewsFor: null, variant: {}, editRecipes: [], editIdx: 0, info: {}, dose: 30, grinder: "casa", filterBy: {}, settingsFor: null, showAllArchived: false, kind: "filter", espDose: 18, ratioBy: {} };
   try { if (localStorage.getItem("brewdeck.kind") === "espresso") state.kind = "espresso"; } catch {}
   try { const d = Number(localStorage.getItem("brewdeck.espDose")); if ([16, 18].includes(d)) state.espDose = d; } catch {}
-  try { const r = Number(localStorage.getItem("brewdeck.espRatio")); if (r > 0) state.espRatio = r; } catch {}
+  try { localStorage.removeItem("brewdeck.espRatio"); } catch {} // the ratio used to be one setting for every espresso card; it is per coffee now
   // Two decks: filter coffees and espresso coffees are separate cards; a coffee's kind is stored on it (default filter).
   const kindOf = (c) => (c?.kind === "espresso" ? "espresso" : "filter");
   const isEsp = (c) => kindOf(c) === "espresso";
@@ -821,11 +819,11 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
     const m = String(finish || "").match(/(\d+:\d{2})\s*[–-]\s*(\d+:\d{2})/); if (!m) return finish;
     return `${fmtSec(Math.max(60, toSec(m[1]) + by))} – ${fmtSec(Math.max(90, toSec(m[2]) + by))}`;
   };
-  const scaleRecipe = (r, dose) => {
+  const scaleRecipe = (r, dose, chosenRatio) => {
     const base = baseOf(r);
     if (base?.espresso) {
       // Espresso: yield follows dose × ratio (the recipe's own ratio unless one is chosen); shot stages keep their timing.
-      const ratio = state.espRatio || base.water / base.dose;
+      const ratio = chosenRatio || base.water / base.dose;
       const yld = Math.round(dose * ratio);
       const changed = dose !== base.dose || yld !== base.water;
       const pours = (r.pours || []).map((p) => (grams(p.to) ? { ...p, to: `${yld} g` } : p));
@@ -880,9 +878,12 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
     return cands.reduce((best, r) => (gap(r) < gap(best) ? r : best), cands[0]);
   };
   const baseRecipe = (c) => doseVariant(c, methodsOf(c)[variantIndex(c)]);
-  const activeRecipe = (c) => { const base = baseRecipe(c); const r = scaleRecipe(base, doseFor(c)); return isEsp(c) ? r : applyFilter(r, filterFor(c, base)); };
+  const activeRecipe = (c) => { const base = baseRecipe(c); const r = scaleRecipe(base, doseFor(c), isEsp(c) ? state.ratioBy[c.id] : undefined); return isEsp(c) ? r : applyFilter(r, filterFor(c, base)); };
   const shotWindow = (finish) => String(finish || "").replace(/\b0:(\d{2})\b/g, "$1").replace(/(\d+)\s*[–-]\s*(\d+)/, "$1 – $2 s");
   const ratioLabel = (r) => (r ? `1:${String(Math.round(r * 10) / 10)}` : "");
+  // Espresso ratio is chosen per coffee. The ratio the recipe was written at (43 g from 18 g reads 1:2.4) is the default and is always offered, beside the usual steps.
+  const RATIOS = [2, 2.2, 2.4, 2.6];
+  const writtenRatio = (c) => { const base = baseOf(baseRecipe(c)); return base ? Math.round(base.water / base.dose * 10) / 10 : null; };
 
   const renderCard = (c) => {
     // Always render all five rows so the block is the same height on every card.
@@ -1277,9 +1278,13 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
     $("ratioRow").hidden = !esp; $("methodRow").hidden = esp || methodsOf(settingsCoffee() || {}).length < 2; $("filterRow").hidden = esp;
     $("grinderSeg").querySelector('[data-g="ode"]').hidden = esp;
     $("settingsNote").textContent = esp
-      ? "Dose and ratio set the yield (18 g × 2.4 = 43 g); the deck uses the written recipe nearest your dose and keeps its shot timing. The Ode is not offered for espresso. Reset returns this coffee to its written recipe: Casa, its base dose and ratio."
+      ? "Dose and ratio set the yield (18 g × 2.4 = 43 g); the deck uses the written recipe nearest your dose and keeps its shot timing. The Ode is not offered for espresso. The dot marks the ratio the recipe was written at; the ratio you pick is remembered per coffee, the dose applies to every espresso card. Reset returns this coffee to its written recipe: Casa, its base dose and ratio."
       : "Choosing a different paper from the one the recipe was written for moves the grind by its offset (PURE.F 2 ticks finer than TH-2, Abaca 1 tick finer) and adjusts the finish window. Method and filter are remembered per coffee; dose and grinder apply to every card. Reset returns this coffee to its written recipe: Casa, its base dose, first method and paper." + (coffee && methodRuleOf(coffee).note ? " " + methodRuleOf(coffee).note : "");
-    [...$("ratioSeg").children].forEach((b) => b.setAttribute("aria-checked", String((b.dataset.r ? Number(b.dataset.r) : null) === state.espRatio)));
+    if (esp && coffee) {
+      const written = writtenRatio(coffee), chosen = state.ratioBy[coffee.id] ?? written;
+      const options = [...new Set([...RATIOS, written].filter(Boolean))].sort((a, b) => a - b);
+      $("ratioSeg").innerHTML = options.map((ratio) => `<button type="button" data-r="${ratio}" role="radio" aria-checked="${ratio === chosen}"${ratio === written ? ` class="written" aria-label="${ratioLabel(ratio)}, the recipe's ratio"` : ""}>${ratioLabel(ratio)}</button>`).join("");
+    }
   };
   $("doseSeg").addEventListener("click", (e) => {
     const b = e.target.closest("button[data-d]"); if (!b) return;
@@ -1289,9 +1294,12 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
   });
   $("ratioSeg").addEventListener("click", (e) => {
     const b = e.target.closest("button[data-r]"); if (!b) return;
-    state.espRatio = b.dataset.r ? Number(b.dataset.r) : null;
-    try { if (state.espRatio) localStorage.setItem("brewdeck.espRatio", String(state.espRatio)); else localStorage.removeItem("brewdeck.espRatio"); } catch {}
-    renderDoseSeg(); state.coffees.forEach(rerenderCard);
+    const c = settingsCoffee(); if (!c) return;
+    const ratio = Number(b.dataset.r);
+    // Choosing the recipe's own ratio clears the choice, so the card goes back to the yield as written.
+    if (ratio === writtenRatio(c)) delete state.ratioBy[c.id]; else state.ratioBy[c.id] = ratio;
+    try { if (state.ratioBy[c.id]) localStorage.setItem("brewdeck.ratio." + c.id, String(ratio)); else localStorage.removeItem("brewdeck.ratio." + c.id); } catch {}
+    renderDoseSeg(); rerenderCard(c);
   });
   renderDoseSeg();
   const renderGrinderSeg = () => {
@@ -1313,7 +1321,7 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
   $("resetSettings").addEventListener("click", () => {
     const c = state.coffees.find((x) => x.id === state.settingsFor); if (!c) return;
     state.grinder = "casa"; state.variant[c.id] = 0; delete state.filterBy[c.id];
-    if (isEsp(c)) { state.espDose = baseOf(methodsOf(c)[0])?.dose || 18; if (![16, 18].includes(state.espDose)) state.espDose = 18; state.espRatio = null; try { localStorage.setItem("brewdeck.espDose", String(state.espDose)); localStorage.removeItem("brewdeck.espRatio"); } catch {} }
+    if (isEsp(c)) { state.espDose = baseOf(methodsOf(c)[0])?.dose || 18; if (![16, 18].includes(state.espDose)) state.espDose = 18; delete state.ratioBy[c.id]; try { localStorage.setItem("brewdeck.espDose", String(state.espDose)); localStorage.removeItem("brewdeck.ratio." + c.id); } catch {} }
     else { state.dose = baseOf(methodsOf(c)[0])?.dose || 30; if (![15, 20, 30].includes(state.dose)) state.dose = 30; }
     try { localStorage.setItem("brewdeck.grinder", "casa"); localStorage.setItem("brewdeck.dose", String(state.dose)); localStorage.setItem("brewdeck.variant." + c.id, "0"); localStorage.removeItem("brewdeck.filter." + c.id); } catch {}
     renderMethodSeg(); renderFilterSeg(); renderDoseSeg(); renderGrinderSeg(); state.coffees.forEach(rerenderCard);
@@ -1819,6 +1827,7 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
     state.coffees.forEach((c) => {
       if (state.variant[c.id] === undefined) { try { const v = localStorage.getItem("brewdeck.variant." + c.id); if (v !== null) state.variant[c.id] = Number(v); } catch {} }
       if (state.filterBy[c.id] === undefined) { try { const f = localStorage.getItem("brewdeck.filter." + c.id); if (["PURE.F", "TH-2", "Abaca"].includes(f)) state.filterBy[c.id] = f; } catch {} }
+      if (state.ratioBy[c.id] === undefined) { try { const r = Number(localStorage.getItem("brewdeck.ratio." + c.id)); if (r > 0) state.ratioBy[c.id] = r; } catch {} }
     });
     const wanted = state.pendingFocus || prevId;
     const idx = state.coffees.findIndex((c) => c.id === wanted);
