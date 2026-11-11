@@ -144,6 +144,13 @@ td.w { font: 500 14px/1.3 var(--mono); width: 76px; white-space: nowrap; }
 .seg button { border: 0; background: transparent; color: var(--muted); border-radius: 999px; padding: 6px 12px; font: 500 13px/1.2 var(--mono); font-variant-numeric: tabular-nums; }
 .seg button[aria-checked="true"] { background: var(--amber); color: var(--amber-ink); }
 .seg.mode { display: flex; margin-bottom: 12px; }
+/* Changing deck: the tiles slide in from the side they came from */
+@keyframes deckFromRight { from { transform: translateX(32px); opacity: 0; } }
+@keyframes deckFromLeft { from { transform: translateX(-32px); opacity: 0; } }
+@media (prefers-reduced-motion: no-preference) {
+  .grid.enter-right { animation: deckFromRight .22s ease-out; }
+  .grid.enter-left { animation: deckFromLeft .22s ease-out; }
+}
 .seg.mode button { flex: 1; padding: 8px 12px; }
 .tile.espresso { background: #d4621a; }
 .card.espresso { --c-bg: #d4621a; }
@@ -1250,12 +1257,37 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
     if (has && !isGrid) jumpTo(state.active);
   };
 
-  $("modeSeg").addEventListener("click", (e) => {
-    const b = e.target.closest("button[data-k]"); if (!b || b.dataset.k === state.kind) return;
-    state.kind = b.dataset.k; state.showAllArchived = false;
+  // Show the Filter or the Espresso deck. `from` is the side the new deck slides in from, so the tiles follow the finger on a swipe.
+  const showDeck = (kind, from) => {
+    if (kind === state.kind) return;
+    state.kind = kind; state.showAllArchived = false;
     try { localStorage.setItem("brewdeck.kind", state.kind); } catch {}
     renderFind(); renderGrid();
+    const grid = $("grid"); grid.classList.remove("enter-left", "enter-right");
+    void grid.offsetWidth; // restart the animation if one is still running
+    grid.classList.add(from === "left" ? "enter-left" : "enter-right");
+  };
+  $("grid").addEventListener("animationend", () => $("grid").classList.remove("enter-left", "enter-right"));
+  $("modeSeg").addEventListener("click", (e) => {
+    const b = e.target.closest("button[data-k]"); if (!b) return;
+    showDeck(b.dataset.k, b.dataset.k === "espresso" ? "right" : "left");
   });
+  // Swipe sideways anywhere on the dashboard to change deck. There are only two, so either direction goes to the other one.
+  // It has to be a quick, mostly horizontal flick: scrolling the page and press-and-hold dragging a tile are left alone.
+  // The listeners sit on the document because a deck with few tiles leaves most of the screen empty; they only act while the dashboard is showing with no sheet open.
+  const swipe = { x: 0, y: 0, t: 0, on: false };
+  document.addEventListener("touchstart", (e) => {
+    swipe.on = e.touches.length === 1 && !$("dash").hidden && !document.querySelector("dialog[open]");
+    if (swipe.on) { swipe.x = e.touches[0].clientX; swipe.y = e.touches[0].clientY; swipe.t = Date.now(); }
+  }, { passive: true });
+  document.addEventListener("touchcancel", () => { swipe.on = false; }, { passive: true });
+  document.addEventListener("touchend", (e) => {
+    if (!swipe.on || drag.suppressClick) return;
+    swipe.on = false;
+    const touch = e.changedTouches[0], dx = touch.clientX - swipe.x, dy = touch.clientY - swipe.y;
+    if (Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy) * 2 || Date.now() - swipe.t > 700) return;
+    showDeck(state.kind === "espresso" ? "filter" : "espresso", dx < 0 ? "right" : "left");
+  }, { passive: true });
   const findDialog = $("findDialog");
   // Opens with nothing focused but the heading, so no keyboard appears until the search box is tapped.
   $("openFind").addEventListener("click", () => { $("findSearch").value = find.q; renderFind(); loadBestRatings(); findDialog.showModal(); $("findTitle").focus({ preventScroll: true }); });
