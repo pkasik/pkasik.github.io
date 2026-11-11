@@ -144,7 +144,10 @@ td.w { font: 500 14px/1.3 var(--mono); width: 76px; white-space: nowrap; }
 .seg button { border: 0; background: transparent; color: var(--muted); border-radius: 999px; padding: 6px 12px; font: 500 13px/1.2 var(--mono); font-variant-numeric: tabular-nums; }
 .seg button[aria-checked="true"] { background: var(--amber); color: var(--amber-ink); }
 .seg.mode { display: flex; margin-bottom: 12px; }
-/* Changing deck: the tiles slide in from the side they came from */
+/* Swiping between decks: the other deck is drawn beside the current one and both follow the finger */
+.dash { position: relative; }
+.grid.peek { position: absolute; left: 0; right: 0; pointer-events: none; }
+/* Tapping the Filter / Espresso switch: the tiles slide in from the side they came from */
 @keyframes deckFromRight { from { transform: translateX(32px); opacity: 0; } }
 @keyframes deckFromLeft { from { transform: translateX(-32px); opacity: 0; } }
 @media (prefers-reduced-motion: no-preference) {
@@ -443,6 +446,7 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
       <button type="button" data-k="espresso" role="radio" aria-checked="false">Espresso</button>
     </div>
     <div class="grid" id="grid"></div>
+    <div class="grid peek" id="gridPeek" aria-hidden="true" hidden></div>
     <div class="empty-deck" id="emptyDeck" hidden>
       <h2>No cards yet</h2>
       <p id="emptyText">Add your first coffee and its recipe. Each card holds the bag details, water, filter, grind and pour schedule.</p>
@@ -1132,12 +1136,11 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
     if (find.rating) applyFind();
   };
 
-  const renderGrid = () => {
+  // The dashboard's tiles for the current deck, as markup. It writes nothing to the page, so the deck being swiped towards can be drawn too.
+  const gridHtml = () => {
     const finding = findCount() > 0;
     const mine = deckCoffees().filter((c) => !finding || matchesFind(c));
     const groups = [mine.filter((c) => !c.archived), mine.filter((c) => c.archived)];
-    const counts = { filter: state.coffees.filter((c) => !isEsp(c) && !c.archived).length, espresso: state.coffees.filter((c) => isEsp(c) && !c.archived).length };
-    [...$("modeSeg").children].forEach((b) => { b.setAttribute("aria-checked", String(b.dataset.k === state.kind)); b.textContent = `${b.dataset.k === "espresso" ? "Espresso" : "Filter"} · ${counts[b.dataset.k]}`; });
     let html = "";
     const add = state.canWrite && !finding ? `<button class="tile add" type="button" id="addTile" aria-label="Add a card"><span>+</span>${state.kind === "espresso" ? "Add espresso" : "Add card"}</button>` : "";
     if (finding && !mine.length) html += `<p class="empty">No coffees match. Change or clear the Coffee Filter.</p>`;
@@ -1157,9 +1160,25 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
       if (hidden) html += `<button class="tile more" type="button" id="moreTile" aria-label="Show ${hidden} more archived coffees"><span><b>+${hidden}</b><br>Show more</span></button>`;
       else if (g === 1 && state.showAllArchived && !finding && group.length > ARCHIVED_SHOWN) html += `<button class="tile more" type="button" id="moreTile" aria-label="Show fewer archived coffees"><span>Show less</span></button>`;
     });
-    $("grid").innerHTML = html;
+    return html;
+  };
+  const renderGrid = () => {
+    const counts = { filter: state.coffees.filter((c) => !isEsp(c) && !c.archived).length, espresso: state.coffees.filter((c) => isEsp(c) && !c.archived).length };
+    [...$("modeSeg").children].forEach((b) => { b.setAttribute("aria-checked", String(b.dataset.k === state.kind)); b.textContent = `${b.dataset.k === "espresso" ? "Espresso" : "Filter"} · ${counts[b.dataset.k]}`; });
+    $("grid").innerHTML = gridHtml();
     paintFindButton();
     if (state.canWrite) mountSortable();
+  };
+  // The other deck as it will look once you are on it, for the swipe: same tiles, with any Coffee Filter choices that deck lacks dropped.
+  const otherKind = () => (state.kind === "espresso" ? "filter" : "espresso");
+  const otherDeckHtml = () => {
+    const keep = { kind: state.kind, showAll: state.showAllArchived, sets: FIND_GROUPS.map(({ key }) => new Set(find[key])) };
+    state.kind = otherKind(); state.showAllArchived = false;
+    const mine = deckCoffees();
+    FIND_GROUPS.forEach(({ key, valueOf }) => { const present = new Set(mine.map(valueOf)); [...find[key]].forEach((value) => { if (!present.has(value)) find[key].delete(value); }); });
+    const html = gridHtml().replace(/ id="[^"]*"/g, ""); // a copy for show: no ids, so nothing on the page is duplicated
+    state.kind = keep.kind; state.showAllArchived = keep.showAll; FIND_GROUPS.forEach(({ key }, i) => { find[key] = keep.sets[i]; });
+    return html;
   };
   const sortCoffees = (list) => [...list].sort((a, b) => (Number(!!a.archived) - Number(!!b.archived)) || ((a.order ?? 0) - (b.order ?? 0)) || String(a.createdAt || "").localeCompare(String(b.createdAt || "")));
   // Drag to reorder (SortableJS): on touch, hold an active tile a moment and drag; with a mouse, just drag. The other tiles animate out of the way.
@@ -1257,13 +1276,14 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
     if (has && !isGrid) jumpTo(state.active);
   };
 
-  // Show the Filter or the Espresso deck. `from` is the side the new deck slides in from, so the tiles follow the finger on a swipe.
+  // Show the Filter or the Espresso deck. `from` is the side the new deck slides in from when the switch is tapped; a swipe has already moved the tiles, so it passes none.
   const showDeck = (kind, from) => {
     if (kind === state.kind) return;
     state.kind = kind; state.showAllArchived = false;
     try { localStorage.setItem("brewdeck.kind", state.kind); } catch {}
     renderFind(); renderGrid();
     const grid = $("grid"); grid.classList.remove("enter-left", "enter-right");
+    if (!from) return;
     void grid.offsetWidth; // restart the animation if one is still running
     grid.classList.add(from === "left" ? "enter-left" : "enter-right");
   };
@@ -1272,22 +1292,64 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
     const b = e.target.closest("button[data-k]"); if (!b) return;
     showDeck(b.dataset.k, b.dataset.k === "espresso" ? "right" : "left");
   });
-  // Swipe sideways anywhere on the dashboard to change deck. There are only two, so either direction goes to the other one.
-  // It has to be a quick, mostly horizontal flick: scrolling the page and press-and-hold dragging a tile are left alone.
-  // The listeners sit on the document because a deck with few tiles leaves most of the screen empty; they only act while the dashboard is showing with no sheet open.
-  const swipe = { x: 0, y: 0, t: 0, on: false };
+
+  // Swipe sideways on the dashboard to change deck. The tiles follow the finger: the current deck slides away and the other comes in beside it.
+  // There are only two decks, so either direction leads to the other one. Let go past a third of the way, or flick, and it carries on;
+  // otherwise it springs back. Scrolling and press-and-hold reordering are left alone, and nothing happens in a card or under an open sheet.
+  // The listeners sit on the document because a deck with few tiles leaves most of the screen empty.
+  const pager = { phase: "idle", x: 0, y: 0, dx: 0, width: 0, trail: [], blockClicksUntil: 0 }; // phase: idle, watching (direction not known yet), dragging, settling
+  const SETTLE_MS = matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 220;
+  const placeDecks = (dx, animate) => {
+    const grid = $("grid"), peek = $("gridPeek");
+    grid.style.transition = peek.style.transition = animate && SETTLE_MS ? `transform ${SETTLE_MS}ms ease-out` : "none";
+    grid.style.transform = `translateX(${dx}px)`;
+    // The other deck sits one screen-width to whichever side the finger is pulling it in from.
+    peek.style.transform = `translateX(${dx + (pager.dx <= 0 ? pager.width : -pager.width)}px)`;
+  };
+  const restDecks = () => {
+    const grid = $("grid"), peek = $("gridPeek");
+    grid.style.transition = peek.style.transition = grid.style.transform = peek.style.transform = "";
+    peek.hidden = true; peek.innerHTML = ""; pager.phase = "idle";
+  };
   document.addEventListener("touchstart", (e) => {
-    swipe.on = e.touches.length === 1 && !$("dash").hidden && !document.querySelector("dialog[open]");
-    if (swipe.on) { swipe.x = e.touches[0].clientX; swipe.y = e.touches[0].clientY; swipe.t = Date.now(); }
+    if (pager.phase !== "idle") return;
+    if (e.touches.length !== 1 || $("dash").hidden || document.querySelector("dialog[open]") || drag.suppressClick) return;
+    pager.phase = "watching"; pager.x = e.touches[0].clientX; pager.y = e.touches[0].clientY; pager.dx = 0; pager.trail = [{ dx: 0, t: Date.now() }];
   }, { passive: true });
-  document.addEventListener("touchcancel", () => { swipe.on = false; }, { passive: true });
-  document.addEventListener("touchend", (e) => {
-    if (!swipe.on || drag.suppressClick) return;
-    swipe.on = false;
-    const touch = e.changedTouches[0], dx = touch.clientX - swipe.x, dy = touch.clientY - swipe.y;
-    if (Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy) * 2 || Date.now() - swipe.t > 700) return;
-    showDeck(state.kind === "espresso" ? "filter" : "espresso", dx < 0 ? "right" : "left");
-  }, { passive: true });
+  document.addEventListener("touchmove", (e) => {
+    if (pager.phase !== "watching" && pager.phase !== "dragging") return;
+    const dx = e.touches[0].clientX - pager.x, dy = e.touches[0].clientY - pager.y;
+    if (pager.phase === "watching") {
+      if (drag.suppressClick || e.touches.length !== 1) { pager.phase = "idle"; return; }         // a tile is being reordered
+      if (Math.abs(dy) > 10 && Math.abs(dy) >= Math.abs(dx)) { pager.phase = "idle"; return; }    // the page is being scrolled
+      if (Math.abs(dx) < 12 || Math.abs(dx) < Math.abs(dy) * 1.5) return;                         // not clearly sideways yet
+      const peek = $("gridPeek");
+      pager.width = document.documentElement.clientWidth;
+      peek.innerHTML = otherDeckHtml(); peek.style.top = $("grid").offsetTop + "px"; peek.hidden = false;
+      pager.phase = "dragging";
+    }
+    if (e.cancelable) e.preventDefault(); // the finger is moving the decks, so the page must not scroll with it
+    // Remember roughly the last tenth of a second of movement, to tell a flick from a slow drag when the finger lifts.
+    const now = Date.now(); pager.trail.push({ dx, t: now }); while (pager.trail.length > 2 && now - pager.trail[0].t > 120) pager.trail.shift();
+    pager.dx = dx; placeDecks(dx, false);
+  }, { passive: false });
+  const releaseDecks = (cancelled) => {
+    if (pager.phase === "watching") { pager.phase = "idle"; return; }
+    if (pager.phase !== "dragging") return;
+    const far = Math.abs(pager.dx) > pager.width * 0.3;
+    const first = pager.trail[0], last = pager.trail[pager.trail.length - 1];
+    const speed = first && last && last.t > first.t ? (last.dx - first.dx) / (last.t - first.t) : 0; // px per ms, signed
+    const flick = Math.abs(pager.dx) > 30 && Math.abs(speed) > 0.4 && Math.sign(speed) === Math.sign(pager.dx);
+    const go = !cancelled && (far || flick);
+    pager.phase = "settling"; pager.blockClicksUntil = Date.now() + 400;
+    if (go) [...$("modeSeg").children].forEach((b) => b.setAttribute("aria-checked", String(b.dataset.k === otherKind())));
+    placeDecks(go ? (pager.dx < 0 ? -pager.width : pager.width) : 0, true);
+    setTimeout(() => { if (go) showDeck(otherKind()); restDecks(); }, SETTLE_MS + 30);
+  };
+  document.addEventListener("touchend", () => releaseDecks(false), { passive: true });
+  document.addEventListener("touchcancel", () => releaseDecks(true), { passive: true });
+  // The touch that dragged the decks must not also open the tile it started on.
+  $("dash").addEventListener("click", (e) => { if (Date.now() < pager.blockClicksUntil) { e.stopPropagation(); e.preventDefault(); } }, true);
   const findDialog = $("findDialog");
   // Opens with nothing focused but the heading, so no keyboard appears until the search box is tapped.
   $("openFind").addEventListener("click", () => { $("findSearch").value = find.q; renderFind(); loadBestRatings(); findDialog.showModal(); $("findTitle").focus({ preventScroll: true }); });
