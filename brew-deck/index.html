@@ -144,16 +144,23 @@ td.w { font: 500 14px/1.3 var(--mono); width: 76px; white-space: nowrap; }
 .seg button { border: 0; background: transparent; color: var(--muted); border-radius: 999px; padding: 6px 12px; font: 500 13px/1.2 var(--mono); font-variant-numeric: tabular-nums; }
 .seg button[aria-checked="true"] { background: var(--amber); color: var(--amber-ink); }
 .seg.mode { display: flex; margin-bottom: 12px; }
-/* Swiping between decks: the other deck is drawn beside the current one and both follow the finger */
+/* Changing deck: the other deck is drawn beside the current one, and both follow the finger or glide across on a tap */
 .dash { position: relative; }
 .grid.peek { position: absolute; left: 0; right: 0; pointer-events: none; }
-/* Tapping the Filter / Espresso switch: the tiles slide in from the side they came from */
-@keyframes deckFromRight { from { transform: translateX(32px); opacity: 0; } }
-@keyframes deckFromLeft { from { transform: translateX(-32px); opacity: 0; } }
-@media (prefers-reduced-motion: no-preference) {
-  .grid.enter-right { animation: deckFromRight .22s ease-out; }
-  .grid.enter-left { animation: deckFromLeft .22s ease-out; }
-}
+/* The Filter / Espresso tabs: one amber indicator that slides between the two, tracking the finger during a swipe */
+.seg.mode { position: relative; margin-bottom: 0; --tab: 0; }
+.seg.mode .thumb { position: absolute; top: 2px; bottom: 2px; left: 2px; width: calc(50% - 2px); border-radius: 999px; background: var(--amber); transform: translateX(calc(var(--tab) * 100%)); transition: transform .38s cubic-bezier(.22, .8, .24, 1); }
+.seg.mode.following .thumb { transition: none; }
+.seg.mode button, .seg.mode button[aria-checked="true"] { position: relative; background: transparent; transition: color .2s; }
+@media (prefers-reduced-motion: reduce) { .seg.mode .thumb { transition: none; } }
+/* The dashboard is a fixed shell: the heading and the tabs never move, and only the tiles scroll, in their own pane.
+   (While the dashboard is showing, the page itself has nothing to scroll; a card still scrolls the page as before.) */
+body:has(#dash:not([hidden])) { overflow: hidden; padding-bottom: 0; }
+body:has(#dash:not([hidden])) .wrap { display: flex; flex-direction: column; height: 100%; }
+.dash { flex: 1 1 auto; display: flex; flex-direction: column; min-height: 0; }
+.tabsbar { padding-bottom: 12px; }
+.deck-scroll { flex: 1 1 auto; min-height: 0; overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; margin-inline: -16px; padding: 0 16px 28px; }
+.deck-pane { position: relative; }
 .seg.mode button { flex: 1; padding: 8px 12px; }
 .tile.espresso { background: #d4621a; }
 .card.espresso { --c-bg: #d4621a; }
@@ -441,12 +448,18 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
       </div>
       <p class="auth-msg" id="authMsg" aria-live="polite"></p>
     </form>
-    <div class="seg mode" id="modeSeg" role="radiogroup" aria-label="Deck">
-      <button type="button" data-k="filter" role="radio" aria-checked="true">Filter</button>
-      <button type="button" data-k="espresso" role="radio" aria-checked="false">Espresso</button>
+    <div class="tabsbar">
+      <div class="seg mode" id="modeSeg" role="radiogroup" aria-label="Deck">
+        <span class="thumb" aria-hidden="true"></span>
+        <button type="button" data-k="filter" role="radio" aria-checked="true">Filter</button>
+        <button type="button" data-k="espresso" role="radio" aria-checked="false">Espresso</button>
+      </div>
     </div>
-    <div class="grid" id="grid"></div>
-    <div class="grid peek" id="gridPeek" aria-hidden="true" hidden></div>
+    <div class="deck-scroll" id="deckScroll">
+      <div class="deck-pane">
+        <div class="grid" id="grid"></div>
+        <div class="grid peek" id="gridPeek" aria-hidden="true" hidden></div>
+      </div>
     <div class="empty-deck" id="emptyDeck" hidden>
       <h2>No cards yet</h2>
       <p id="emptyText">Add your first coffee and its recipe. Each card holds the bag details, water, filter, grind and pour schedule.</p>
@@ -454,6 +467,7 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
         <button class="btn primary" id="importStarter" type="button" hidden>Import my deck</button>
         <button class="btn" id="addFirst" type="button" hidden>+ Add a card</button>
       </div>
+    </div>
     </div>
   </section>
 
@@ -1164,7 +1178,7 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
   };
   const renderGrid = () => {
     const counts = { filter: state.coffees.filter((c) => !isEsp(c) && !c.archived).length, espresso: state.coffees.filter((c) => isEsp(c) && !c.archived).length };
-    [...$("modeSeg").children].forEach((b) => { b.setAttribute("aria-checked", String(b.dataset.k === state.kind)); b.textContent = `${b.dataset.k === "espresso" ? "Espresso" : "Filter"} · ${counts[b.dataset.k]}`; });
+    $("modeSeg").querySelectorAll("button").forEach((b) => { b.setAttribute("aria-checked", String(b.dataset.k === state.kind)); b.textContent = `${b.dataset.k === "espresso" ? "Espresso" : "Filter"} · ${counts[b.dataset.k]}`; });
     $("grid").innerHTML = gridHtml();
     paintFindButton();
     if (state.canWrite) mountSortable();
@@ -1251,7 +1265,7 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
 
   const showView = (view) => {
     const wasGrid = state.view === "grid";
-    if (wasGrid && view !== "grid") state.gridScroll = window.scrollY; // remember where you were on the dashboard
+    if (wasGrid && view !== "grid") state.gridScroll = $("deckScroll").scrollTop; // remember where you were on the dashboard
     state.view = view;
     const isGrid = view === "grid";
     $("dash").hidden = !isGrid;
@@ -1261,7 +1275,7 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
     $("emptyDeck").hidden = state.coffees.length > 0 || !isGrid;
     $("nav").hidden = isGrid || state.coffees.length === 0;
     if (!isGrid) { jumpTo(state.active); subscribeBrews(); window.scrollTo({ top: 0, behavior: "auto" }); document.documentElement.scrollTop = 0; document.body.scrollTop = 0; }
-    else if (!wasGrid) { const y = state.gridScroll || 0; requestAnimationFrame(() => { window.scrollTo({ top: y, behavior: "auto" }); requestAnimationFrame(() => window.scrollTo({ top: y, behavior: "auto" })); }); }
+    else if (!wasGrid) { const y = state.gridScroll || 0; window.scrollTo({ top: 0, behavior: "auto" }); requestAnimationFrame(() => { $("deckScroll").scrollTop = y; requestAnimationFrame(() => { $("deckScroll").scrollTop = y; }); }); }
   };
 
   const renderDeck = () => {
@@ -1276,41 +1290,59 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
     if (has && !isGrid) jumpTo(state.active);
   };
 
-  // Show the Filter or the Espresso deck. `from` is the side the new deck slides in from when the switch is tapped; a swipe has already moved the tiles, so it passes none.
-  const showDeck = (kind, from) => {
-    if (kind === state.kind) return;
+  // ---------- Changing deck ----------
+  // Filter and Espresso behave like two pages side by side. Swipe sideways and the tiles follow the finger while the other deck comes in
+  // beside them; tap a tab and they glide across the same way. There are only two decks, so a swipe in either direction leads to the other.
+  // Let go past a third of the way, or flick, and it carries on; otherwise it springs back. Scrolling and press-and-hold reordering are left
+  // alone, and nothing happens in a card or under an open sheet.
+  const pager = { phase: "idle", x: 0, y: 0, dx: 0, width: 0, trail: [], blockClicksUntil: 0 }; // phase: idle, watching (direction not known yet), dragging, settling
+  const SETTLE_MS = matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 380;
+  const SETTLE_EASE = "cubic-bezier(.22, .8, .24, 1)"; // quick to start, long gentle finish
+  const tabOf = (kind) => (kind === "espresso" ? 1 : 0);
+  const setKind = (kind) => {
     state.kind = kind; state.showAllArchived = false;
     try { localStorage.setItem("brewdeck.kind", state.kind); } catch {}
     renderFind(); renderGrid();
-    const grid = $("grid"); grid.classList.remove("enter-left", "enter-right");
-    if (!from) return;
-    void grid.offsetWidth; // restart the animation if one is still running
-    grid.classList.add(from === "left" ? "enter-left" : "enter-right");
   };
-  $("grid").addEventListener("animationend", () => $("grid").classList.remove("enter-left", "enter-right"));
-  $("modeSeg").addEventListener("click", (e) => {
-    const b = e.target.closest("button[data-k]"); if (!b) return;
-    showDeck(b.dataset.k, b.dataset.k === "espresso" ? "right" : "left");
-  });
-
-  // Swipe sideways on the dashboard to change deck. The tiles follow the finger: the current deck slides away and the other comes in beside it.
-  // There are only two decks, so either direction leads to the other one. Let go past a third of the way, or flick, and it carries on;
-  // otherwise it springs back. Scrolling and press-and-hold reordering are left alone, and nothing happens in a card or under an open sheet.
-  // The listeners sit on the document because a deck with few tiles leaves most of the screen empty.
-  const pager = { phase: "idle", x: 0, y: 0, dx: 0, width: 0, trail: [], blockClicksUntil: 0 }; // phase: idle, watching (direction not known yet), dragging, settling
-  const SETTLE_MS = matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 220;
+  // Put both decks where a sideways offset of dx puts them. `animate` glides there; otherwise they jump, which is what following a finger needs.
   const placeDecks = (dx, animate) => {
-    const grid = $("grid"), peek = $("gridPeek");
-    grid.style.transition = peek.style.transition = animate && SETTLE_MS ? `transform ${SETTLE_MS}ms ease-out` : "none";
+    const grid = $("grid"), peek = $("gridPeek"), seg = $("modeSeg");
+    const side = pager.dx <= 0 ? 1 : -1;                    // the other deck comes in from the right when pulling left, and the reverse
+    const across = Math.min(1, Math.abs(dx) / pager.width); // how far over, 0 to 1
+    const timing = animate && SETTLE_MS ? `${SETTLE_MS}ms ${SETTLE_EASE}` : "";
+    grid.style.transition = peek.style.transition = timing ? `transform ${timing}` : "none";
+    seg.classList.toggle("following", !timing);
     grid.style.transform = `translateX(${dx}px)`;
-    // The other deck sits one screen-width to whichever side the finger is pulling it in from.
-    peek.style.transform = `translateX(${dx + (pager.dx <= 0 ? pager.width : -pager.width)}px)`;
+    peek.style.transform = `translateX(${dx + side * pager.width}px)`;
+    seg.style.setProperty("--tab", tabOf(state.kind) + (tabOf(otherKind()) - tabOf(state.kind)) * across);
+  };
+  const showOtherDeck = () => {
+    const peek = $("gridPeek");
+    pager.width = document.documentElement.clientWidth;
+    peek.innerHTML = otherDeckHtml(); peek.style.top = ($("grid").offsetTop + $("deckScroll").scrollTop) + "px"; peek.hidden = false;
   };
   const restDecks = () => {
-    const grid = $("grid"), peek = $("gridPeek");
-    grid.style.transition = peek.style.transition = grid.style.transform = peek.style.transform = "";
-    peek.hidden = true; peek.innerHTML = ""; pager.phase = "idle";
+    const grid = $("grid"), peek = $("gridPeek"), seg = $("modeSeg");
+    [grid, peek].forEach((el) => { el.style.transition = el.style.transform = ""; });
+    peek.hidden = true; peek.innerHTML = "";
+    seg.classList.remove("following"); seg.style.setProperty("--tab", tabOf(state.kind));
+    pager.phase = "idle";
   };
+  // Finish the move: glide across to the other deck, or back to where it was.
+  const settleDecks = (go) => {
+    pager.phase = "settling"; pager.blockClicksUntil = Date.now() + Math.max(SETTLE_MS, 250);
+    if (go) $("modeSeg").querySelectorAll("button").forEach((b) => b.setAttribute("aria-checked", String(b.dataset.k === otherKind())));
+    placeDecks(go ? (pager.dx < 0 ? -pager.width : pager.width) : 0, true);
+    setTimeout(() => { if (go) { setKind(otherKind()); $("deckScroll").scrollTop = 0; } restDecks(); }, SETTLE_MS + 30);
+  };
+  // Tapping a tab plays the same move a swipe would: Espresso comes in from the right, Filter from the left.
+  $("modeSeg").addEventListener("click", (e) => {
+    const b = e.target.closest("button[data-k]"); if (!b || b.dataset.k === state.kind || pager.phase !== "idle") return;
+    pager.dx = b.dataset.k === "espresso" ? -1 : 1;
+    showOtherDeck(); placeDecks(0, false); void $("grid").offsetWidth; // start from rest, then glide
+    settleDecks(true);
+  });
+  // The listeners sit on the document because a deck with few tiles leaves most of the screen empty.
   document.addEventListener("touchstart", (e) => {
     if (pager.phase !== "idle") return;
     if (e.touches.length !== 1 || $("dash").hidden || document.querySelector("dialog[open]") || drag.suppressClick) return;
@@ -1323,10 +1355,7 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
       if (drag.suppressClick || e.touches.length !== 1) { pager.phase = "idle"; return; }         // a tile is being reordered
       if (Math.abs(dy) > 10 && Math.abs(dy) >= Math.abs(dx)) { pager.phase = "idle"; return; }    // the page is being scrolled
       if (Math.abs(dx) < 12 || Math.abs(dx) < Math.abs(dy) * 1.5) return;                         // not clearly sideways yet
-      const peek = $("gridPeek");
-      pager.width = document.documentElement.clientWidth;
-      peek.innerHTML = otherDeckHtml(); peek.style.top = $("grid").offsetTop + "px"; peek.hidden = false;
-      pager.phase = "dragging";
+      pager.dx = dx; showOtherDeck(); pager.phase = "dragging";
     }
     if (e.cancelable) e.preventDefault(); // the finger is moving the decks, so the page must not scroll with it
     // Remember roughly the last tenth of a second of movement, to tell a flick from a slow drag when the finger lifts.
@@ -1340,11 +1369,7 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
     const first = pager.trail[0], last = pager.trail[pager.trail.length - 1];
     const speed = first && last && last.t > first.t ? (last.dx - first.dx) / (last.t - first.t) : 0; // px per ms, signed
     const flick = Math.abs(pager.dx) > 30 && Math.abs(speed) > 0.4 && Math.sign(speed) === Math.sign(pager.dx);
-    const go = !cancelled && (far || flick);
-    pager.phase = "settling"; pager.blockClicksUntil = Date.now() + 400;
-    if (go) [...$("modeSeg").children].forEach((b) => b.setAttribute("aria-checked", String(b.dataset.k === otherKind())));
-    placeDecks(go ? (pager.dx < 0 ? -pager.width : pager.width) : 0, true);
-    setTimeout(() => { if (go) showDeck(otherKind()); restDecks(); }, SETTLE_MS + 30);
+    settleDecks(!cancelled && (far || flick));
   };
   document.addEventListener("touchend", () => releaseDecks(false), { passive: true });
   document.addEventListener("touchcancel", () => releaseDecks(true), { passive: true });
