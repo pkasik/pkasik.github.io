@@ -710,7 +710,7 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
       </div>
     </div>
     <div class="actions"><button class="btn" id="resetSettings" type="button">Reset</button></div>
-    <p class="guide-note" id="settingsNote">Choosing a different paper from the one the recipe was written for moves the grind by its offset (PURE.F 2 marks finer than TH-2, Abaca 1 mark finer) and adjusts the finish window. Method and filter are remembered per coffee; dose and grinder apply to every card. Reset returns this coffee to its written recipe: Casa, its base dose, first method and paper.</p>
+    <p class="guide-note" id="settingsNote">Choosing a different paper from the one the recipe was written for moves the grind by its offset (PURE.F 2 marks finer than TH-2, Abaca 1 mark finer) and adjusts the finish window. Every choice here is remembered for this coffee only. Reset returns this coffee to its written recipe: Casa, its base dose, first method and paper.</p>
   </div>
 </dialog>
 
@@ -804,9 +804,10 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
   const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const todayISO = () => new Date().toISOString().slice(0, 10);
 
-  const state = { user: null, loaded: false, canWrite: false, coffees: [], active: 0, brews: [], editingId: null, brewRating: 0, pendingDelete: null, view: "grid", pendingFocus: null, brewsFor: null, variant: {}, editRecipes: [], editIdx: 0, info: {}, dose: 30, grinder: "casa", filterBy: {}, settingsFor: null, showAllArchived: false, kind: "filter", espDose: 18, ratioBy: {} };
+  const state = { user: null, loaded: false, canWrite: false, coffees: [], active: 0, brews: [], editingId: null, brewRating: 0, pendingDelete: null, view: "grid", pendingFocus: null, brewsFor: null, variant: {}, editRecipes: [], editIdx: 0, info: {}, doseBy: {}, grinderBy: {}, filterBy: {}, settingsFor: null, showAllArchived: false, kind: "filter", ratioBy: {} };
   try { if (localStorage.getItem("brewdeck.kind") === "espresso") state.kind = "espresso"; } catch {}
-  try { const d = Number(localStorage.getItem("brewdeck.espDose")); if ([16, 18].includes(d)) state.espDose = d; } catch {}
+  // Dose and grinder used to be one choice shared by every card; those stored values are no longer read.
+  try { ["brewdeck.dose", "brewdeck.espDose", "brewdeck.grinder"].forEach((key) => localStorage.removeItem(key)); } catch {}
   try { localStorage.removeItem("brewdeck.espRatio"); } catch {} // the ratio used to be one setting for every espresso card; it is per coffee now
   // Two decks: filter coffees and espresso coffees are separate cards; a coffee's kind is stored on it (default filter).
   const kindOf = (c) => (c?.kind === "espresso" ? "espresso" : "filter");
@@ -823,9 +824,13 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
   const maxDoseOf = (c) => methodRuleOf(c).maxDose ?? Infinity;
   const minDoseOf = (c) => methodRuleOf(c).minDose ?? 0;
   const isPaperLocked = (c) => Boolean(methodRuleOf(c).paperLocked);
-  const doseFor = (c) => (isEsp(c) ? state.espDose : Math.max(minDoseOf(c), Math.min(state.dose, maxDoseOf(c))));
-  try { const g = localStorage.getItem("brewdeck.grinder"); if (["c40", "ode"].includes(g)) state.grinder = g; } catch {}
-  try { const d = Number(localStorage.getItem("brewdeck.dose")); if ([15, 20, 30].includes(d)) state.dose = d; } catch {}
+  // Every brew setting belongs to one coffee. Until a dose is chosen for it, a coffee uses the dose its first recipe is written for.
+  const DOSE_CHOICES = { filter: [15, 20, 30], espresso: [16, 18] };
+  const doseOptions = (c) => (isEsp(c) ? DOSE_CHOICES.espresso : DOSE_CHOICES.filter.filter((d) => d >= minDoseOf(c) && d <= maxDoseOf(c)));
+  const writtenDose = (c) => { const d = baseOf(methodsOf(c)[0] || {})?.dose; return DOSE_CHOICES[kindOf(c)].includes(d) ? d : (isEsp(c) ? 18 : 30); };
+  const doseFor = (c) => { const d = state.doseBy[c.id] ?? writtenDose(c); return isEsp(c) ? d : Math.max(minDoseOf(c), Math.min(d, maxDoseOf(c))); };
+  const GRINDER_KEYS = ["casa", "c40", "ode"];
+  const grinderFor = (c) => { const g = state.grinderBy[c?.id] || "casa"; return isEsp(c) && g === "ode" ? "casa" : g; }; // the Ode doesn't grind for espresso
   // Always open on the dashboard; a card is something you navigate to.
 
   const rail = $("rail"), dots = $("dots"), status = $("status");
@@ -860,8 +865,8 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
     return k ? `${n}.${k}` : String(n);
   };
   const GRINDERS = { casa: "Casa", c40: "C40", ode: "Ode" };
-  const grindDisplay = (grind, note, esp) => {
-    const g = esp && state.grinder === "ode" ? "casa" : state.grinder; // the Ode doesn't grind for espresso
+  const grindDisplay = (c, grind, note) => {
+    const esp = isEsp(c), g = grinderFor(c);
     if (esp && g === "c40") {
       const m = String(note || "").match(/C40[^0-9]*(\d+)\s*clicks?/i);
       if (m) return { main: `${m[1]} clicks`, small: `Casa ${casaText(grind)}` };
@@ -1001,13 +1006,13 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
       .map(([k, v]) => `<div><dt>${esc(k)}</dt><dd>${v ? esc(v) : "—"}</dd></div>`).join("");
     const esp = isEsp(c);
     const rs = methodsOf(c), vi = variantIndex(c), base = doseVariant(c, rs[vi]), r = activeRecipe(c);
-    const gName = esp && state.grinder === "ode" ? "Casa" : (GRINDERS[state.grinder] || "Casa");
-    const summary = esp ? [methodLabel(rs[vi]), `${state.espDose} g`, ratioLabel(r.ratio), gName].join(" · ") : [methodLabel(rs[vi]), `${doseFor(c)} g`, r.filter || "—", gName].join(" · ");
+    const grinder = grinderFor(c), gName = GRINDERS[grinder] || "Casa";
+    const summary = esp ? [methodLabel(rs[vi]), `${doseFor(c)} g`, ratioLabel(r.ratio), gName].join(" · ") : [methodLabel(rs[vi]), `${doseFor(c)} g`, r.filter || "—", gName].join(" · ");
     const tabs = `<div><button class="setline" type="button" data-id="${esc(c.id)}" aria-haspopup="dialog" aria-label="Brew settings: ${esc(summary)}"><span class="gear" aria-hidden="true">⚙</span><span class="txt">${esc(summary)}</span></button></div>`;
     const filterNote = r.filterChanged ? `<p class="scaled">Paper changed from ${esc(r.filterChanged.from)} to ${esc(r.filterChanged.to)}: grind and finish window adjusted. ${esc(paperSwapNote(c, r.filterChanged.from, r.filterChanged.to))}</p>` : "";
     const grindHint = (() => {
       const d = doseFor(c) - r.scaledFrom;
-      const big = { c40: "3 clicks", ode: "2 clicks" }[state.grinder] || "a full number", small = { c40: "2 clicks", ode: "1 click" }[state.grinder] || "2 marks";
+      const big = { c40: "3 clicks", ode: "2 clicks" }[grinder] || "a full number", small = { c40: "2 clicks", ode: "1 click" }[grinder] || "2 marks";
       if (d <= -12) return `start about ${big} finer than shown (shallower bed drains faster)`;
       if (d < 0) return `start about ${small} finer than shown (shallower bed drains faster)`;
       if (d >= 12) return `start about ${big} coarser than shown (deeper bed drains slower)`;
@@ -1021,11 +1026,11 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
       const to = esp ? (grams(p.to) ? `→ ${esc(p.to)}` : esc(p.to || "—")) : `→ ${esc(p.to)}`;
       return `<tr><td class="t">${esc(p.time)}</td><td class="w">${to}</td><td>${esc(p.action)}${flow ? `<div class="flow">${flow}</div>` : ""}</td></tr>`;
     }).join("");
-    const gd = grindDisplay(r.grind, r.grindNote, esp);
+    const gd = grindDisplay(c, r.grind, r.grindNote);
     const keyRows = esp ? `<div class="key">
           <div><span>Dose</span><strong>${esc(String(baseOf(r)?.dose ?? "—"))} g</strong><small>in</small></div>
           <div><span>Yield</span><strong>${esc(String(baseOf(r)?.water ?? "—"))} g</strong><small>${esc(ratioLabel(r.ratio))}${r.finish ? " · " + esc(shotWindow(r.finish)) : ""}</small></div>
-          <div><span>Grind${esp && state.grinder === "c40" ? " · Red Clix" : ""}</span><strong>${esc(gd.main)}</strong><small>${esc(gd.small)}</small></div>
+          <div><span>Grind${grinder === "c40" ? " · Red Clix" : ""}</span><strong>${esc(gd.main)}</strong><small>${esc(gd.small)}</small></div>
         </div>
         <div class="key" style="grid-template-columns: repeat(2, minmax(0, 1fr))">
           <div><span>Water</span><strong>${esc(r.water || "—")}</strong><small>kettle, into a cold basket</small></div>
@@ -1033,7 +1038,7 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
         </div>` : `<div class="key">
           <div><span>Water</span><strong>${esc(r.water || "—")}</strong>${r.dose ? `<small>${esc(r.dose)}</small>` : ""}</div>
           <div><span>Filter</span><strong>${esc(r.filter || "—")}</strong></div>
-          <div><span>Grind${{ c40: " · Red Clix", ode: " · Ode" }[state.grinder] || ""}</span><strong>${esc(gd.main)}</strong><small>${esc(gd.small)}</small></div>
+          <div><span>Grind${{ c40: " · Red Clix", ode: " · Ode" }[grinder] || ""}</span><strong>${esc(gd.main)}</strong><small>${esc(gd.small)}</small></div>
         </div>`;
     const infoOpen = !!state.info[c.id];
     return `<article class="card${c.archived ? " archived" : ""}${esp ? " espresso" : ""}" data-id="${esc(c.id)}" aria-label="${esc(c.name)} recipe${c.archived ? " (archived)" : ""}">
@@ -1062,8 +1067,8 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
 
   const tileBody = (c) => {
     const esp = isEsp(c), b = baseOf(c);
-    const key = esp ? `<span>${b ? `${b.dose} → ${b.water} g` : esc(c.dose || "—")}</span><span>${esc(c.water || "—")}</span><span>${esc(grindDisplay(c.grind, c.grindNote, true).main)}</span>`
-      : `<span>${esc(c.water || "—")}</span><span>${esc(c.filter || "—")}</span><span>${esc(grindDisplay(c.grind).main)}</span>`;
+    const key = esp ? `<span>${b ? `${b.dose} → ${b.water} g` : esc(c.dose || "—")}</span><span>${esc(c.water || "—")}</span><span>${esc(grindDisplay(c, c.grind, c.grindNote).main)}</span>`
+      : `<span>${esc(c.water || "—")}</span><span>${esc(c.filter || "—")}</span><span>${esc(grindDisplay(c, c.grind).main)}</span>`;
     return `<span class="t-roaster">${esc(c.roaster || "")}</span>
       <span class="t-name">${esc(c.name)}</span>
       <span class="t-notes">${esc(c.tasting || "")}</span>
@@ -1582,14 +1587,13 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
   const settingsCoffee = () => state.coffees.find((x) => x.id === state.settingsFor);
   const renderDoseSeg = () => {
     const coffee = settingsCoffee(), esp = isEsp(coffee);
-    const maxDose = coffee && !esp ? maxDoseOf(coffee) : Infinity, minDose = coffee && !esp ? minDoseOf(coffee) : 0;
-    const opts = esp ? [16, 18] : [15, 20, 30].filter((d) => d >= minDose && d <= maxDose), cur = esp ? state.espDose : Math.max(minDose, Math.min(state.dose, maxDose));
+    const opts = coffee ? doseOptions(coffee) : DOSE_CHOICES.filter, cur = coffee ? doseFor(coffee) : null;
     $("doseSeg").innerHTML = opts.map((d) => `<button type="button" data-d="${d}" role="radio" aria-checked="${d === cur}">${d} g</button>`).join("");
     $("ratioRow").hidden = !esp; $("methodRow").hidden = esp || methodsOf(settingsCoffee() || {}).length < 2; $("filterRow").hidden = esp;
     $("grinderSeg").querySelector('[data-g="ode"]').hidden = esp;
     $("settingsNote").textContent = esp
-      ? "Dose and ratio set the yield (18 g × 2.4 = 43 g); the deck uses the written recipe nearest your dose and keeps its shot timing. The Ode is not offered for espresso. The dot marks the ratio the recipe was written at; the ratio you pick is remembered per coffee, the dose applies to every espresso card. Reset returns this coffee to its written recipe: Casa, its base dose and ratio."
-      : "Choosing a different paper from the one the recipe was written for moves the grind by its offset (PURE.F 2 marks finer than TH-2, Abaca 1 mark finer) and adjusts the finish window. Method and filter are remembered per coffee; dose and grinder apply to every card. Reset returns this coffee to its written recipe: Casa, its base dose, first method and paper." + (coffee && methodRuleOf(coffee).note ? " " + methodRuleOf(coffee).note : "");
+      ? "Dose and ratio set the yield (18 g × 2.4 = 43 g); the deck uses the written recipe nearest your dose and keeps its shot timing. The Ode is not offered for espresso. The dot marks the ratio the recipe was written at. Every choice here is remembered for this coffee only. Reset returns this coffee to its written recipe: Casa, its base dose and ratio."
+      : "Choosing a different paper from the one the recipe was written for moves the grind by its offset (PURE.F 2 marks finer than TH-2, Abaca 1 mark finer) and adjusts the finish window. Every choice here is remembered for this coffee only. Reset returns this coffee to its written recipe: Casa, its base dose, first method and paper." + (coffee && methodRuleOf(coffee).note ? " " + methodRuleOf(coffee).note : "");
     if (esp && coffee) {
       const written = writtenRatio(coffee), chosen = state.ratioBy[coffee.id] ?? written;
       const options = [...new Set([...RATIOS, written].filter(Boolean))].sort((a, b) => a - b);
@@ -1598,9 +1602,10 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
   };
   $("doseSeg").addEventListener("click", (e) => {
     const b = e.target.closest("button[data-d]"); if (!b) return;
-    if (isEsp(settingsCoffee())) { state.espDose = Number(b.dataset.d); try { localStorage.setItem("brewdeck.espDose", String(state.espDose)); } catch {} }
-    else { state.dose = Number(b.dataset.d); try { localStorage.setItem("brewdeck.dose", String(state.dose)); } catch {} }
-    renderDoseSeg(); state.coffees.forEach(rerenderCard);
+    const c = settingsCoffee(); if (!c) return;
+    state.doseBy[c.id] = Number(b.dataset.d);
+    try { localStorage.setItem("brewdeck.dose." + c.id, b.dataset.d); } catch {}
+    renderDoseSeg(); rerenderCard(c);
   });
   $("ratioSeg").addEventListener("click", (e) => {
     const b = e.target.closest("button[data-r]"); if (!b) return;
@@ -1613,9 +1618,10 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
   });
   renderDoseSeg();
   const renderGrinderSeg = () => {
-    [...$("grinderSeg").children].forEach((b) => b.setAttribute("aria-checked", String(b.dataset.g === state.grinder)));
+    const cur = grinderFor(settingsCoffee());
+    [...$("grinderSeg").children].forEach((b) => b.setAttribute("aria-checked", String(b.dataset.g === cur)));
   };
-  // Brew settings sheet, in the order the choices constrain each other: method (per coffee) decides which doses and papers are offered; dose and grinder apply to every card.
+  // Brew settings sheet, in the order the choices constrain each other: method decides which doses and papers are offered. Every choice is kept per coffee.
   const renderMethodSeg = () => {
     const c = state.coffees.find((x) => x.id === state.settingsFor); if (!c) return;
     const rs = methodsOf(c), vi = variantIndex(c);
@@ -1630,11 +1636,10 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
   };
   $("resetSettings").addEventListener("click", () => {
     const c = state.coffees.find((x) => x.id === state.settingsFor); if (!c) return;
-    state.grinder = "casa"; state.variant[c.id] = 0; delete state.filterBy[c.id];
-    if (isEsp(c)) { state.espDose = baseOf(methodsOf(c)[0])?.dose || 18; if (![16, 18].includes(state.espDose)) state.espDose = 18; delete state.ratioBy[c.id]; try { localStorage.setItem("brewdeck.espDose", String(state.espDose)); localStorage.removeItem("brewdeck.ratio." + c.id); } catch {} }
-    else { state.dose = baseOf(methodsOf(c)[0])?.dose || 30; if (![15, 20, 30].includes(state.dose)) state.dose = 30; }
-    try { localStorage.setItem("brewdeck.grinder", "casa"); localStorage.setItem("brewdeck.dose", String(state.dose)); localStorage.setItem("brewdeck.variant." + c.id, "0"); localStorage.removeItem("brewdeck.filter." + c.id); } catch {}
-    renderMethodSeg(); renderFilterSeg(); renderDoseSeg(); renderGrinderSeg(); state.coffees.forEach(rerenderCard);
+    state.variant[c.id] = 0;
+    [state.doseBy, state.grinderBy, state.filterBy, state.ratioBy].forEach((choices) => { delete choices[c.id]; });
+    try { localStorage.setItem("brewdeck.variant." + c.id, "0"); ["dose", "grinder", "filter", "ratio"].forEach((key) => localStorage.removeItem(`brewdeck.${key}.${c.id}`)); } catch {}
+    renderMethodSeg(); renderFilterSeg(); renderDoseSeg(); renderGrinderSeg(); rerenderCard(c); renderGrid();
   });
   const openSettings = (id) => { state.settingsFor = id; renderMethodSeg(); renderFilterSeg(); renderDoseSeg(); renderGrinderSeg(); $("settingsDialog").showModal(); };
   $("closeSettings").addEventListener("click", () => $("settingsDialog").close());
@@ -1656,9 +1661,10 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
   $("closeGuide").addEventListener("click", () => $("guideDialog").close());
   $("grinderSeg").addEventListener("click", (e) => {
     const b = e.target.closest("button[data-g]"); if (!b || b.hidden) return;
-    state.grinder = b.dataset.g;
-    try { localStorage.setItem("brewdeck.grinder", state.grinder); } catch {}
-    renderGrinderSeg(); state.coffees.forEach(rerenderCard); renderGrid();
+    const c = settingsCoffee(); if (!c) return;
+    state.grinderBy[c.id] = b.dataset.g;
+    try { localStorage.setItem("brewdeck.grinder." + c.id, b.dataset.g); } catch {}
+    renderGrinderSeg(); rerenderCard(c); renderGrid();
   });
   renderGrinderSeg();
 
@@ -2139,6 +2145,8 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
       if (state.variant[c.id] === undefined) { try { const v = localStorage.getItem("brewdeck.variant." + c.id); if (v !== null) state.variant[c.id] = Number(v); } catch {} }
       if (state.filterBy[c.id] === undefined) { try { const f = localStorage.getItem("brewdeck.filter." + c.id); if (["PURE.F", "TH-2", "Abaca"].includes(f)) state.filterBy[c.id] = f; } catch {} }
       if (state.ratioBy[c.id] === undefined) { try { const r = Number(localStorage.getItem("brewdeck.ratio." + c.id)); if (r > 0) state.ratioBy[c.id] = r; } catch {} }
+      if (state.doseBy[c.id] === undefined) { try { const d = Number(localStorage.getItem("brewdeck.dose." + c.id)); if (DOSE_CHOICES[kindOf(c)].includes(d)) state.doseBy[c.id] = d; } catch {} }
+      if (state.grinderBy[c.id] === undefined) { try { const g = localStorage.getItem("brewdeck.grinder." + c.id); if (GRINDER_KEYS.includes(g)) state.grinderBy[c.id] = g; } catch {} }
     });
     const wanted = state.pendingFocus || prevId;
     const idx = state.coffees.findIndex((c) => c.id === wanted);
