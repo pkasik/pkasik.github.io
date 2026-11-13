@@ -1194,7 +1194,13 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
     state.kind = keep.kind; state.showAllArchived = keep.showAll; FIND_GROUPS.forEach(({ key }, i) => { find[key] = keep.sets[i]; });
     return html;
   };
-  const sortCoffees = (list) => [...list].sort((a, b) => (Number(!!a.archived) - Number(!!b.archived)) || ((a.order ?? 0) - (b.order ?? 0)) || String(a.createdAt || "").localeCompare(String(b.createdAt || "")));
+  // Active cards first, then archived; inside a group by order. Archived cards that share an order (all those archived
+  // before the order started counting down) fall back to the newest card first.
+  const sortCoffees = (list) => [...list].sort((a, b) => (Number(!!a.archived) - Number(!!b.archived)) || ((a.order ?? 0) - (b.order ?? 0)) || String(a.createdAt || "").localeCompare(String(b.createdAt || "")) * (a.archived ? -1 : 1));
+  // The order that puts a card first in its group: one below the lowest in use. A newly added or unarchived card goes to the
+  // top of the active cards, and a newly archived one to the top of the archived cards.
+  const ARCHIVED_BASE_ORDER = 999;
+  const topOrder = (archived) => Math.min(archived ? ARCHIVED_BASE_ORDER + 1 : 0, ...state.coffees.filter((c) => !!c.archived === archived).map((c) => c.order ?? 0)) - 1;
   // Drag to reorder (SortableJS): on touch, hold an active tile a moment and drag; with a mouse, just drag. The other tiles animate out of the way.
   // Archived tiles, the Add tile and the divider stay put, and a tile can't be dropped among them.
   const drag = { suppressClick: false };
@@ -1234,7 +1240,7 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
   const toggleArchive = async (id) => {
     const c = state.coffees.find((x) => x.id === id); if (!c) return;
     const archived = !c.archived;
-    try { await store.updateCoffee(id, { archived, order: 999 }); await refresh(); } catch (err) { setStatus(friendly(err, archived ? "archive the card" : "unarchive the card")); }
+    try { await store.updateCoffee(id, { archived, order: topOrder(archived) }); await refresh(); } catch (err) { setStatus(friendly(err, archived ? "archive the card" : "unarchive the card")); }
   };
   // From the card: archive or unarchive, then land back on the dashboard where the tile has moved.
   const archiveFromCard = async (id) => {
@@ -1923,7 +1929,7 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
         const prev = state.coffees.find((x) => x.id === state.editingId);
         await store.saveCoffee(state.editingId, { ...data, order: prev?.order ?? 0, archived: !!prev?.archived, createdAt: prev?.createdAt || new Date().toISOString() });
       } else {
-        const order = Math.max(-1, ...state.coffees.map((c) => c.order ?? 0)) + 1;
+        const order = topOrder(false);
         const id = newId(data.name);
         await store.saveCoffee(id, { ...data, order, archived: false, createdAt: new Date().toISOString() });
         state.pendingFocus = id;
