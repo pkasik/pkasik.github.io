@@ -817,10 +817,13 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
   // It also takes its own 01 papers, so the paper is fixed to the one its recipe is written for; a paper chosen for the coffee's other methods is kept for those.
   // A method can also be written for one dose only: the Triple Bloom (Lance Hedrick's 2-cup V60 recipe) is a 30 g recipe, so the smaller doses are not offered with it,
   // and the Devil's Switch (Tetsu Kasuya's hot-then-cool Switch recipe) is a 20 g recipe.
+  // The RoadRunner (Weber Workshops' vacuum immersion brewer) starts at 20 g and tops out at 400 g of water, so its 20 g recipe is not
+  // scaled either way; it also takes its own mesh and paper discs, so the pour-over papers are not offered with it.
   const METHOD_RULES = [
     [/v60[\s-]*01/i, { maxDose: 20, paperLocked: true, note: "The V60-01 holds 20 g at most and takes Hario 01 papers only, so 30 g and the other papers are not offered with it." }],
     [/triple bloom/i, { minDose: 30, note: "The Triple Bloom is a 30 g recipe, so 15 g and 20 g are not offered with it." }],
     [/devil/i, { minDose: 20, maxDose: 20, note: "The Devil’s Switch is a 20 g recipe, so 15 g and 30 g are not offered with it." }],
+    [/road\s*runner/i, { minDose: 20, maxDose: 20, paperLocked: true, note: "The RoadRunner recipe is written for 20 g and uses its own mesh and paper discs, so other doses and papers are not offered with it." }],
   ];
   const methodRuleOf = (c) => { const label = methodLabel(methodsOf(c)[variantIndex(c)] || {}); return METHOD_RULES.find(([test]) => test.test(label))?.[1] || {}; };
   const maxDoseOf = (c) => methodRuleOf(c).maxDose ?? Infinity;
