@@ -813,12 +813,14 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
   const kindOf = (c) => (c?.kind === "espresso" ? "espresso" : "filter");
   const isEsp = (c) => kindOf(c) === "espresso";
   // Some brewers cannot hold every dose: the V60-01 tops out at 20 g, so 30 g is not offered with it and a 30 g setting brews as 20 g on that card.
-  // The dose setting itself stays global and untouched, so other cards keep brewing at 30 g.
+  // The limit applies to that method only: the coffee's chosen dose is kept and comes back with its other methods.
   // It also takes its own 01 papers, so the paper is fixed to the one its recipe is written for; a paper chosen for the coffee's other methods is kept for those.
-  // A method can also be written for one dose only: the Triple Bloom (Lance Hedrick's 2-cup V60 recipe) is a 30 g recipe, so the smaller doses are not offered with it.
+  // A method can also be written for one dose only: the Triple Bloom (Lance Hedrick's 2-cup V60 recipe) is a 30 g recipe, so the smaller doses are not offered with it,
+  // and the Devil's Switch (Tetsu Kasuya's hot-then-cool Switch recipe) is a 20 g recipe.
   const METHOD_RULES = [
     [/v60[\s-]*01/i, { maxDose: 20, paperLocked: true, note: "The V60-01 holds 20 g at most and takes Hario 01 papers only, so 30 g and the other papers are not offered with it." }],
     [/triple bloom/i, { minDose: 30, note: "The Triple Bloom is a 30 g recipe, so 15 g and 20 g are not offered with it." }],
+    [/devil/i, { minDose: 20, maxDose: 20, note: "The Devil’s Switch is a 20 g recipe, so 15 g and 30 g are not offered with it." }],
   ];
   const methodRuleOf = (c) => { const label = methodLabel(methodsOf(c)[variantIndex(c)] || {}); return METHOD_RULES.find(([test]) => test.test(label))?.[1] || {}; };
   const maxDoseOf = (c) => methodRuleOf(c).maxDose ?? Infinity;
