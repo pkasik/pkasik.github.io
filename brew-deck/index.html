@@ -802,9 +802,10 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
 (() => {
   const $ = (id) => document.getElementById(id);
   const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-  const todayISO = () => new Date().toISOString().slice(0, 10);
+  // Today's date on the phone's own clock. (The UTC date, used before, is still yesterday's until 8 am in Singapore.)
+  const todayISO = () => { const now = new Date(); return [now.getFullYear(), String(now.getMonth() + 1).padStart(2, "0"), String(now.getDate()).padStart(2, "0")].join("-"); };
 
-  const state = { user: null, loaded: false, canWrite: false, coffees: [], active: 0, brews: [], editingId: null, brewRating: 0, pendingDelete: null, view: "grid", pendingFocus: null, brewsFor: null, variant: {}, editRecipes: [], editIdx: 0, info: {}, doseBy: {}, grinderBy: {}, filterBy: {}, settingsFor: null, showAllArchived: false, kind: "filter", ratioBy: {} };
+  const state = { user: null, loaded: false, canWrite: false, coffees: [], active: 0, brews: [], editingId: null, brewRating: 0, pendingDelete: null, view: "grid", pendingFocus: null, brewsFor: null, methodBy: {}, editRecipes: [], editIdx: 0, info: {}, doseBy: {}, grinderBy: {}, filterBy: {}, settingsFor: null, showAllArchived: false, kind: "filter", ratioBy: {} };
   try { if (localStorage.getItem("brewdeck.kind") === "espresso") state.kind = "espresso"; } catch {}
   // Dose and grinder used to be one choice shared by every card; those stored values are no longer read.
   try { ["brewdeck.dose", "brewdeck.espDose", "brewdeck.grinder"].forEach((key) => localStorage.removeItem(key)); } catch {}
@@ -913,6 +914,8 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
     const m = String(finish || "").match(/(\d+:\d{2})\s*[–-]\s*(\d+:\d{2})/); if (!m) return finish;
     return `${fmtSec(Math.max(60, toSec(m[1]) + by))} – ${fmtSec(Math.max(90, toSec(m[2]) + by))}`;
   };
+  // A recipe brewed at another dose carries that dose in its name, so the log reads "20 g · NEO" and not "30 g · NEO" beside "20 g / 335 g".
+  const labelAt = (label, dose) => String(label || "").replace(/^\d+(?:\.\d+)?\s*g(?=\s*·)/, `${dose} g`);
   const scaleRecipe = (r, dose, chosenRatio) => {
     const base = baseOf(r);
     if (base?.espresso) {
@@ -921,7 +924,7 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
       const yld = Math.round(dose * ratio);
       const changed = dose !== base.dose || yld !== base.water;
       const pours = (r.pours || []).map((p) => (grams(p.to) ? { ...p, to: `${yld} g` } : p));
-      return { ...r, dose: `${dose} g → ${yld} g`, pours, ratio, scaled: changed, scaledFrom: base.dose };
+      return { ...r, label: labelAt(r.label, dose), dose: `${dose} g → ${yld} g`, pours, ratio, scaled: changed, scaledFrom: base.dose };
     }
     if (!base || base.dose === dose) return { ...r, scaled: false };
     const f = dose / base.dose;
@@ -938,7 +941,7 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
     const lastPour = Math.max(0, ...(r.pours || []).map((p) => /^\d+:\d{2}$/.test(p.time || "") ? toSec(p.time) : 0));
     const fm = finish.match(/(\d+:\d{2})\s*[–-]\s*(\d+:\d{2})/);
     if (fm && lastPour && toSec(fm[1]) < lastPour + 20) finish = shiftFinish(finish, lastPour + 20 - toSec(fm[1]));
-    return { ...r, dose: `${dose} g / ${water} g`, pours, finish, scaled: true, scaledFrom: base.dose };
+    return { ...r, label: labelAt(r.label, dose), dose: `${dose} g / ${water} g`, pours, finish, scaled: true, scaledFrom: base.dose };
   };
   // Filter papers: grind offset in Casa numbers relative to TH-2, and the drawdown they add or remove.
   // Filter offsets in Casa numbers (aligned to the dial's marks: PURE.F two marks finer than TH-2, Abaca one mark finer).
@@ -989,7 +992,21 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
     const seen = new Set();
     return recipesOf(c).filter((r) => { const k = methodLabel(r); if (seen.has(k)) return false; seen.add(k); return true; });
   };
-  const variantIndex = (c) => { const rs = methodsOf(c); const i = state.variant[c.id] ?? 0; return Math.min(i, rs.length - 1); };
+  // The chosen method is remembered by name, so adding, removing or reordering recipes never moves a card to a different method.
+  // A name the card no longer has falls back to its first method.
+  const variantIndex = (c) => Math.max(0, methodsOf(c).findIndex((r) => methodLabel(r) === state.methodBy[c.id]));
+  // The choice used to be stored as a position in the method list; a stored position is read once, as the method sitting there now.
+  const loadMethodChoice = (c) => {
+    if (state.methodBy[c.id] !== undefined) return;
+    try {
+      const name = localStorage.getItem("brewdeck.method." + c.id), position = localStorage.getItem("brewdeck.variant." + c.id);
+      if (name !== null) { state.methodBy[c.id] = name; return; }
+      if (position === null) return;
+      const methods = methodsOf(c), method = methodLabel(methods[Math.min(Math.max(0, Number(position) || 0), methods.length - 1)] || {});
+      state.methodBy[c.id] = method;
+      localStorage.setItem("brewdeck.method." + c.id, method); localStorage.removeItem("brewdeck.variant." + c.id);
+    } catch {}
+  };
   // A method can be written for more than one dose ("20 g · Switch" and "30 g · Switch"): use the written recipe whose dose is nearest the selected dose, then scale.
   const doseVariant = (c, m) => {
     const cands = recipesOf(c).filter((r) => methodLabel(r) === methodLabel(m));
@@ -1100,10 +1117,11 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
     if (fromOrigin.length > 1) return NO_COUNTRY;
     return fromOrigin[0] || countriesIn(c.name)[0] || NO_COUNTRY;
   };
-  const PROCESS_GROUPS = ["Washed", "Natural", "Honey / other", "Blend"];
+  const PROCESS_GROUPS = ["Washed", "Natural", "Honey / other", "Blend", "Not stated"];
   const processGroupOf = (c) => {
     const text = String(c.process || "").toLowerCase();
     if (/natural/.test(text) && /washed/.test(text)) return "Blend";
+    if (!text.trim() || /not stated|likely|unknown/.test(text)) return "Not stated"; // a guess ("likely washed") is not a process
     const process = processOf(c);
     return process === "natural" ? "Natural" : process === "washed" ? "Washed" : "Honey / other";
   };
@@ -1648,9 +1666,8 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
   };
   $("resetSettings").addEventListener("click", () => {
     const c = state.coffees.find((x) => x.id === state.settingsFor); if (!c) return;
-    state.variant[c.id] = 0;
-    [state.doseBy, state.grinderBy, state.filterBy, state.ratioBy].forEach((choices) => { delete choices[c.id]; });
-    try { localStorage.setItem("brewdeck.variant." + c.id, "0"); ["dose", "grinder", "filter", "ratio"].forEach((key) => localStorage.removeItem(`brewdeck.${key}.${c.id}`)); } catch {}
+    [state.methodBy, state.doseBy, state.grinderBy, state.filterBy, state.ratioBy].forEach((choices) => { delete choices[c.id]; });
+    try { ["method", "variant", "dose", "grinder", "filter", "ratio"].forEach((key) => localStorage.removeItem(`brewdeck.${key}.${c.id}`)); } catch {}
     renderMethodSeg(); renderFilterSeg(); renderDoseSeg(); renderGrinderSeg(); rerenderCard(c); renderGrid();
   });
   const openSettings = (id) => { state.settingsFor = id; renderMethodSeg(); renderFilterSeg(); renderDoseSeg(); renderGrinderSeg(); $("settingsDialog").showModal(); };
@@ -1658,8 +1675,9 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
   $("methodSeg").addEventListener("click", (e) => {
     const b = e.target.closest("button[data-v]"); if (!b) return;
     const c = state.coffees.find((x) => x.id === state.settingsFor); if (!c) return;
-    state.variant[c.id] = Number(b.dataset.v);
-    try { localStorage.setItem("brewdeck.variant." + c.id, b.dataset.v); } catch {}
+    const method = methodLabel(methodsOf(c)[Number(b.dataset.v)] || {});
+    state.methodBy[c.id] = method;
+    try { localStorage.setItem("brewdeck.method." + c.id, method); } catch {}
     renderMethodSeg(); renderFilterSeg(); renderDoseSeg(); rerenderCard(c);
   });
   $("filterSeg").addEventListener("click", (e) => {
@@ -1779,7 +1797,7 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
   };
   const tick = () => {
     if (!timer.running) return;
-    const t = (performance.now() - timer.start) / 1000; timer.elapsed = t;
+    const t = (Date.now() - timer.start) / 1000; timer.elapsed = t; // the wall clock: it keeps counting if the phone locks or the app is put away mid-brew
     if (t >= timer.tl.end) { paintTimer(timer.tl.end); finishTimer("Done — enjoy."); return; }
     paintTimer(t);
     timer.raf = requestAnimationFrame(tick);
@@ -1813,7 +1831,7 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
     $("timerDialog").showModal();
   };
   const beginRun = () => {
-    timer.cued = new Set(); timer.start = performance.now(); timer.running = true;
+    timer.cued = new Set(); timer.start = Date.now(); timer.running = true;
     $("t_log").hidden = !state.canWrite; $("t_log").textContent = timer.esp ? "Log this shot" : "Log this brew";
     $("t_note").textContent = timer.esp ? "Tap Log this shot when you stop the shot; the time goes into the log." : "Tap Log this brew when the drawdown finishes; the time goes into the log.";
     tick();
@@ -1831,7 +1849,13 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
     };
     count();
   });
-  $("t_stop").addEventListener("click", () => resetTimer());
+  // Stop during the countdown cancels it. Stop during a brew holds the clock where it is, so the time can still be logged.
+  $("t_stop").addEventListener("click", () => {
+    if (!timer.running) { resetTimer(); return; }
+    const secs = Math.round(timer.elapsed || 0), at = timer.esp ? `${secs} s` : mmss(secs), logName = timer.esp ? "Log this shot" : "Log this brew";
+    finishTimer(state.canWrite ? `Stopped at ${at}. Tap ${logName} to keep the time, or start again.` : `Stopped at ${at}.`);
+    timer.elapsed = secs; paintTimer(secs); // the clock, this note and the log entry all show the same second
+  });
   // Log straight from the timer: the elapsed time becomes the shot time (seconds) or the finish time (m:ss).
   $("t_log").addEventListener("click", () => {
     const secs = Math.round(timer.elapsed || 0);
@@ -1866,6 +1890,10 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
   // Editor sheets open with nothing to type into focused, so no keyboard or date picker appears until a field is tapped. Focus goes to the heading.
   const openSheet = (dialog) => { dialog.showModal(); dialog.querySelector(".sheet-head h2").focus({ preventScroll: true }); dialog.querySelector(".sheet-body").scrollTop = 0; };
   const cardDialog = $("cardDialog"), cardForm = $("cardForm"), pourRows = $("pourRows");
+  // Return in a one-line field puts the keyboard away. It must not save the sheet: a form saves on Return by default, which
+  // wrote half-filled log entries and cards. Saving is the button's job.
+  const keepReturnFromSaving = (form) => form.addEventListener("keydown", (e) => { if (e.key !== "Enter" || e.target.tagName !== "INPUT") return; e.preventDefault(); e.target.blur(); });
+  [cardForm, $("brewForm")].forEach(keepReturnFromSaving);
   const CARD_FIELDS = ["name", "roaster", "tasting", "origin", "producer", "variety", "altitude", "process", "roasted", "kind"];
   const DEFAULT_SHOT = [{ time: "0:00", to: "2–3 bar", action: "Preinfuse gently until the first drops" }, { time: "0:10", to: "43 g", rate: 1.9, action: "6–8 bar · ramp smoothly, hold steady" }, { time: "0:32", to: "—", action: "Stop on weight, not time" }];
   const DEFAULT_POURS = [{ time: "0:00", to: "90 g", action: "Bloom, swirl, wait 45 s" }, {}, {}];
@@ -1924,7 +1952,8 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
     $("f_kind").value = c ? kindOf(c) : state.kind;
     const espNew = !c && state.kind === "espresso";
     state.editRecipes = c ? recipesOf(c).map((r) => ({ ...r, pours: (r.pours || []).map((p) => ({ ...p })) })) : [espNew ? { ...blankRecipe(), label: "18 g · Robot", dose: "18 g → 43 g", water: "92°C", pressure: "6–8 bar", finish: "0:30 – 0:35", pourTitle: "3 stages" } : { ...blankRecipe(), label: "30 g · NEO", dose: "30 g / 500 g" }];
-    state.editIdx = c ? variantIndex(c) : 0;
+    // Open on the recipe the card is showing. (The method's position is not the recipe's: a method can have two recipes, as Switch does.)
+    state.editIdx = c ? Math.max(0, recipesOf(c).indexOf(baseRecipe(c))) : 0;
     loadRecipeForm(state.editRecipes[state.editIdx]); renderVariantSel();
     openSheet(cardDialog);
   };
@@ -1973,8 +2002,11 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
     $("confirmYes").disabled = true;
     try {
       if (p.kind === "card") {
+        const name = state.coffees.find((x) => x.id === p.id)?.name || "the card";
         await store.deleteCoffee(p.id);
-        cardDialog.close(); await refresh();
+        // Back to the dashboard, as archiving does; staying put would show whichever coffee took the deleted one's place.
+        cardDialog.close(); showView("grid"); await refresh();
+        setStatus(`Deleted ${name}`); setTimeout(() => { if (status.textContent === `Deleted ${name}`) setStatus(""); }, 2500);
       } else {
         await store.deleteBrew(p.id);
         await loadBrews(true);
@@ -2108,7 +2140,7 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
     return { id, data, order: Number.isFinite(Number(order)) ? Number(order) : 0, archived: !!archived, updated_at: new Date().toISOString() };
   };
   const rowToBrew = (r) => ({ ...(r.data || {}), id: r.id, date: r.data?.date || r.brewed_on });
-  const brewToRow = (id, coffeeId, data) => { const { id: _id, owner: _o, ...rest } = data; return { id, coffee_id: coffeeId, data: rest, brewed_on: rest.date || new Date().toISOString().slice(0, 10) }; };
+  const brewToRow = (id, coffeeId, data) => { const { id: _id, owner: _o, ...rest } = data; return { id, coffee_id: coffeeId, data: rest, brewed_on: rest.date || todayISO() }; };
   const unwrap = ({ data, error }) => { if (error) throw error; return data; };
   const requireClient = () => { if (!sb) throw new Error("The sync library didn't load. Check your connection and reload."); return sb; };
 
@@ -2156,7 +2188,7 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
     const prevId = state.coffees[state.active]?.id;
     state.coffees = sortCoffees(list.map((c) => ({ ...c })));
     state.coffees.forEach((c) => {
-      if (state.variant[c.id] === undefined) { try { const v = localStorage.getItem("brewdeck.variant." + c.id); if (v !== null) state.variant[c.id] = Number(v); } catch {} }
+      loadMethodChoice(c);
       if (state.filterBy[c.id] === undefined) { try { const f = localStorage.getItem("brewdeck.filter." + c.id); if (["PURE.F", "TH-2", "Abaca"].includes(f)) state.filterBy[c.id] = f; } catch {} }
       if (state.ratioBy[c.id] === undefined) { try { const r = Number(localStorage.getItem("brewdeck.ratio." + c.id)); if (r > 0) state.ratioBy[c.id] = r; } catch {} }
       if (state.doseBy[c.id] === undefined) { try { const d = Number(localStorage.getItem("brewdeck.dose." + c.id)); if (DOSE_CHOICES[kindOf(c)].includes(d)) state.doseBy[c.id] = d; } catch {} }
@@ -2252,7 +2284,7 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
     try {
       const dump = await store.exportAll();
       const blob = new Blob([JSON.stringify(dump, null, 2)], { type: "application/json" });
-      const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = `brew-deck-${dump.exportedAt.slice(0, 10)}.json`; document.body.appendChild(a); a.click(); a.remove();
+      const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = `brew-deck-${todayISO()}.json`; document.body.appendChild(a); a.click(); a.remove();
       setTimeout(() => URL.revokeObjectURL(a.href), 2000);
       accountNote(`Exported ${dump.coffees.length} coffees and ${dump.brews.length} brews.`, "ok");
     } catch (err) { accountNote(friendly(err, "export the deck"), "err"); }

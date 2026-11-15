@@ -1,9 +1,20 @@
 // Brew Deck service worker: network-first for the page (so updates land on the next open), cache-first for everything else, and the cached page as an offline fallback.
-const CACHE = "brew-deck-v41";
+const CACHE = "brew-deck-v42";
 const PRECACHE = ["./", "./index.html", "./manifest.webmanifest", "./icon.svg", "./icon-192.png", "./icon-512.png", "./apple-touch-icon.png", "./sortable.min.js"];
+// The sync library the page loads. Without it the app opens signed out, so it is kept at install as well as on first use.
+// Keep this the same address as the <script> tag in index.html; if they drift apart the copy is simply made on first use instead.
+const LIBRARY = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.js";
+// Other sites whose files are kept for offline use: the library's CDN and Google Fonts.
+const KEPT_HOSTS = /^(cdn\.jsdelivr\.net|fonts\.googleapis\.com|fonts\.gstatic\.com)$/;
+
+// A <script> or stylesheet from another site is requested in a mode that hides whether it loaded, and such a response cannot be
+// checked or safely kept. Asking again in CORS mode gives a response that can; if the site refuses that, fall back to the plain request.
+const readable = (req) => fetch(req.url, { mode: "cors", credentials: "omit" }).catch(() => fetch(req));
+const keep = (cache, url) => readable(new Request(url)).then((res) => (res.ok ? cache.put(url, res) : undefined)).catch(() => {});
 
 self.addEventListener("install", (event) => {
-  event.waitUntil(caches.open(CACHE).then((c) => c.addAll(PRECACHE)).then(() => self.skipWaiting()));
+  // The library is fetched after the app's own files and never fails the install: an update must not depend on the CDN being reachable.
+  event.waitUntil(caches.open(CACHE).then((c) => c.addAll(PRECACHE).then(() => keep(c, LIBRARY))).then(() => self.skipWaiting()));
 });
 
 self.addEventListener("activate", (event) => {
@@ -19,16 +30,23 @@ self.addEventListener("fetch", (event) => {
 
   if (req.mode === "navigate" || url.pathname.endsWith("/index.html")) {
     event.respondWith(
-      fetch(req).then((res) => { const copy = res.clone(); caches.open(CACHE).then((c) => { c.put("./index.html", copy); c.put("./", res.clone()); }); return res; })
-        .catch(() => caches.match("./index.html"))
+      fetch(req).then((res) => {
+        // Copies are taken before the response is handed to the page; once the page starts reading it, it can no longer be copied.
+        if (res.ok) { const page = res.clone(), root = res.clone(); caches.open(CACHE).then((c) => { c.put("./index.html", page); c.put("./", root); }); }
+        return res;
+      }).catch(() => caches.match("./index.html"))
     );
     return;
   }
 
   // Same-origin assets, fonts and the Supabase client library: cache-first with a background refresh.
+  const sameOrigin = url.origin === location.origin, kept = KEPT_HOSTS.test(url.hostname);
   event.respondWith(
     caches.match(req).then((hit) => {
-      const fresh = fetch(req).then((res) => { if (res.ok && (url.origin === location.origin || /fonts\.(googleapis|gstatic)\.com|cdn\.jsdelivr\.net/.test(url.hostname))) caches.open(CACHE).then((c) => c.put(req, res.clone())); return res; }).catch(() => hit);
+      const fresh = (kept ? readable(req) : fetch(req)).then((res) => {
+        if (res.ok && (sameOrigin || kept)) { const copy = res.clone(); caches.open(CACHE).then((c) => c.put(req, copy)); }
+        return res;
+      }).catch(() => hit);
       return hit || fresh;
     })
   );
