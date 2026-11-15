@@ -1344,6 +1344,13 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
     seg.classList.remove("following"); seg.style.setProperty("--tab", tabOf(state.kind));
     pager.phase = "idle";
   };
+  // The app reopens on the deck it was closed on, so the highlight has to start under that tab; it is put there without the slide.
+  const placeTabAtLaunch = () => {
+    const seg = $("modeSeg");
+    seg.classList.add("following"); seg.style.setProperty("--tab", tabOf(state.kind));
+    requestAnimationFrame(() => requestAnimationFrame(() => { if (pager.phase === "idle") seg.classList.remove("following"); }));
+  };
+  placeTabAtLaunch();
   // Finish the move: glide across to the other deck, or back to where it was.
   const settleDecks = (go) => {
     pager.phase = "settling"; pager.blockClicksUntil = Date.now() + Math.max(SETTLE_MS, 250);
@@ -1959,6 +1966,8 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
     confirmDialog.showModal();
   });
   $("confirmNo").addEventListener("click", () => confirmDialog.close());
+  // A tap outside the box is the same as "Keep it": it closes without deleting.
+  confirmDialog.addEventListener("click", (e) => { if (e.target === confirmDialog) confirmDialog.close(); });
   $("confirmYes").addEventListener("click", async () => {
     const p = state.pendingDelete; if (!p) return;
     $("confirmYes").disabled = true;
