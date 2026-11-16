@@ -711,6 +711,8 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
     <p class="settings-for" id="settingsFor"></p>
     <div class="setting" id="brewerRow"><span class="dose-label">Brewer</span><div class="seg wrap" id="brewerSeg" role="radiogroup" aria-label="Brewer"></div></div>
     <div class="setting" id="methodRow"><span class="dose-label">Method</span><div class="seg wrap" id="methodSeg" role="radiogroup" aria-label="Brew method"></div></div>
+    <div class="setting" id="balanceRow" hidden><span class="dose-label">4:6 balance</span><div class="seg even" id="balanceSeg" role="radiogroup" aria-label="4:6 balance: the first pour of the 40%">
+      <button type="button" data-bal="sweet" role="radio" aria-checked="false">Sweeter</button><button type="button" data-bal="even" role="radio" aria-checked="false">Balanced</button><button type="button" data-bal="bright" role="radio" aria-checked="false">Brighter</button></div></div>
     <div class="setting"><span class="dose-label">Dose</span>
       <div class="seg" id="doseSeg" role="radiogroup" aria-label="Coffee dose">
         <button type="button" data-d="15" role="radio" aria-checked="false">15 g</button>
@@ -739,7 +741,7 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
       </div>
     </div>
     <div class="actions"><button class="btn" id="resetSettings" type="button">Reset</button></div>
-    <p class="guide-note" id="settingsNote">Choosing a different paper from the one the recipe was written for moves the grind by its offset from TH-2 (TH-1 1 mark coarser; TH-3 and Abaca 1 mark finer; PURE.F 2 marks finer) and adjusts the finish window. The TH-1 and TH-3 offsets are first estimates. Every choice here is remembered for this coffee only, and the paper for each method separately. Reset returns this coffee to its written recipe: Casa, its base dose, first brewer, method and paper.</p>
+    <p class="guide-note" id="settingsNote">Choosing a different paper from the one the recipe was written for moves the grind by its offset from TH-2 (TH-1 1 mark coarser; TH-3 and Abaca 1 mark finer; PURE.F 2 marks finer) and adjusts the finish window. The TH-1 and TH-3 offsets are first estimates. With 4:6, the balance sets the first pour: smaller is sweeter, bigger is brighter; the dot marks how the recipe was written. Every choice here is remembered for this coffee only, and the paper for each method separately. Reset returns this coffee to its written recipe: Casa, its base dose, first brewer, method and paper.</p>
   </div>
 </dialog>
 
@@ -836,7 +838,7 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
   // Today's date on the phone's own clock. (The UTC date, used before, is still yesterday's until 8 am in Singapore.)
   const todayISO = () => { const now = new Date(); return [now.getFullYear(), String(now.getMonth() + 1).padStart(2, "0"), String(now.getDate()).padStart(2, "0")].join("-"); };
 
-  const state = { user: null, loaded: false, canWrite: false, coffees: [], active: 0, brews: [], editingId: null, brewRating: 0, pendingDelete: null, view: "grid", pendingFocus: null, brewsFor: null, brewerBy: {}, methodBy: {}, editRecipes: [], editIdx: 0, info: {}, doseBy: {}, grinderBy: {}, filterBy: {}, settingsFor: null, showAllArchived: false, kind: "filter", ratioBy: {} };
+  const state = { user: null, loaded: false, canWrite: false, coffees: [], active: 0, brews: [], editingId: null, brewRating: 0, pendingDelete: null, view: "grid", pendingFocus: null, brewsFor: null, brewerBy: {}, methodBy: {}, balanceBy: {}, editRecipes: [], editIdx: 0, info: {}, doseBy: {}, grinderBy: {}, filterBy: {}, settingsFor: null, showAllArchived: false, kind: "filter", ratioBy: {} };
   try { if (localStorage.getItem("brewdeck.kind") === "espresso") state.kind = "espresso"; } catch {}
   // Dose and grinder used to be one choice shared by every card; those stored values are no longer read.
   try { ["brewdeck.dose", "brewdeck.espDose", "brewdeck.grinder"].forEach((key) => localStorage.removeItem(key)); } catch {}
@@ -1132,10 +1134,23 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
     return pool.reduce((best, r) => (gap(r) < gap(best) ? r : best), pool[0]);
   };
   const recipeLabel = (dose, brewer, method) => `${dose} g · ${setupName(brewer, method)}`;
+  // The 4:6 method's dial: the first two pours are 40% of the water and set the taste. A smaller first pour is sweeter, a bigger one
+  // brighter, the same size balanced. The second pour still ends at 40%, so only the first target moves.
+  const BALANCES = { sweet: { share: 0.425, word: "sweeter", action: "1st of 40% · smaller pour for sweetness, let it drain" }, even: { share: 0.5, word: "balanced", action: "1st of 40% · let it drain" }, bright: { share: 0.575, word: "brighter", action: "1st of 40% · bigger pour for brightness, let it drain" } };
+  const gramsOf = (text) => parseFloat(String(text || "").replace(/[^\d.]/g, ""));
+  const balanceOfRecipe = (r) => { const first = gramsOf(r.pours?.[0]?.to), forty = gramsOf(r.pours?.[1]?.to); if (!(first > 0 && forty > first)) return null; const share = first / forty; return share < 0.47 ? "sweet" : share > 0.53 ? "bright" : "even"; };
+  const hasBalance = (c) => !isEsp(c) && methodOf(c) === "4:6" && balanceOfRecipe(baseRecipe(c)) !== null;
+  const balanceFor = (c) => (BALANCES[state.balanceBy[c.id]] ? state.balanceBy[c.id] : balanceOfRecipe(baseRecipe(c)));
+  const applyBalance = (c, r) => {
+    const written = balanceOfRecipe(r), wanted = balanceFor(c);
+    if (!hasBalance(c) || !written || wanted === written) return r;
+    const forty = gramsOf(r.pours[1].to), first = Math.round(forty * BALANCES[wanted].share / 5) * 5;
+    return { ...r, pours: r.pours.map((p, i) => (i === 0 ? { ...p, to: `${first} g`, action: BALANCES[wanted].action } : p)), balanceChanged: { from: written, to: wanted, first, second: forty - first } };
+  };
   const activeRecipe = (c) => {
     const base = baseRecipe(c), brewer = brewerOf(c), method = methodOf(c), dose = doseFor(c);
     const r = { ...scaleRecipe(base, dose, isEsp(c) ? state.ratioBy[c.id] : undefined), label: recipeLabel(dose, brewer, method), brewer, method, writtenOn: splitRecipe(base).brewer };
-    return isEsp(c) ? r : applyFilter(r, filterFor(c, base));
+    return isEsp(c) ? r : applyBalance(c, applyFilter(r, filterFor(c, base)));
   };
   // A named method brewed on a brewer it wasn't written for: what to do differently.
   const brewerNoteOf = (r) => {
@@ -1171,6 +1186,7 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
       if (d >= 12) return `start about ${big} coarser than shown (deeper bed drains slower)`;
       return `start about ${small} coarser than shown (deeper bed drains slower)`;
     })();
+    const balanceNote = r.balanceChanged ? `<p class="scaled">4:6 set ${BALANCES[r.balanceChanged.to].word}: the first two pours are ${r.balanceChanged.first} g and ${r.balanceChanged.second} g (written ${BALANCES[r.balanceChanged.from].word}).</p>` : "";
     const scaledNote = !r.scaled ? "" : esp
       ? `<p class="scaled">Adjusted from the ${r.scaledFrom} g recipe: yield follows the ${ratioLabel(r.ratio)} ratio; keep the grind and expect the shot time to move a few seconds with the dose.</p>`
       : `<p class="scaled">Scaled from the ${r.scaledFrom} g recipe: water and pours adjusted, timings kept. Grind: ${grindHint}.</p>`;
@@ -1207,6 +1223,7 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
         ${r.finish ? `<div class="finish"><span>${esp ? "Target shot time" : "Target finish"}</span><b>${esc(esp ? shotWindow(r.finish) : r.finish)}</b></div>` : ""}
         ${(r.pours || []).length ? `<button class="btn start" type="button" data-start="${esc(c.id)}">▶ ${esp ? "Start shot" : "Start brew"}</button>` : ""}
         ${brewerNote}
+        ${balanceNote}
         ${scaledNote}
         ${filterNote}
         ${r.tip ? `<p class="tip">${esc(r.tip)}</p>` : ""}
@@ -1868,10 +1885,12 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
     const opts = coffee ? doseOptions(coffee) : DOSE_CHOICES.filter, cur = coffee ? doseFor(coffee) : null;
     $("doseSeg").innerHTML = opts.map((d) => `<button type="button" data-d="${d}" role="radio" aria-checked="${d === cur}">${d} g</button>`).join("");
     $("ratioRow").hidden = !esp; $("brewerRow").hidden = esp || !coffee || brewersOf(coffee).length < 2; $("methodRow").hidden = esp; $("filterRow").hidden = esp;
+    $("balanceRow").hidden = !coffee || !hasBalance(coffee);
+    if (coffee && hasBalance(coffee)) { const written = balanceOfRecipe(baseRecipe(coffee)), cur = balanceFor(coffee); [...$("balanceSeg").children].forEach((b) => { b.setAttribute("aria-checked", String(b.dataset.bal === cur)); b.classList.toggle("written", b.dataset.bal === written); }); }
     $("grinderSeg").querySelector('[data-g="ode"]').hidden = esp;
     $("settingsNote").textContent = esp
       ? "Dose and ratio set the yield (18 g × 2.4 = 43 g); the deck uses the written recipe nearest your dose and keeps its shot timing. The Ode is not offered for espresso. The dot marks the ratio the recipe was written at. Every choice here is remembered for this coffee only. Reset returns this coffee to its written recipe: Casa, its base dose and ratio."
-      : "Choosing a different paper from the one the recipe was written for moves the grind by its offset from TH-2 (TH-1 1 mark coarser; TH-3 and Abaca 1 mark finer; PURE.F 2 marks finer) and adjusts the finish window. The TH-1 and TH-3 offsets are first estimates. Every choice here is remembered for this coffee only, and the paper for each method separately. Reset returns this coffee to its written recipe: Casa, its base dose, first brewer, method and paper." + (coffee && ruleOf(coffee).note ? " " + ruleOf(coffee).note : "") + (coffee && capacityNote(coffee) ? " " + capacityNote(coffee) : "");
+      : "Choosing a different paper from the one the recipe was written for moves the grind by its offset from TH-2 (TH-1 1 mark coarser; TH-3 and Abaca 1 mark finer; PURE.F 2 marks finer) and adjusts the finish window. The TH-1 and TH-3 offsets are first estimates. With 4:6, the balance sets the first pour: smaller is sweeter, bigger is brighter; the dot marks how the recipe was written. Every choice here is remembered for this coffee only, and the paper for each method separately. Reset returns this coffee to its written recipe: Casa, its base dose, first brewer, method and paper." + (coffee && ruleOf(coffee).note ? " " + ruleOf(coffee).note : "") + (coffee && capacityNote(coffee) ? " " + capacityNote(coffee) : "");
     if (esp && coffee) {
       const written = writtenRatio(coffee), chosen = state.ratioBy[coffee.id] ?? written;
       const options = [...new Set([...RATIOS, written].filter(Boolean))].sort((a, b) => a - b);
@@ -1916,12 +1935,19 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
   };
   $("resetSettings").addEventListener("click", () => {
     const c = state.coffees.find((x) => x.id === state.settingsFor); if (!c) return;
-    [state.brewerBy, state.methodBy, state.doseBy, state.grinderBy, state.filterBy, state.ratioBy].forEach((choices) => { delete choices[c.id]; });
-    try { ["brewer", "method", "variant", "dose", "grinder", "filter", "paper", "ratio"].forEach((key) => localStorage.removeItem(`brewdeck.${key}.${c.id}`)); } catch {}
+    [state.brewerBy, state.methodBy, state.balanceBy, state.doseBy, state.grinderBy, state.filterBy, state.ratioBy].forEach((choices) => { delete choices[c.id]; });
+    try { ["brewer", "method", "balance", "variant", "dose", "grinder", "filter", "paper", "ratio"].forEach((key) => localStorage.removeItem(`brewdeck.${key}.${c.id}`)); } catch {}
     renderMethodSeg(); renderFilterSeg(); renderDoseSeg(); renderGrinderSeg(); rerenderCard(c); renderGrid();
   });
   const openSettings = (id) => { state.settingsFor = id; renderMethodSeg(); renderFilterSeg(); renderDoseSeg(); renderGrinderSeg(); $("settingsDialog").showModal(); };
   $("closeSettings").addEventListener("click", () => $("settingsDialog").close());
+  $("balanceSeg").addEventListener("click", (e) => {
+    const b = e.target.closest("button[data-bal]"); if (!b) return;
+    const c = settingsCoffee(); if (!c) return;
+    state.balanceBy[c.id] = b.dataset.bal;
+    try { localStorage.setItem("brewdeck.balance." + c.id, b.dataset.bal); } catch {}
+    renderDoseSeg(); rerenderCard(c);
+  });
   // Both are stored together, so a stored choice is always in the new form.
   const keepSetup = (c) => { try { localStorage.setItem("brewdeck.brewer." + c.id, brewerOf(c)); localStorage.setItem("brewdeck.method." + c.id, state.methodBy[c.id] ?? methodOf(c)); } catch {} };
   $("brewerSeg").addEventListener("click", (e) => {
@@ -2492,7 +2518,8 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
     state.coffees.forEach((c) => {
       loadMethodChoice(c);
       if (state.filterBy[c.id] === undefined) { try { loadPaperChoice(c); } catch {} }
-      if (state.ratioBy[c.id] === undefined) { try { const r = Number(localStorage.getItem("brewdeck.ratio." + c.id)); if (r > 0) state.ratioBy[c.id] = r; } catch {} }
+      if (state.balanceBy[c.id] === undefined) { try { const bal = localStorage.getItem("brewdeck.balance." + c.id); if (BALANCES[bal]) state.balanceBy[c.id] = bal; } catch {} }
+          if (state.ratioBy[c.id] === undefined) { try { const r = Number(localStorage.getItem("brewdeck.ratio." + c.id)); if (r > 0) state.ratioBy[c.id] = r; } catch {} }
       if (state.doseBy[c.id] === undefined) { try { const d = Number(localStorage.getItem("brewdeck.dose." + c.id)); if (DOSE_CHOICES[kindOf(c)].includes(d)) state.doseBy[c.id] = d; } catch {} }
       if (state.grinderBy[c.id] === undefined) { try { const g = localStorage.getItem("brewdeck.grinder." + c.id); if (GRINDER_KEYS.includes(g)) state.grinderBy[c.id] = g; } catch {} }
     });
