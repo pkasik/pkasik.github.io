@@ -310,6 +310,16 @@ dialog.find { overflow: hidden; }
 .wleaves { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 12px; padding: 0 0 8px 30px; }
 .wleaves .wrow { border-top: 0; padding: 6px 0; gap: 8px; }
 .wleaves .wrow label { font-weight: 400; }
+.cwheel { display: grid; gap: 10px; justify-items: center; }
+.cwheel .seg { width: 100%; max-width: 300px; }
+#cwheel { width: min(100%, 300px); aspect-ratio: 1; height: auto; border-radius: 50%; touch-action: none; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; cursor: crosshair; }
+.cwheel-hint { margin: 0; font-size: 13px; color: var(--muted); text-align: center; }
+.chips.near { justify-content: center; min-height: 34px; width: 100%; }
+.chips.near button { display: inline-flex; align-items: center; gap: 6px; padding: 7px 12px; font-size: 14px; }
+.chips.near button .dot { width: 10px; height: 10px; border-radius: 50%; flex: none; border: 1px solid color-mix(in srgb, var(--fg) 25%, transparent); }
+.chips.near button.defect[aria-pressed="true"] { background: transparent; color: var(--danger); border-color: var(--danger); }
+.picks button.defect { background: transparent; border-color: var(--danger); color: var(--danger); }
+.brew .taste span.defect { background: transparent; border-style: solid; border-color: var(--danger); color: var(--danger); }
 .picks { display: flex; flex-wrap: wrap; gap: 6px; }
 .picks:empty { display: none; }
 .picks button { border: 1px solid var(--amber); border-radius: 999px; padding: 6px 12px; font: 500 13px/1.3 var(--body); background: var(--amber-soft); color: var(--fg); }
@@ -616,7 +626,7 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
     <div class="fgroup">
       <span class="flabel" id="picksLabel">Anything else?</span>
       <div class="picks" id="flavourPicks" role="group" aria-labelledby="picksLabel"></div>
-      <button class="rowbtn" type="button" id="openWheel"><span>Add from the flavour list</span><span aria-hidden="true">›</span></button>
+      <button class="rowbtn" type="button" id="openWheel"><span>Add from the flavour wheel</span><span aria-hidden="true">›</span></button>
     </div>
     <label class="f">Notes<textarea id="b_notes" name="notes" placeholder="Anything else: body, what to change next time."></textarea></label>
     <p class="err" id="brewErr" hidden></p>
@@ -634,10 +644,19 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
 <dialog id="flavourDialog" class="sheet" aria-labelledby="flavourTitle">
   <form id="flavourForm" method="dialog" novalidate>
     <div class="sheet-head">
-      <h2 id="flavourTitle">Flavour list</h2>
-      <label class="f">Search<input id="wheelSearch" type="search" autocomplete="off" placeholder="blueberry, honey, cocoa"></label>
+      <h2 id="flavourTitle">Flavours</h2>
     </div>
     <div class="sheet-body">
+      <div class="cwheel">
+        <div class="seg even" id="wheelMode" role="radiogroup" aria-label="Which notes the wheel shows">
+          <button type="button" data-mode="tasting" role="radio" aria-checked="true">Tasting</button>
+          <button type="button" data-mode="defects" role="radio" aria-checked="false">Defects</button>
+        </div>
+        <canvas id="cwheel" width="600" height="600" role="img" aria-label="Flavour colour wheel. Touch or drag to see the notes nearest your finger; the list below has every note."></canvas>
+        <p class="cwheel-hint" id="nearHint">Touch or drag on the wheel. The middle is broad, the edge is specific.</p>
+        <div class="chips near" id="nearChips" role="group" aria-label="Notes near your touch"></div>
+      </div>
+      <label class="f">Or search the full list<input id="wheelSearch" type="search" autocomplete="off" placeholder="blueberry, honey, cocoa"></label>
       <div class="wheel" id="wheel" role="group" aria-labelledby="flavourTitle"></div>
       <p class="empty" id="wheelEmpty" hidden>Nothing on the wheel matches that. Put it in Notes instead.</p>
     </div>
@@ -1617,6 +1636,122 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
   // "Fruity › Berry › Blueberry" reads "Fruity › Berry" in the small label beside a note; "Floral › Floral" reads "Floral".
   const wheelGroupOf = (path) => { const [family, group] = String(path).split(WHEEL_SEP); return !group || group === family ? family : family + WHEEL_SEP + group; };
 
+  // ---------- The colour wheel: every note has a place and a colour on a disc; a touch offers the notes nearest it ----------
+  // Layout and colours are this deck's own. Families sit in the middle, groups further out, single notes at the rim, so the middle
+  // is broad and the edge is specific. Defects (off notes worth logging because they point at a fix) have a wheel of their own.
+  const DEFECT_PATHS = new Set(WHEEL_NODES.filter((n) => n.path === "Other" || n.path.startsWith("Other" + WHEEL_SEP)).map((n) => n.path)
+    .concat(["Acrid", "Ashy"].map((note) => "Roasted › Burnt › " + note), ["Acetic acid", "Butyric acid", "Isovaleric acid"].map((note) => "Sour / Fermented › Sour › " + note),
+      ["Sour / Fermented › Alcohol / Fermented › Overripe", "Green / Vegetative › Raw", "Green / Vegetative › Beany"], ["Under-ripe", "Hay-like"].map((note) => "Green / Vegetative › Green / Vegetative › " + note)));
+  const isDefect = (flavourPath) => DEFECT_PATHS.has(flavourPath);
+  const FAMILY_COLOURS = { "Fruity": "#d9413a", "Floral": "#e58fb0", "Sweet": "#e3a23c", "Nutty / Cocoa": "#8f6240", "Spices": "#a5482c", "Roasted": "#6a5a42", "Green / Vegetative": "#5f9a52", "Sour / Fermented": "#b9a23a", "Other": "#7d8a90" };
+  const GROUP_COLOURS = { "Berry": "#b3284f", "Dried fruit": "#7a2e4e", "Other fruit": "#e2572b", "Tropical fruit": "#f08a24", "Citrus fruit": "#f2c230", "Black tea": "#a9745a", "Floral": "#ec9dbb",
+    "Brown sugar": "#c98a2b", "Vanilla": "#efd9a0", "Pandan": "#9fc46a", "Vanillin": "#ecd08a", "Overall sweet": "#e9a94a", "Sweet aromatics": "#dba05c", "Nutty": "#b08655", "Cocoa": "#6e4630",
+    "Pungent": "#8f3b2e", "Pepper": "#6f5a4a", "Brown spice": "#a5522d", "Pipe tobacco": "#8a7448", "Tobacco": "#7a6238", "Burnt": "#4a4038", "Cereal": "#c9a86a",
+    "Olive oil": "#8d9440", "Raw": "#6fa05a", "Green / Vegetative": "#4f9a5b", "Beany": "#7f9f78", "Sour": "#d6c63a", "Alcohol / Fermented": "#8e4a86", "Papery / Musty": "#b39a6b", "Chemical": "#4f7f96" };
+  const NOTE_COLOURS = { "Blackberry": "#3d1f3f", "Raspberry": "#d1305e", "Blueberry": "#4b4f9c", "Strawberry": "#e8434a", "Raisin": "#5e2a3c", "Prune": "#4a2238", "Smoked plum": "#6b2f45",
+    "Coconut": "#efe6d2", "Cherry": "#c2203a", "Pomegranate": "#b8233f", "Pineapple": "#f4cf3e", "Grape": "#7d4a9a", "Apple": "#b9cf52", "Peach": "#f7a678", "Pear": "#cfd07a",
+    "Lychee": "#f3c4c8", "Longan": "#d9b98a", "Mango": "#f6a21e", "Passionfruit": "#e8a72a", "Grapefruit": "#f08a6e", "Orange": "#f39a1f", "Lemon": "#f3d22b", "Lime": "#a9cf3a",
+    "Chamomile": "#ecd98a", "Rose": "#e46a8e", "Jasmine": "#f3e7d3", "Osmanthus": "#f0b64a", "Honey": "#e3a52a", "Molasses": "#6b3f1f", "Maple syrup": "#b9722a", "Caramelized": "#c47f2c", "Gula melaka": "#8a5226", "Kaya": "#b7a04a",
+    "Peanuts": "#c49a62", "Hazelnut": "#9a6b43", "Almond": "#d6b488", "Chocolate": "#6b4226", "Dark chocolate": "#3f2618", "Winey": "#7d2a4f", "Whiskey": "#b3772e", "Fermented": "#8e5a86", "Smoky": "#5a524d" };
+  const DEFECT_LABELS = { "Burnt": "Burnt", "Sour": "Vinegary", "Alcohol / Fermented": "Overripe", "Green / Vegetative": "Green", "Papery / Musty": "Papery", "Chemical": "Chemical" };
+  const hexToRgb = (hex) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
+  const mixRgb = (a, b, t) => a.map((v, i) => Math.round(v + (b[i] - v) * t));
+  const nodeColour = (n) => {
+    const [family, group] = n.path.split(WHEEL_SEP);
+    if (n.depth === 1) return hexToRgb(FAMILY_COLOURS[family] || "#888888");
+    const base = hexToRgb(GROUP_COLOURS[group] || FAMILY_COLOURS[family] || "#888888");
+    if (n.depth === 2) return base;
+    if (NOTE_COLOURS[n.label]) return hexToRgb(NOTE_COLOURS[n.label]);
+    const sibs = wheelKids(n.parent), t = sibs.length > 1 ? sibs.indexOf(n) / (sibs.length - 1) - 0.5 : 0; // siblings run light to dark around their group's colour
+    return mixRgb(base, t < 0 ? [255, 255, 255] : [0, 0, 0], Math.abs(t) * 0.45);
+  };
+  // Place a wheel's notes: each family takes a slice of the circle sized by how many notes it has, in wheel order.
+  const wheelLayout = (mode) => {
+    const inMode = (n) => (mode === "defects") === isDefect(n.path);
+    const families = WHEEL_NODES.filter((n) => n.depth === 1).map((family) => ({ family, members: WHEEL_NODES.filter((n) => n.depth > 1 && n.path.startsWith(family.path + WHEEL_SEP) && inMode(n)) })).filter((f) => f.members.length);
+    const total = families.reduce((sum, f) => sum + f.members.length, 0), points = [], labels = [], grey = [128, 128, 126];
+    const tone = (n) => (mode === "defects" ? mixRgb(nodeColour(n), grey, 0.38) : nodeColour(n));
+    const at = (n, angle, radius) => points.push({ path: n.path, label: n.label, x: Math.cos(angle) * radius, y: Math.sin(angle) * radius, rgb: tone(n) });
+    let turn = -Math.PI / 2;
+    families.forEach(({ family, members }) => {
+      const span = (members.length / total) * Math.PI * 2, step = span / members.length;
+      if (mode === "tasting") at(family, turn + span / 2, 0.2); // the defects wheel has no broad middle: "Other" says nothing
+      if (mode === "tasting") labels.push({ text: family.label.split(" / ")[0], angle: turn + span / 2 });
+      members.forEach((n, i) => {
+        const kids = members.filter((m) => m.parent === n.path), angle = turn + step * (i + 0.5);
+        if (n.depth === 3) at(n, angle, 0.86);
+        else if (!kids.length) at(n, angle, wheelKids(n.path).length ? 0.5 : 0.7); // a group with none of its notes on this wheel, or a note that is its own group
+        else at(n, turn + step * (i + 0.5 + kids.length / 2), 0.5);
+      });
+      if (mode === "defects") [...new Set(members.filter((n) => n.depth === 3).map((n) => n.parent))].forEach((group) => {
+        const spots = members.map((n, i) => (n.parent === group ? turn + step * (i + 0.5) : null)).filter((a) => a !== null);
+        labels.push({ text: DEFECT_LABELS[flavourLabel(group)] || flavourLabel(group), angle: spots.reduce((sum, a) => sum + a, 0) / spots.length });
+      });
+      turn += span;
+    });
+    return { points, labels };
+  };
+  const cwheel = { mode: "tasting", layouts: {}, bases: {}, touch: null, near: [] };
+  const layoutOf = (mode) => (cwheel.layouts[mode] ||= wheelLayout(mode));
+  // The blended disc. Colour flows along rays: at each angle the rim takes the colours of the single notes there, halfway in the
+  // groups, the middle the families, each blended with its neighbours around the circle and into the next ring, so there are no
+  // edges between rings. Where a ring has no note at an angle (the defects wheel has no middle) the ring outside it carries inward.
+  // A little light in the centre. Painted small once per wheel and scaled up.
+  const smoothStep = (t) => { const u = Math.max(0, Math.min(1, t)); return u * u * (3 - 2 * u); };
+  const blend = (a, b, t) => a.map((v, i) => v + (b[i] - v) * t);
+  const WHEEL_GLOW = [246, 238, 222];
+  const ringColour = (points, angle, spread) => {
+    let r = 0, g = 0, b = 0, sum = 0;
+    for (const p of points) { let gap = Math.abs(p.angle - angle) % (Math.PI * 2); if (gap > Math.PI) gap = Math.PI * 2 - gap; const w = Math.exp(-((gap / spread) ** 2) / 2); r += p.rgb[0] * w; g += p.rgb[1] * w; b += p.rgb[2] * w; sum += w; }
+    return { rgb: sum > 1e-12 ? [r / sum, g / sum, b / sum] : null, cover: Math.min(1, sum) };
+  };
+  const wheelBase = (mode) => {
+    if (cwheel.bases[mode]) return cwheel.bases[mode];
+    const size = 300, base = document.createElement("canvas"); base.width = base.height = size;
+    const ctx = base.getContext("2d"), img = ctx.createImageData(size, size);
+    const points = layoutOf(mode).points.map((p) => ({ ...p, angle: Math.atan2(p.y, p.x), reach: Math.hypot(p.x, p.y) }));
+    const rimNotes = points.filter((p) => p.reach > 0.62), midNotes = points.filter((p) => p.reach > 0.35 && p.reach <= 0.62), coreNotes = points.filter((p) => p.reach <= 0.35);
+    for (let py = 0; py < size; py++) for (let px = 0; px < size; px++) {
+      const x = (px + 0.5) / size * 2 - 1, y = (py + 0.5) / size * 2 - 1, reach = Math.hypot(x, y), angle = Math.atan2(y, x);
+      const rim = ringColour(rimNotes, angle, 0.11).rgb || [128, 128, 126], midRing = ringColour(midNotes, angle, 0.2), coreRing = ringColour(coreNotes, angle, 0.45);
+      const mid = midRing.rgb ? blend(ringColour(rimNotes, angle, 0.2).rgb || rim, midRing.rgb, midRing.cover) : rim, core = coreRing.rgb ? blend(mid, coreRing.rgb, coreRing.cover) : mid;
+      const flat = reach < 0.5 ? blend(core, mid, smoothStep((reach - 0.15) / 0.35)) : blend(mid, rim, smoothStep((reach - 0.5) / 0.36));
+      const rgb = blend(blend(flat, WHEEL_GLOW, 0.55), flat, smoothStep(reach / 0.45));
+      const i = (py * size + px) * 4; img.data[i] = rgb[0]; img.data[i + 1] = rgb[1]; img.data[i + 2] = rgb[2]; img.data[i + 3] = 255;
+    }
+    ctx.putImageData(img, 0, 0);
+    return (cwheel.bases[mode] = base);
+  };
+  const drawColourWheel = () => {
+    const canvas = $("cwheel"), ctx = canvas.getContext("2d"), size = canvas.width, half = size / 2, { points, labels } = layoutOf(cwheel.mode);
+    ctx.clearRect(0, 0, size, size); ctx.save(); ctx.beginPath(); ctx.arc(half, half, half - 1, 0, Math.PI * 2); ctx.clip();
+    ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = "high"; ctx.drawImage(wheelBase(cwheel.mode), 0, 0, size, size); ctx.restore();
+    ctx.font = "600 19px system-ui, sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.lineJoin = "round";
+    labels.forEach(({ text, angle }) => { const x = half + Math.cos(angle) * half * 0.62, y = half + Math.sin(angle) * half * 0.62; ctx.lineWidth = 5; ctx.strokeStyle = "rgba(0,0,0,.35)"; ctx.strokeText(text.toUpperCase(), x, y); ctx.fillStyle = "rgba(255,255,255,.92)"; ctx.fillText(text.toUpperCase(), x, y); });
+    // ticked notes show as small rings, the touch as a larger one
+    points.filter((p) => flavour.wheel.has(p.path)).forEach((p) => { ctx.beginPath(); ctx.arc(half + p.x * half, half + p.y * half, 9, 0, Math.PI * 2); ctx.lineWidth = 4; ctx.strokeStyle = "#fff"; ctx.stroke(); ctx.lineWidth = 1.5; ctx.strokeStyle = "rgba(0,0,0,.55)"; ctx.stroke(); });
+    if (cwheel.touch) { ctx.beginPath(); ctx.arc(half + cwheel.touch.x * half, half + cwheel.touch.y * half, 26, 0, Math.PI * 2); ctx.lineWidth = 5; ctx.strokeStyle = "rgba(255,255,255,.95)"; ctx.stroke(); ctx.lineWidth = 1.5; ctx.strokeStyle = "rgba(0,0,0,.5)"; ctx.stroke(); }
+  };
+  const NEAR_COUNT = 6;
+  const renderNear = () => {
+    $("nearHint").hidden = cwheel.near.length > 0;
+    $("nearChips").innerHTML = cwheel.near.map((p) => `<button type="button" data-p="${esc(p.path)}" aria-pressed="${isWheelTicked(p.path)}"${isDefect(p.path) ? ' class="defect"' : ""}><span class="dot" style="background:rgb(${p.rgb.join(",")})"></span>${esc(p.label)}</button>`).join("");
+  };
+  const touchWheel = (e) => {
+    const box = $("cwheel").getBoundingClientRect(); let x = (e.clientX - box.left) / box.width * 2 - 1, y = (e.clientY - box.top) / box.height * 2 - 1;
+    const reach = Math.hypot(x, y); if (reach > 1) { x /= reach; y /= reach; }
+    cwheel.touch = { x, y };
+    const near = [...layoutOf(cwheel.mode).points].sort((a, b) => Math.hypot(a.x - x, a.y - y) - Math.hypot(b.x - x, b.y - y)).slice(0, NEAR_COUNT);
+    const changed = near.map((p) => p.path).join() !== cwheel.near.map((p) => p.path).join();
+    cwheel.near = near; if (changed) renderNear(); drawColourWheel();
+  };
+  const setWheelMode = (mode) => {
+    cwheel.mode = mode; cwheel.touch = null; cwheel.near = [];
+    [...$("wheelMode").children].forEach((b) => b.setAttribute("aria-checked", String(b.dataset.mode === mode)));
+    $("nearHint").textContent = mode === "defects" ? "Off notes. Touch or drag to find the one you taste." : "Touch or drag on the wheel. The middle is broad, the edge is specific.";
+    renderNear(); drawColourWheel();
+  };
+
   // What is ticked in the open brew sheet: bag notes by name, wheel notes by path.
   const flavour = { bagNotes: [], bag: new Set(), wheel: new Set(), open: new Set(), query: "" };
   const wheelPicksUnder = (path) => [...flavour.wheel].filter((picked) => picked.startsWith(path + WHEEL_SEP));
@@ -1653,7 +1788,7 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
       const place = wheelPlaceOf(note);
       return `<div class="wrow"><input type="checkbox" id="bag_${i}" data-n="${esc(note)}"${flavour.bag.has(note.toLowerCase()) ? " checked" : ""}><label for="bag_${i}">${esc(note)}</label>${place ? `<span class="where">${esc(wheelGroupOf(place))}</span>` : ""}</div>`;
     }).join("");
-    $("flavourPicks").innerHTML = wheelPicks().map((path) => `<button type="button" data-p="${esc(path)}" aria-label="Remove ${esc(flavourLabel(path))}">${esc(flavourLabel(path))} ×</button>`).join("");
+    $("flavourPicks").innerHTML = wheelPicks().map((path) => `<button type="button" data-p="${esc(path)}"${isDefect(path) ? ' class="defect"' : ""} aria-label="Remove ${esc(flavourLabel(path))}">${esc(flavourLabel(path))} ×</button>`).join("");
   };
   // Fill the sheet's flavour section for a coffee: empty for a new brew, or from a saved entry's flavour list when editing.
   const loadFlavour = (c, saved) => {
@@ -1678,7 +1813,7 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
     const notes = bagNotesOf(c), found = new Set(picks.filter((f) => f.bag).map((f) => f.n.toLowerCase()));
     const missing = notes.filter((note) => !found.has(note.toLowerCase()));
     const line = !notes.length ? "" : !missing.length ? "All the bag notes found." : `${notes.length - missing.length} of ${notes.length} bag ${notes.length === 1 ? "note" : "notes"} found. Not there yet: ${missing.join(", ").toLowerCase()}.`;
-    return `<div class="taste">${picks.map((f) => `<span class="${f.bag ? "bag" : "own"}">${esc(f.n.toLowerCase())}</span>`).join("")}</div>${line ? `<p class="bagline">${esc(line)}</p>` : ""}`;
+    return `<div class="taste">${picks.map((f) => `<span class="${f.bag ? "bag" : isDefect(f.w) ? "defect" : "own"}">${esc(f.n.toLowerCase())}</span>`).join("")}</div>${line ? `<p class="bagline">${esc(line)}</p>` : ""}`;
   };
 
   const renderBrews = () => {
@@ -2177,10 +2312,20 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
     if (box.checked) flavour.bag.add(key); else flavour.bag.delete(key);
   });
   $("flavourPicks").addEventListener("click", (e) => { const chip = e.target.closest("button[data-p]"); if (!chip) return; flavour.wheel.delete(chip.dataset.p); renderFlavour(); });
-  $("openWheel").addEventListener("click", () => { flavour.query = ""; $("wheelSearch").value = ""; flavour.open = new Set(); renderWheel(); flavourDialog.showModal(); });
+  $("openWheel").addEventListener("click", () => { flavour.query = ""; $("wheelSearch").value = ""; flavour.open = new Set(); renderWheel(); flavourDialog.showModal(); setWheelMode("tasting"); });
+  // The wheel: a touch or a drag offers the nearest notes; the chips tick them. The list below stays in step.
+  { const canvas = $("cwheel"); let held = false;
+    canvas.addEventListener("pointerdown", (e) => { held = true; try { canvas.setPointerCapture(e.pointerId); } catch {} touchWheel(e); e.preventDefault(); });
+    canvas.addEventListener("pointermove", (e) => { if (held) touchWheel(e); });
+    ["pointerup", "pointercancel"].forEach((type) => canvas.addEventListener(type, () => { held = false; })); }
+  $("wheelMode").addEventListener("click", (e) => { const b = e.target.closest("button[data-mode]"); if (b && b.dataset.mode !== cwheel.mode) setWheelMode(b.dataset.mode); });
+  $("nearChips").addEventListener("click", (e) => {
+    const chip = e.target.closest("button[data-p]"); if (!chip) return;
+    toggleWheel(chip.dataset.p); renderNear(); drawColourWheel(); renderWheel();
+  });
   $("wheel").addEventListener("change", (e) => {
     const box = e.target.closest("input[data-p]"); if (!box) return;
-    toggleWheel(box.dataset.p); renderWheel(); $(box.id)?.focus({ preventScroll: true });
+    toggleWheel(box.dataset.p); renderWheel(); renderNear(); drawColourWheel(); $(box.id)?.focus({ preventScroll: true });
   });
   $("wheel").addEventListener("click", (e) => {
     const opener = e.target.closest("button[data-open]"); if (!opener) return;
@@ -2190,7 +2335,7 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
   });
   $("wheelSearch").addEventListener("input", (e) => { flavour.query = e.target.value; renderWheel(); });
   $("wheelSearch").addEventListener("keydown", (e) => { if (e.key === "Enter") e.preventDefault(); }); // Enter in the search box must not press Done
-  $("clearWheel").addEventListener("click", () => { flavour.wheel.clear(); renderWheel(); });
+  $("clearWheel").addEventListener("click", () => { flavour.wheel.clear(); renderWheel(); renderNear(); drawColourWheel(); });
   flavourDialog.addEventListener("close", () => renderFlavour());
   stars.addEventListener("click", (e) => {
     const b = e.target.closest("button[data-v]"); if (!b) return;
