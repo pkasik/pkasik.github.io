@@ -314,7 +314,11 @@ dialog.find { overflow: hidden; }
 .cwheel .seg { width: 100%; max-width: 300px; }
 #cwheel { width: min(100%, 300px); aspect-ratio: 1; height: auto; border-radius: 50%; touch-action: none; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; cursor: crosshair; }
 .cwheel-hint { margin: 0; font-size: 13px; color: var(--muted); text-align: center; }
-.chips.near { justify-content: center; min-height: 34px; width: 100%; }
+/* Room for three rows of chips, always: the chips change as the finger moves, and the sheet must not change height with them. */
+.near-box { width: 100%; height: 118px; overflow: hidden; display: grid; align-content: start; }
+.chips.near { justify-content: center; align-content: flex-start; width: 100%; }
+.chips.near:empty { display: none; }
+@media (max-width: 360px) { .near-box { height: 158px; } } /* a narrow phone can need a fourth row */
 .chips.near button { display: inline-flex; align-items: center; gap: 6px; padding: 7px 12px; font-size: 14px; }
 .chips.near button .dot { width: 10px; height: 10px; border-radius: 50%; flex: none; border: 1px solid color-mix(in srgb, var(--fg) 25%, transparent); }
 .chips.near button.defect[aria-pressed="true"] { background: transparent; color: var(--danger); border-color: var(--danger); }
@@ -653,8 +657,10 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
           <button type="button" data-mode="defects" role="radio" aria-checked="false">Defects</button>
         </div>
         <canvas id="cwheel" width="600" height="600" role="img" aria-label="Flavour colour wheel. Touch or drag to see the notes nearest your finger; the list below has every note."></canvas>
-        <p class="cwheel-hint" id="nearHint">Touch or drag on the wheel. The middle is broad, the edge is specific.</p>
-        <div class="chips near" id="nearChips" role="group" aria-label="Notes near your touch"></div>
+        <div class="near-box">
+          <p class="cwheel-hint" id="nearHint">Touch or drag on the wheel. The middle is broad, the edge is specific.</p>
+          <div class="chips near" id="nearChips" role="group" aria-label="Notes near your touch"></div>
+        </div>
       </div>
       <label class="f">Or search the full list<input id="wheelSearch" type="search" autocomplete="off" placeholder="blueberry, honey, cocoa"></label>
       <div class="wheel" id="wheel" role="group" aria-labelledby="flavourTitle"></div>
