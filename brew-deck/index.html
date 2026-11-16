@@ -714,7 +714,7 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
       </div>
     </div>
     <div class="actions"><button class="btn" id="resetSettings" type="button">Reset</button></div>
-    <p class="guide-note" id="settingsNote">Choosing a different paper from the one the recipe was written for moves the grind by its offset from TH-2 (TH-1 1 mark coarser; TH-3 and Abaca 1 mark finer; PURE.F 2 marks finer) and adjusts the finish window. The TH-1 and TH-3 offsets are first estimates. Every choice here is remembered for this coffee only. Reset returns this coffee to its written recipe: Casa, its base dose, first brewer, method and paper.</p>
+    <p class="guide-note" id="settingsNote">Choosing a different paper from the one the recipe was written for moves the grind by its offset from TH-2 (TH-1 1 mark coarser; TH-3 and Abaca 1 mark finer; PURE.F 2 marks finer) and adjusts the finish window. The TH-1 and TH-3 offsets are first estimates. Every choice here is remembered for this coffee only, and the paper for each method separately. Reset returns this coffee to its written recipe: Casa, its base dose, first brewer, method and paper.</p>
   </div>
 </dialog>
 
@@ -1060,7 +1060,8 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
   const marksOf = (delta) => Math.round(Math.abs(delta) * 5);
   const markWord = (n) => `${n} mark${n === 1 ? "" : "s"}`;
   // The paper in force for a coffee: what you chose for it, else the paper its active recipe was written for.
-  const filterFor = (c, r) => (isPaperLocked(c) ? filterKey(ruleOf(c).paper) : state.filterBy[c.id]) || filterKey(r.filter) || "TH-2";
+  // A paper picked in Brew settings is kept for that method only: each method otherwise brews on the paper it was written with.
+  const filterFor = (c, r) => (isPaperLocked(c) ? filterKey(ruleOf(c).paper) : state.filterBy[c.id]?.[methodOf(c)]) || filterKey(r.filter) || "TH-2";
   const PAPER_SHOWN = { Hario: "Hario tabbed" };
   const applyFilter = (r, to) => {
     const from = filterKey(r.filter);
@@ -1070,6 +1071,15 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
     const grind = fmtDial(v + delta);
     const finish = shiftFinish(r.finish, FILTERS[to].time - FILTERS[from].time);
     return { ...r, filter: PAPER_SHOWN[to] || to, filterNote: `recipe written for ${from}`, grind, grindNote: delta ? `${markWord(marksOf(delta))} ${delta < 0 ? "finer" : "coarser"} for ${to}` : `same grind for ${to}`, finish, filterChanged: { from, to, same: !delta && FILTERS[to].time === FILTERS[from].time } };
+  };
+  // The paper picked for each method, stored as { method: paper }. One picked before papers were kept per method (a single paper for the
+  // whole coffee) is kept for the method the coffee is on now.
+  const loadPaperChoice = (c) => {
+    const saved = JSON.parse(localStorage.getItem("brewdeck.paper." + c.id) || "null"), old = localStorage.getItem("brewdeck.filter." + c.id);
+    if (saved && typeof saved === "object") { state.filterBy[c.id] = Object.fromEntries(Object.entries(saved).filter(([m, f]) => METHOD_ORDER.includes(m) && PAPER_CHOICES.includes(f))); return; }
+    if (!PAPER_CHOICES.includes(old)) return;
+    state.filterBy[c.id] = { [methodOf(c)]: old };
+    localStorage.setItem("brewdeck.paper." + c.id, JSON.stringify(state.filterBy[c.id])); localStorage.removeItem("brewdeck.filter." + c.id);
   };
   // Stored choices. Before the split, one name held both ("Kinto SCS", "Triple Bloom"), and before that a position in the list; either is
   // read once, split into a brewer and a method, and stored the new way.
@@ -1720,7 +1730,7 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
     $("grinderSeg").querySelector('[data-g="ode"]').hidden = esp;
     $("settingsNote").textContent = esp
       ? "Dose and ratio set the yield (18 g × 2.4 = 43 g); the deck uses the written recipe nearest your dose and keeps its shot timing. The Ode is not offered for espresso. The dot marks the ratio the recipe was written at. Every choice here is remembered for this coffee only. Reset returns this coffee to its written recipe: Casa, its base dose and ratio."
-      : "Choosing a different paper from the one the recipe was written for moves the grind by its offset from TH-2 (TH-1 1 mark coarser; TH-3 and Abaca 1 mark finer; PURE.F 2 marks finer) and adjusts the finish window. The TH-1 and TH-3 offsets are first estimates. Every choice here is remembered for this coffee only. Reset returns this coffee to its written recipe: Casa, its base dose, first brewer, method and paper." + (coffee && ruleOf(coffee).note ? " " + ruleOf(coffee).note : "") + (coffee && capacityNote(coffee) ? " " + capacityNote(coffee) : "");
+      : "Choosing a different paper from the one the recipe was written for moves the grind by its offset from TH-2 (TH-1 1 mark coarser; TH-3 and Abaca 1 mark finer; PURE.F 2 marks finer) and adjusts the finish window. The TH-1 and TH-3 offsets are first estimates. Every choice here is remembered for this coffee only, and the paper for each method separately. Reset returns this coffee to its written recipe: Casa, its base dose, first brewer, method and paper." + (coffee && ruleOf(coffee).note ? " " + ruleOf(coffee).note : "") + (coffee && capacityNote(coffee) ? " " + capacityNote(coffee) : "");
     if (esp && coffee) {
       const written = writtenRatio(coffee), chosen = state.ratioBy[coffee.id] ?? written;
       const options = [...new Set([...RATIOS, written].filter(Boolean))].sort((a, b) => a - b);
@@ -1766,7 +1776,7 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
   $("resetSettings").addEventListener("click", () => {
     const c = state.coffees.find((x) => x.id === state.settingsFor); if (!c) return;
     [state.brewerBy, state.methodBy, state.doseBy, state.grinderBy, state.filterBy, state.ratioBy].forEach((choices) => { delete choices[c.id]; });
-    try { ["brewer", "method", "variant", "dose", "grinder", "filter", "ratio"].forEach((key) => localStorage.removeItem(`brewdeck.${key}.${c.id}`)); } catch {}
+    try { ["brewer", "method", "variant", "dose", "grinder", "filter", "paper", "ratio"].forEach((key) => localStorage.removeItem(`brewdeck.${key}.${c.id}`)); } catch {}
     renderMethodSeg(); renderFilterSeg(); renderDoseSeg(); renderGrinderSeg(); rerenderCard(c); renderGrid();
   });
   const openSettings = (id) => { state.settingsFor = id; renderMethodSeg(); renderFilterSeg(); renderDoseSeg(); renderGrinderSeg(); $("settingsDialog").showModal(); };
@@ -1788,8 +1798,8 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
   $("filterSeg").addEventListener("click", (e) => {
     const b = e.target.closest("button[data-f]"); if (!b) return;
     const c = state.coffees.find((x) => x.id === state.settingsFor); if (!c || isPaperLocked(c)) return;
-    state.filterBy[c.id] = b.dataset.f;
-    try { localStorage.setItem("brewdeck.filter." + c.id, b.dataset.f); } catch {}
+    state.filterBy[c.id] = { ...(state.filterBy[c.id] || {}), [methodOf(c)]: b.dataset.f };
+    try { localStorage.setItem("brewdeck.paper." + c.id, JSON.stringify(state.filterBy[c.id])); } catch {}
     renderFilterSeg(); rerenderCard(c);
   });
   $("openGuide").addEventListener("click", () => { $("accountDialog").close(); $("guideDialog").showModal(); });
@@ -2330,7 +2340,7 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
     state.coffees = sortCoffees(list.map((c) => ({ ...c })));
     state.coffees.forEach((c) => {
       loadMethodChoice(c);
-      if (state.filterBy[c.id] === undefined) { try { const f = localStorage.getItem("brewdeck.filter." + c.id); if (PAPER_CHOICES.includes(f)) state.filterBy[c.id] = f; } catch {} }
+      if (state.filterBy[c.id] === undefined) { try { loadPaperChoice(c); } catch {} }
       if (state.ratioBy[c.id] === undefined) { try { const r = Number(localStorage.getItem("brewdeck.ratio." + c.id)); if (r > 0) state.ratioBy[c.id] = r; } catch {} }
       if (state.doseBy[c.id] === undefined) { try { const d = Number(localStorage.getItem("brewdeck.dose." + c.id)); if (DOSE_CHOICES[kindOf(c)].includes(d)) state.doseBy[c.id] = d; } catch {} }
       if (state.grinderBy[c.id] === undefined) { try { const g = localStorage.getItem("brewdeck.grinder." + c.id); if (GRINDER_KEYS.includes(g)) state.grinderBy[c.id] = g; } catch {} }
