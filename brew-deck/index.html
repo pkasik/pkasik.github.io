@@ -756,9 +756,11 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
       <svg class="timer-art" id="t_art" viewBox="0 0 120 150" aria-hidden="true">
         <defs><clipPath id="t_cone"><polygon points="12,34 108,34 72,104 48,104"/></clipPath><clipPath id="t_cup"><rect x="30" y="116" width="60" height="30" rx="5"/></clipPath></defs>
         <line class="stream" id="t_stream" x1="60" y1="4" x2="60" y2="40"/>
-        <rect id="t_level" x="12" y="104" width="96" height="0" fill="var(--c-fg)" opacity=".85" clip-path="url(#t_cone)"/>
-        <polygon points="12,34 108,34 72,104 48,104" fill="none" stroke="var(--c-fg)" stroke-width="2.5" stroke-linejoin="round"/>
-        <line x1="60" y1="104" x2="60" y2="112" stroke="var(--c-fg)" stroke-width="2.5" stroke-dasharray="2 3" id="t_drip" opacity="0"/>
+        <g id="t_dripper">
+          <g clip-path="url(#t_cone)"><rect id="t_level" x="0" y="104" width="120" height="0" fill="var(--c-fg)" opacity=".85"/></g>
+          <polygon points="12,34 108,34 72,104 48,104" fill="none" stroke="var(--c-fg)" stroke-width="2.5" stroke-linejoin="round"/>
+          <line x1="60" y1="104" x2="60" y2="112" stroke="var(--c-fg)" stroke-width="2.5" stroke-dasharray="2 3" id="t_drip" opacity="0"/>
+        </g>
         <rect id="t_cupfill" x="30" y="146" width="60" height="0" fill="var(--c-fg)" opacity=".85" clip-path="url(#t_cup)"/>
         <rect x="30" y="116" width="60" height="30" rx="5" fill="none" stroke="var(--c-fg)" stroke-width="2.5"/>
       </svg>
@@ -1756,6 +1758,30 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
   const renderTimerSteps = (activeIdx, doneBefore) => {
     $("t_steps").innerHTML = timer.tl.steps.map((s, i) => `<li class="${i === activeIdx ? "active" : i < doneBefore ? "done" : ""}"><span class="t">${mmss(s.t)}</span><span class="w">${s.pour ? `→ ${s.to} g` : "—"}</span><span>${esc(s.action)}</span></li>`).join("");
   };
+  // The pour and the swirl, read from the recipe's own words. A spiral pour moves the stream slowly from side to side, the passes
+  // widening and narrowing as the kettle circles out from the centre and back in; a pour down the centre stays still. A step that
+  // says swirl rocks the dripper in small circles for a few seconds once its water is in, and the water tips with it.
+  // With reduced motion asked for on the phone, nothing moves; the timer's words still say when to swirl.
+  const STILL = matchMedia("(prefers-reduced-motion: reduce)");
+  const SPIRAL_S = 2.4, SPIRAL_REACH = 20;          // one side-to-side pass in 2.4 s, up to 20 units either side of centre
+  const SWIRL_S = 4, SWIRL_TURN_S = 0.9;           // a swirl lasts 4 s, one turn of the dripper every 0.9 s
+  const centrePour = (action) => /centre|center/i.test(action) && !/spiral|circle|outside in|cent(re|er) out/i.test(action);
+  // The cone's half-width at a height in the drawing (rim 48 wide each side at y 34, outlet 12 at y 104).
+  const coneHalfAt = (y) => 48 - (Math.min(104, Math.max(34, y)) - 34) * (36 / 70);
+  const streamOffset = (step, t, room) => {
+    if (STILL.matches || centrePour(step.action)) return 0;
+    const u = t - step.t, reach = Math.min(SPIRAL_REACH, room) * (0.4 + 0.6 * Math.abs(Math.sin(Math.PI * u / (SPIRAL_S * 3))));
+    return reach * Math.sin(2 * Math.PI * u / SPIRAL_S);   // starts in the centre
+  };
+  // The swirl a step asks for: it starts when that step's water is in (or at the step, if it pours nothing) and stops early for the next step.
+  const swirlAt = (steps, t) => {
+    for (const [i, step] of steps.entries()) {
+      if (!/swirl/i.test(step.action)) continue;
+      const from = step.pour ? step.end : step.t, until = Math.min(from + SWIRL_S, steps[i + 1]?.t ?? Infinity);
+      if (t >= from && t < until) return { u: t - from, span: until - from, gentle: /gentle|light/i.test(step.action) };
+    }
+    return null;
+  };
   const paintTimer = (t) => {
     const tl = timer.tl;
     $("t_time").textContent = mmss(t);
@@ -1773,6 +1799,8 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
     else { phase = s.pour ? "Done" : s.action; goal = `${tl.total} g in`; }
     if (s && !s.pour && t >= s.t && (!next || t < next.t)) phase = s.action;
     if (!timer.running && t === 0 && s) { phase = `Ready · first: ${s.action}`; goal = s.pour ? `→ ${s.to} g` : ""; }
+    const swirl = timer.esp ? null : swirlAt(tl.steps, t);
+    if (swirl && !pouring) phase = phase.startsWith("Wait · ") ? "Swirl · " + phase.slice(7) : `Swirl · ${phase.charAt(0).toLowerCase()}${phase.slice(1)}`;
     $("t_phase").textContent = phase;
     $("t_water").textContent = `${Math.round(w)} g`;
     $("t_goal").textContent = goal;
@@ -1780,7 +1808,17 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
     $("t_art").classList.toggle("pouring", !!pouring);
     const inCone = tl.level(t);
     const h = 70 * Math.min(1, inCone / tl.peak);
-    const level = $("t_level"); level.setAttribute("y", String(104 - h)); level.setAttribute("height", String(h));
+    const level = $("t_level"); level.setAttribute("y", String(104 - h)); level.setAttribute("height", String(h + 20));
+    // The stream runs down to the water and moves no wider than the cone allows at that height, with a little room to the wall.
+    const surface = Math.max(40, 104 - h), stream = $("t_stream");
+    stream.setAttribute("y2", surface.toFixed(1));
+    stream.setAttribute("transform", `translate(${(pouring ? streamOffset(s, t, coneHalfAt(surface) - 7) : 0).toFixed(2)} 0)`);
+    if (swirl && !STILL.matches) {
+      const ease = Math.sin(Math.PI * swirl.u / swirl.span), turn = 2 * Math.PI * swirl.u / SWIRL_TURN_S, r = (swirl.gentle ? 2.5 : 4) * ease;
+      const tilt = (swirl.gentle ? 6 : 9) * ease * Math.min(1, h / 10) * Math.cos(turn - 0.6); // the water lags the cone a little
+      $("t_dripper").setAttribute("transform", `translate(${(r * Math.cos(turn)).toFixed(2)} ${(r * 0.35 * Math.sin(turn)).toFixed(2)})`);
+      level.setAttribute("transform", `rotate(${tilt.toFixed(2)} 60 ${(104 - h).toFixed(1)})`);
+    } else { $("t_dripper").removeAttribute("transform"); level.removeAttribute("transform"); }
     const cupH = 30 * Math.min(1, tl.total ? tl.drained(t) / tl.total : 0);
     const cup = $("t_cupfill"); cup.setAttribute("y", String(146 - cupH)); cup.setAttribute("height", String(cupH));
     $("t_drip").setAttribute("opacity", inCone > 0.5 && t > 5 ? "0.7" : "0");
