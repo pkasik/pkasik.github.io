@@ -548,7 +548,8 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
       </div>
       <div class="grid3">
         <label class="f">Water<input id="f_water" name="water" autocomplete="off" placeholder="96°C"></label>
-        <label class="f">Filter<input id="f_filter" name="filter" autocomplete="off" placeholder="TH-2"></label>
+        <label class="f">Filter<input id="f_filter" name="filter" autocomplete="off" placeholder="TH-2" list="paperNames"></label>
+        <datalist id="paperNames"><option value="TH-1">CAFEC T-92 · light roast</option><option value="TH-2">CAFEC T-83 · dark roast</option><option value="TH-3">CAFEC T-90 · medium-dark</option><option value="Abaca">CAFEC Abaca</option><option value="PURE.F"></option><option value="Hario tabbed">V60-01</option></datalist>
         <label class="f">Grind<input id="f_grind" name="grind" autocomplete="off" placeholder="1.4.8"></label>
         <label class="f">Filter note<input id="f_filterNote" name="filterNote" autocomplete="off" placeholder="or PURE.F"></label>
         <label class="f">Grind note<input id="f_grindNote" name="grindNote" autocomplete="off" placeholder="PURE.F: 1.4.4"></label>
@@ -696,9 +697,11 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
     </div>
     <div class="setting" id="filterRow"><span class="dose-label">Filter</span>
       <div class="seg wrap" id="filterSeg" role="radiogroup" aria-label="Filter paper">
-        <button type="button" data-f="PURE.F" role="radio" aria-checked="false">PURE.F</button>
+        <button type="button" data-f="TH-1" role="radio" aria-checked="false">TH-1</button>
         <button type="button" data-f="TH-2" role="radio" aria-checked="false">TH-2</button>
+        <button type="button" data-f="TH-3" role="radio" aria-checked="false">TH-3</button>
         <button type="button" data-f="Abaca" role="radio" aria-checked="false">Abaca</button>
+        <button type="button" data-f="PURE.F" role="radio" aria-checked="false">PURE.F</button>
       </div>
       <div class="seg wrap" id="filterLocked" hidden><span class="fixed" id="filterLockedName"></span></div>
     </div>
@@ -710,7 +713,7 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
       </div>
     </div>
     <div class="actions"><button class="btn" id="resetSettings" type="button">Reset</button></div>
-    <p class="guide-note" id="settingsNote">Choosing a different paper from the one the recipe was written for moves the grind by its offset (PURE.F 2 marks finer than TH-2, Abaca 1 mark finer) and adjusts the finish window. Every choice here is remembered for this coffee only. Reset returns this coffee to its written recipe: Casa, its base dose, first method and paper.</p>
+    <p class="guide-note" id="settingsNote">Choosing a different paper from the one the recipe was written for moves the grind by its offset from TH-2 (TH-1 1 mark coarser; TH-3 and Abaca 1 mark finer; PURE.F 2 marks finer) and adjusts the finish window. The TH-1 and TH-3 offsets are first estimates. Every choice here is remembered for this coffee only. Reset returns this coffee to its written recipe: Casa, its base dose, first method and paper.</p>
   </div>
 </dialog>
 
@@ -947,7 +950,11 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
   };
   // Filter papers: grind offset in Casa numbers relative to TH-2, and the drawdown they add or remove.
   // Filter offsets in Casa numbers (aligned to the dial's marks: PURE.F two marks finer than TH-2, Abaca one mark finer).
-  const FILTERS = { "PURE.F": { off: -0.4, time: -20 }, "TH-2": { off: 0, time: 0 }, "Abaca": { off: -0.2, time: -10 }, "Hario": { off: 0, time: 0 } };
+  // CAFEC's roast-level papers are TH-1 (T-92, light roast), TH-2 (T-83, dark roast) and TH-3 (T-90, medium-dark). TH-1 is the densest and
+  // slowest, TH-3 has the smoothest flow; their offsets are first estimates from CAFEC's descriptions, to be corrected from the brew log.
+  const FILTERS = { "PURE.F": { off: -0.4, time: -20 }, "TH-1": { off: 0.2, time: 10 }, "TH-2": { off: 0, time: 0 }, "TH-3": { off: -0.2, time: -10 }, "Abaca": { off: -0.2, time: -10 }, "Hario": { off: 0, time: 0 } };
+  // The papers offered in brew settings, in the order shown. Hario only comes with the V60-01, whose paper is fixed.
+  const PAPER_CHOICES = ["TH-1", "TH-2", "TH-3", "Abaca", "PURE.F"];
   // What a paper swap changes in the brew and in the cup. These are tendencies taken from maker and retailer
   // descriptions and from timings logged with this deck, so they are worded as expectations, not promises.
   const PAPER_SWAPS = {
@@ -957,6 +964,20 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
     "Abaca>PURE.F": "PURE.F is faster again and takes a finer grind. Expect more intensity and a heavier mouthfeel.",
     "PURE.F>TH-2": "TH-2 is the slowest of the three and restricts late. Expect a rounder, sweeter cup; watch the finish time on 30 g brews.",
     "PURE.F>Abaca": "Abaca is slower and holds back more fines. Expect a cleaner, lighter-bodied cup with a little less intensity.",
+    "TH-2>TH-1": "TH-1 is CAFEC's light-roast paper: denser and slower, so water builds up in the cone. Expect more aroma and a cleaner cup than TH-2, with less body; if it runs long or turns drying, go a mark coarser.",
+    "TH-1>TH-2": "TH-2 is CAFEC's dark-roast paper: it runs faster at first and slows late. Expect more body and sweetness and a little less clarity than TH-1.",
+    "TH-2>TH-3": "TH-3 is CAFEC's medium-dark paper and has the smoothest flow of the three, so the brew finishes sooner. Expect a balanced cup with less of TH-2's weight.",
+    "TH-3>TH-2": "TH-2 slows towards the end, so contact time goes up. Expect more body and sweetness than TH-3; if the finish turns drying, go a mark coarser.",
+    "TH-1>TH-3": "TH-3 runs much more freely than TH-1, so the brew finishes sooner. Expect a rounder, more balanced cup with less of TH-1's aroma and clarity.",
+    "TH-3>TH-1": "TH-1 is denser and slower than TH-3, so water builds up and contact time goes up. Expect more aroma and clarity; watch the finish time on 30 g brews.",
+    "Abaca>TH-1": "TH-1 is slower than Abaca, so water builds up in the cone. Expect a similarly clean cup with more aroma and a longer brew.",
+    "TH-1>Abaca": "Abaca drains more freely than TH-1, so the brew finishes sooner. Expect a clean cup with a little less aroma and intensity.",
+    "Abaca>TH-3": "TH-3 drains about as freely as Abaca. Expect a little more body and a softer, more balanced cup.",
+    "TH-3>Abaca": "Abaca drains about as freely as TH-3 and holds back more fines. Expect a cleaner, lighter-bodied cup.",
+    "PURE.F>TH-1": "TH-1 is far slower than PURE.F and holds back fines, so the grind goes coarser. Expect a much cleaner, more aromatic cup with less weight.",
+    "TH-1>PURE.F": "PURE.F is the fastest paper and lets more through, so it takes a finer grind. Expect a fuller, more intense cup with less clarity than TH-1.",
+    "PURE.F>TH-3": "TH-3 is slower than PURE.F and filters more. Expect a smoother, more balanced cup with less intensity.",
+    "TH-3>PURE.F": "PURE.F runs faster and lets more through, so it takes a finer grind. Expect more intensity and a heavier mouthfeel than TH-3.",
   };
   // "Natural", "Coco natural" and "Fully washed" count; blends of both and guesses ("likely washed") do not.
   const processOf = (c) => {
@@ -972,7 +993,16 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
       process === "washed" && to === "TH-2" ? "On a washed coffee this trades some clarity for sweetness." : "",
     ].filter(Boolean).join(" ");
   };
-  const filterKey = (s) => { const t = String(s || ""); if (/pure/i.test(t)) return "PURE.F"; if (/th-?2/i.test(t)) return "TH-2"; if (/abaca/i.test(t)) return "Abaca"; if (/hario/i.test(t)) return "Hario"; return null; };
+  const filterKey = (s) => {
+    const t = String(s || "");
+    if (/pure/i.test(t)) return "PURE.F";
+    if (/\bth-?1\b|\bt-?92\b/i.test(t)) return "TH-1";
+    if (/\bth-?2\b|\bt-?83\b/i.test(t)) return "TH-2";
+    if (/\bth-?3\b|\bt-?90\b/i.test(t)) return "TH-3";
+    if (/abaca/i.test(t)) return "Abaca";
+    if (/hario/i.test(t)) return "Hario";
+    return null;
+  };
   // Format a dial value (in numbers, e.g. 14.4) as rotation.number.tenth: "1.4.4".
   const fmtDial = (v) => { const tenths = Math.round(v * 10 + 1e-6); return `${Math.floor(tenths / 100)}.${Math.floor(tenths / 10) % 10}.${tenths % 10}`; };
   // A stored setting in any notation, shown in the current one; text that isn't a setting is shown as written.
@@ -988,7 +1018,7 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
     const delta = FILTERS[to].off - FILTERS[from].off;
     const grind = fmtDial(v + delta);
     const finish = shiftFinish(r.finish, FILTERS[to].time - FILTERS[from].time);
-    return { ...r, filter: to, filterNote: `recipe written for ${from}`, grind, grindNote: `${markWord(marksOf(delta))} ${delta < 0 ? "finer" : "coarser"} for ${to}`, finish, filterChanged: { from, to } };
+    return { ...r, filter: to, filterNote: `recipe written for ${from}`, grind, grindNote: delta ? `${markWord(marksOf(delta))} ${delta < 0 ? "finer" : "coarser"} for ${to}` : `same grind for ${to}`, finish, filterChanged: { from, to, same: !delta && FILTERS[to].time === FILTERS[from].time } };
   };
   const methodsOf = (c) => {
     const seen = new Set();
@@ -1033,7 +1063,7 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
     const grinder = grinderFor(c), gName = GRINDERS[grinder] || "Casa";
     const summary = esp ? [methodLabel(rs[vi]), `${doseFor(c)} g`, ratioLabel(r.ratio), gName].join(" · ") : [methodLabel(rs[vi]), `${doseFor(c)} g`, r.filter || "—", gName].join(" · ");
     const tabs = `<div><button class="setline" type="button" data-id="${esc(c.id)}" aria-haspopup="dialog" aria-label="Brew settings: ${esc(summary)}"><span class="gear" aria-hidden="true">⚙</span><span class="txt">${esc(summary)}</span></button></div>`;
-    const filterNote = r.filterChanged ? `<p class="scaled">Paper changed from ${esc(r.filterChanged.from)} to ${esc(r.filterChanged.to)}: grind and finish window adjusted. ${esc(paperSwapNote(c, r.filterChanged.from, r.filterChanged.to))}</p>` : "";
+    const filterNote = r.filterChanged ? `<p class="scaled">Paper changed from ${esc(r.filterChanged.from)} to ${esc(r.filterChanged.to)}: ${r.filterChanged.same ? "same grind and finish window" : "grind and finish window adjusted"}. ${esc(paperSwapNote(c, r.filterChanged.from, r.filterChanged.to))}</p>` : "";
     const grindHint = (() => {
       const d = doseFor(c) - r.scaledFrom;
       const big = { c40: "3 clicks", ode: "2 clicks" }[grinder] || "a full number", small = { c40: "2 clicks", ode: "1 click" }[grinder] || "2 marks";
@@ -1625,7 +1655,7 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
     $("grinderSeg").querySelector('[data-g="ode"]').hidden = esp;
     $("settingsNote").textContent = esp
       ? "Dose and ratio set the yield (18 g × 2.4 = 43 g); the deck uses the written recipe nearest your dose and keeps its shot timing. The Ode is not offered for espresso. The dot marks the ratio the recipe was written at. Every choice here is remembered for this coffee only. Reset returns this coffee to its written recipe: Casa, its base dose and ratio."
-      : "Choosing a different paper from the one the recipe was written for moves the grind by its offset (PURE.F 2 marks finer than TH-2, Abaca 1 mark finer) and adjusts the finish window. Every choice here is remembered for this coffee only. Reset returns this coffee to its written recipe: Casa, its base dose, first method and paper." + (coffee && methodRuleOf(coffee).note ? " " + methodRuleOf(coffee).note : "");
+      : "Choosing a different paper from the one the recipe was written for moves the grind by its offset from TH-2 (TH-1 1 mark coarser; TH-3 and Abaca 1 mark finer; PURE.F 2 marks finer) and adjusts the finish window. The TH-1 and TH-3 offsets are first estimates. Every choice here is remembered for this coffee only. Reset returns this coffee to its written recipe: Casa, its base dose, first method and paper." + (coffee && methodRuleOf(coffee).note ? " " + methodRuleOf(coffee).note : "");
     if (esp && coffee) {
       const written = writtenRatio(coffee), chosen = state.ratioBy[coffee.id] ?? written;
       const options = [...new Set([...RATIOS, written].filter(Boolean))].sort((a, b) => a - b);
@@ -2227,7 +2257,7 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
     state.coffees = sortCoffees(list.map((c) => ({ ...c })));
     state.coffees.forEach((c) => {
       loadMethodChoice(c);
-      if (state.filterBy[c.id] === undefined) { try { const f = localStorage.getItem("brewdeck.filter." + c.id); if (["PURE.F", "TH-2", "Abaca"].includes(f)) state.filterBy[c.id] = f; } catch {} }
+      if (state.filterBy[c.id] === undefined) { try { const f = localStorage.getItem("brewdeck.filter." + c.id); if (PAPER_CHOICES.includes(f)) state.filterBy[c.id] = f; } catch {} }
       if (state.ratioBy[c.id] === undefined) { try { const r = Number(localStorage.getItem("brewdeck.ratio." + c.id)); if (r > 0) state.ratioBy[c.id] = r; } catch {} }
       if (state.doseBy[c.id] === undefined) { try { const d = Number(localStorage.getItem("brewdeck.dose." + c.id)); if (DOSE_CHOICES[kindOf(c)].includes(d)) state.doseBy[c.id] = d; } catch {} }
       if (state.grinderBy[c.id] === undefined) { try { const g = localStorage.getItem("brewdeck.grinder." + c.id); if (GRINDER_KEYS.includes(g)) state.grinderBy[c.id] = g; } catch {} }
