@@ -1,5 +1,5 @@
 // Brew Deck service worker: network-first for the page (so updates land on the next open), cache-first for everything else, and the cached page as an offline fallback.
-const CACHE = "brew-deck-v49";
+const CACHE = "brew-deck-v50";
 const PRECACHE = ["./", "./index.html", "./manifest.webmanifest", "./icon.svg", "./icon-192.png", "./icon-512.png", "./apple-touch-icon.png", "./sortable.min.js"];
 // The sync library the page loads. Without it the app opens signed out, so it is kept at install as well as on first use.
 // Keep this the same address as the <script> tag in index.html; if they drift apart the copy is simply made on first use instead.
