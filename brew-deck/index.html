@@ -1475,13 +1475,14 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
 
   // ---------- Changing deck ----------
   // Filter and Espresso behave like two pages side by side. Swipe sideways and the tiles follow the finger while the other deck comes in
-  // beside them; tap a tab and they glide across the same way. There are only two decks, so a swipe in either direction leads to the other.
+  // beside them; tap a tab and they glide across the same way. The decks sit side by side, Filter on the left and Espresso on the right: swipe left for Espresso, right to come back to Filter. A swipe towards the edge there is no deck beyond does nothing.
   // Let go past a third of the way, or flick, and it carries on; otherwise it springs back. Scrolling and press-and-hold reordering are left
   // alone, and nothing happens in a card or under an open sheet.
   const pager = { phase: "idle", x: 0, y: 0, dx: 0, width: 0, trail: [], blockClicksUntil: 0 }; // phase: idle, watching (direction not known yet), dragging, settling
   const SETTLE_MS = matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 380;
   const SETTLE_EASE = "cubic-bezier(.22, .8, .24, 1)"; // quick to start, long gentle finish
   const tabOf = (kind) => (kind === "espresso" ? 1 : 0);
+  const leadsToOtherDeck = (dx) => (state.kind === "espresso" ? dx > 0 : dx < 0); // the other deck is to the right of Filter, to the left of Espresso
   const setKind = (kind) => {
     state.kind = kind; state.showAllArchived = false;
     try { localStorage.setItem("brewdeck.kind", state.kind); } catch {}
@@ -1545,8 +1546,10 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
       if (drag.suppressClick || e.touches.length !== 1) { pager.phase = "idle"; return; }         // a tile is being reordered
       if (Math.abs(dy) > 10 && Math.abs(dy) >= Math.abs(dx)) { pager.phase = "idle"; return; }    // the page is being scrolled
       if (Math.abs(dx) < 12 || Math.abs(dx) < Math.abs(dy) * 1.5) return;                         // not clearly sideways yet
+      if (!leadsToOtherDeck(dx)) { pager.phase = "idle"; return; }                                // no deck that way
       pager.dx = dx; showOtherDeck(); pager.phase = "dragging";
     }
+    if (!leadsToOtherDeck(dx)) { pager.dx = 0; pager.trail = [{ dx: 0, t: Date.now() }]; placeDecks(0, false); if (e.cancelable) e.preventDefault(); return; } // dragged back past the start: the deck stays put
     if (e.cancelable) e.preventDefault(); // the finger is moving the decks, so the page must not scroll with it
     // Remember roughly the last tenth of a second of movement, to tell a flick from a slow drag when the finger lifts.
     const now = Date.now(); pager.trail.push({ dx, t: now }); while (pager.trail.length > 2 && now - pager.trail[0].t > 120) pager.trail.shift();
