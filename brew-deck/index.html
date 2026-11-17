@@ -1519,22 +1519,30 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
     requestAnimationFrame(() => requestAnimationFrame(() => { if (pager.phase === "idle") seg.classList.remove("following"); }));
   };
   placeTabAtLaunch();
+  // The glide takes a moment. A touch or a tab tap that arrives during it is not made to wait: the glide is finished on the spot and the
+  // new move starts from there.
+  const settle = { timer: null, done: null };
+  const finishSettle = () => { if (!settle.done) return; clearTimeout(settle.timer); const done = settle.done; settle.done = null; done(); };
   // Finish the move: glide across to the other deck, or back to where it was.
   const settleDecks = (go) => {
     pager.phase = "settling"; pager.blockClicksUntil = Date.now() + Math.max(SETTLE_MS, 250);
     if (go) $("modeSeg").querySelectorAll("button").forEach((b) => b.setAttribute("aria-checked", String(b.dataset.k === otherKind())));
     placeDecks(go ? (pager.dx < 0 ? -pager.width : pager.width) : 0, true);
-    setTimeout(() => { if (go) { setKind(otherKind()); $("deckScroll").scrollTop = 0; } restDecks(); }, SETTLE_MS + 30);
+    settle.done = () => { if (go) { setKind(otherKind()); $("deckScroll").scrollTop = 0; } restDecks(); };
+    settle.timer = setTimeout(finishSettle, SETTLE_MS + 30);
   };
   // Tapping a tab plays the same move a swipe would: Espresso comes in from the right, Filter from the left.
   $("modeSeg").addEventListener("click", (e) => {
-    const b = e.target.closest("button[data-k]"); if (!b || b.dataset.k === state.kind || pager.phase !== "idle") return;
+    const b = e.target.closest("button[data-k]"); if (!b) return;
+    if (pager.phase === "settling") finishSettle();
+    if (b.dataset.k === state.kind || pager.phase !== "idle") return;
     pager.dx = b.dataset.k === "espresso" ? -1 : 1;
     showOtherDeck(); placeDecks(0, false); void $("grid").offsetWidth; // start from rest, then glide
     settleDecks(true);
   });
   // The listeners sit on the document because a deck with few tiles leaves most of the screen empty.
   document.addEventListener("touchstart", (e) => {
+    if (pager.phase === "settling" && e.touches.length === 1 && !$("dash").hidden) finishSettle();
     if (pager.phase !== "idle") return;
     if (e.touches.length !== 1 || $("dash").hidden || document.querySelector("dialog[open]") || drag.suppressClick) return;
     pager.phase = "watching"; pager.x = e.touches[0].clientX; pager.y = e.touches[0].clientY; pager.dx = 0; pager.trail = [{ dx: 0, t: Date.now() }];
@@ -1567,7 +1575,7 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
   document.addEventListener("touchend", () => releaseDecks(false), { passive: true });
   document.addEventListener("touchcancel", () => releaseDecks(true), { passive: true });
   // The touch that dragged the decks must not also open the tile it started on.
-  $("dash").addEventListener("click", (e) => { if (Date.now() < pager.blockClicksUntil) { e.stopPropagation(); e.preventDefault(); } }, true);
+  $("dash").addEventListener("click", (e) => { if (Date.now() < pager.blockClicksUntil && !e.target.closest("#modeSeg")) { e.stopPropagation(); e.preventDefault(); } }, true); // the tabs are never blocked
   const findDialog = $("findDialog");
   // Opens with nothing focused but the heading, so no keyboard appears until the search box is tapped.
   $("openFind").addEventListener("click", () => { $("findSearch").value = find.q; renderFind(); loadBestRatings(); findDialog.showModal(); $("findTitle").focus({ preventScroll: true }); });
