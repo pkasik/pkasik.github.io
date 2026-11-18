@@ -1854,7 +1854,11 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
     const list = $("brews");
     $("brewsEmpty").hidden = state.brews.length > 0;
     list.innerHTML = state.brews.map((b) => {
-      const params = [["recipe", b.recipe], ["grind", b.grind], ["water", b.temp], ["filter", b.filter], ["dose", b.dose], ["finish", b.finish]]
+      // Entries logged since brewer and method were split carry both; the recipe chip then reads "30 g · NEO" and the method has a chip of its own
+      // ("Standard", "Triple Bloom", "4:6 · sweeter"). Older entries have only the recipe label and show it as it was.
+      const setup = b.method && b.brewer ? [(String(b.recipe || "").match(/^\d+(?:\.\d+)?\s*g/) || [""])[0], b.brewer].filter(Boolean).join(" · ") : b.recipe;
+      const how = b.method ? b.method + (BALANCES[b.balance] ? " · " + BALANCES[b.balance].word : "") : "";
+      const params = [["recipe", setup], ["method", how], ["grind", b.grind], ["water", b.temp], ["filter", b.filter], ["dose", b.dose], ["finish", b.finish]]
         .filter(([, v]) => v).map(([k, v]) => `<span data-k="${k}">${esc(v)}</span>`).join("");
       return `<li class="brew" data-id="${esc(b.id)}">
         <div class="when">${esc(b.date)}</div>
@@ -2406,7 +2410,9 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
     const saveBtn = $("brewForm").querySelector('button[type="submit"]');
     const data = { date: $("b_date").value || todayISO(), recipe: activeRecipe(c).label || "", grind: $("b_grind").value.trim(), temp: $("b_temp").value.trim(), filter: $("b_filter").value.trim(), dose: $("b_dose").value.trim(), finish: $("b_finish").value.trim(), rating: state.brewRating, taste: [...$("tasteChips").querySelectorAll('button[aria-pressed="true"]')].map((b) => b.dataset.t), flavour: readFlavour(), notes: $("b_notes").value.trim(), createdAt: new Date().toISOString() };
     const editing = state.editingBrew;
-    if (editing) { data.recipe = editing.recipe || data.recipe; data.createdAt = editing.createdAt || data.createdAt; }
+    // How it was brewed, for new entries: an edited entry keeps what it was logged with, and one from before this was recorded stays without.
+    if (!editing && !isEsp(c)) { const r = activeRecipe(c); data.brewer = r.brewer; data.method = r.method; if (hasBalance(c)) data.balance = balanceFor(c); }
+    if (editing) { data.recipe = editing.recipe || data.recipe; data.createdAt = editing.createdAt || data.createdAt; ["brewer", "method", "balance"].forEach((key) => { if (editing[key]) data[key] = editing[key]; }); }
     state.savingBrew = true; saveBtn.disabled = true;
     try { if (editing) await store.updateBrew(editing.id, c.id, data); else await store.addBrew(c.id, data); state.editingBrew = null; brewDialog.close(); await loadBrews(true); }
     catch (err) { showErr("brewErr", friendly(err, "save the brew")); }
