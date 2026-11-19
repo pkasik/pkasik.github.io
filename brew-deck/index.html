@@ -123,6 +123,13 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
 .card tr:last-child td { border-bottom: 0; }
 td.t { font: 500 14px/1.3 var(--mono); width: 54px; }
 td.w { font: 500 14px/1.3 var(--mono); width: 76px; white-space: nowrap; }
+.agi { color: var(--c-fg); white-space: nowrap; }
+.agi > span { letter-spacing: 1px; font-size: 9px; vertical-align: 1px; }
+.timer-clock .agiline { font: 500 12px/1.3 var(--mono); color: var(--c-fg); text-align: center; min-height: 1.3em; }
+.timer-clock .agiline .agi > span { font-size: 9px; }
+.timer-steps .agi { font: 500 11px/1.3 var(--mono); color: inherit; margin-left: 6px; }
+.timer-art .splash circle { fill: var(--c-fg); }
+.pour-row select { font: 14px/1.3 var(--body); color: var(--fg); background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 7px 6px; width: 100%; min-width: 0; }
 .flow { font: 500 11.5px/1.3 var(--mono); color: var(--c-muted); font-variant-numeric: tabular-nums; margin-top: 2px; }
 .finish { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px 16px; padding: 9px 12px; background: var(--c-soft); border-radius: 4px; }
 .finish b { font: 500 14px/1.3 var(--mono); }
@@ -365,6 +372,7 @@ html, body { overflow-x: hidden; max-width: 100%; }
   .variant-bar select { flex: 1 1 100%; }
   .pour-row { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr) auto; }
   .pour-row input:nth-child(4) { grid-column: 1 / -1; }
+  .pour-row select { grid-column: 1 / 4; }
   dialog.sheet form { height: 100dvh; max-height: 100dvh; }
   .sheet-head { padding-top: calc(14px + env(safe-area-inset-top, 0px)); }
   .sheet-foot { padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px)); }
@@ -381,7 +389,7 @@ label.f input[type="date"] { -webkit-appearance: none; appearance: none; display
 label.f input[type="date"]::-webkit-date-and-time-value { text-align: left; }
 fieldset { border: 1px solid var(--line); border-radius: 6px; padding: 10px 12px 12px; margin: 0; display: grid; gap: 8px; min-width: 0; }
 legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); padding-inline: 4px; }
-.pour-row { display: grid; grid-template-columns: 64px 76px 54px minmax(0, 1fr) auto; gap: 6px; align-items: center; }
+.pour-row { display: grid; grid-template-columns: 64px 76px 54px minmax(0, 1fr) 128px auto; gap: 6px; align-items: center; }
 .pour-row input { font: 14px/1.3 var(--body); color: var(--fg); background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 7px 8px; width: 100%; min-width: 0; }
 .pour-row .x { border: 0; background: transparent; color: var(--muted); padding: 4px 6px; font-size: 18px; line-height: 1; }
 .actions { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
@@ -515,6 +523,13 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
       <div><b>Casa 1.5.0 ≈ 6.1</b><p>The deck converts each Casa setting through its micron estimate (Ode range ≈ 275–1160 µm). The Gen 2 flat burrs make a similar, clean particle spread to the Casa, so expect to land within a click of the number shown.</p></div>
       <div><b>Fast, thin or sour</b><p>1 click finer, then 2 more if the cup doesn't move. Change temperature only once the drawdown lands in the window.</p></div>
       <div><b>Slow, drying or bitter</b><p>1 click coarser, or drop 1°C. On naturals that read winey after a fast brew, go finer first, not cooler.</p></div>
+    </div>
+    <h3 class="guide-sub">Agitation · how hard to pour</h3>
+    <div class="guide-grid">
+      <div><b>●○○ Gentle</b><p>Spout low, 2–3 cm above the water, thin stream. The bed barely moves and nothing digs in.</p></div>
+      <div><b>●●○ Medium</b><p>About 5 cm up, steady stream. The bed turns over slowly.</p></div>
+      <div><b>●●● Strong</b><p>8–10 cm up, or the kettle fully open. The stream digs in and the grounds churn.</p></div>
+      <div><b>Why it varies</b><p>More agitation extracts more. Light, dense coffees want it; darker roasts and naturals want less, or they turn bitter and drying. Each pour on a card shows its level, read from the pour's own words unless you set it in the editor. Swirls and stirs are steps of their own.</p></div>
     </div>
     <p class="guide-note">Micron figures are estimates from published grind charts (Casa ≈ 50 µm per number, 10 µm per mark; Red Clix ≈ 15 µm per click; Ode Gen 2 ≈ 30 µm per click), not manufacturer specifications; use them to compare settings, not as absolutes.</p>
   </section>
@@ -782,11 +797,12 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
       <div><p class="roaster" id="t_method"></p><h2 id="t_name"></h2></div>
       <button class="btn" id="t_close" type="button" aria-label="Close the brew timer">Close</button>
     </div>
-    <div class="timer-clock"><span class="time" id="t_time">0:00</span><span class="phase" id="t_phase">Ready</span></div>
+    <div class="timer-clock"><span class="time" id="t_time">0:00</span><span class="phase" id="t_phase">Ready</span><span class="agiline" id="t_agi"></span></div>
     <div class="timer-stage">
       <svg class="timer-art" id="t_art" viewBox="0 0 120 150" aria-hidden="true">
         <defs><clipPath id="t_cone"><polygon points="12,34 108,34 72,104 48,104"/></clipPath><clipPath id="t_cup"><rect x="30" y="116" width="60" height="30" rx="5"/></clipPath></defs>
         <line class="stream" id="t_stream" x1="60" y1="4" x2="60" y2="40"/>
+        <g class="splash" id="t_splash" opacity="0"><circle r="1.6"/><circle r="1.3"/><circle r="1.5"/><circle r="1.2"/></g>
         <g id="t_dripper">
           <g clip-path="url(#t_cone)"><rect id="t_level" x="0" y="104" width="120" height="0" fill="var(--c-fg)" opacity=".85"/></g>
           <polygon points="12,34 108,34 72,104 48,104" fill="none" stroke="var(--c-fg)" stroke-width="2.5" stroke-linejoin="round"/>
@@ -971,6 +987,23 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
     return { main: v === null ? (grind || "—") : fmtDial(v), small: micronsOf(grind) };
   };
   const grams = (s) => { const m = String(s || "").match(/^(\d+(?:\.\d+)?)\s*g/); return m ? Number(m[1]) : null; };
+  // Agitation: how much a pour should disturb the bed. Three levels, each tied to what can be seen while pouring. A pour can set its level
+  // (agitation: 1, 2 or 3); otherwise it is read from the pour's own words, leaving out what they say about a swirl or a stir, which are
+  // steps of their own. A pour whose words say nothing either way is Medium. Steps that add no water have no level.
+  const AGITATION = {
+    1: { word: "Gentle", cue: "spout low, thin stream", bed: "the bed barely moves" },
+    2: { word: "Medium", cue: "about 5 cm up, steady stream", bed: "the bed turns over slowly" },
+    3: { word: "Strong", cue: "8–10 cm up or kettle fully open", bed: "the stream digs in and the grounds churn" },
+  };
+  const agitationOf = (p) => {
+    if (!grams(p.to)) return 0;
+    if (AGITATION[Number(p.agitation)]) return Number(p.agitation);
+    const words = String(p.action || "").toLowerCase().replace(/(?:\b(?:one|a|then|light|gentle|quick|short)\s+)*\b(?:swirl|stir)\b[^,·;]*/g, "");
+    if (/\b(hard|fully open|vigorous|aggressive|strong|from high|fast)\b/.test(words)) return 3;
+    if (/\b(gentle|gently|low|soft|softly|slow|slowly|thin)\b/.test(words)) return 1;
+    return 2;
+  };
+  const agitationDots = (level) => "●".repeat(level) + "○".repeat(3 - level);
   // "≈ 7 g/s · 15 s" for a pour with a rate; the poured amount is this step's target minus the previous step's.
   const flowOf = (p, prev) => {
     const rate = Number(p.rate); const to = grams(p.to); if (!rate || !to) return "";
@@ -1193,7 +1226,8 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
     const pours = (r.pours || []).map((p, i, arr) => {
       const flow = esp ? "" : flowOf(p, arr[i - 1]);
       const to = esp ? (grams(p.to) ? `→ ${esc(p.to)}` : esc(p.to || "—")) : `→ ${esc(p.to)}`;
-      return `<tr><td class="t">${esc(p.time)}</td><td class="w">${to}</td><td>${esc(p.action)}${flow ? `<div class="flow">${flow}</div>` : ""}</td></tr>`;
+      const level = esp ? 0 : agitationOf(p), agi = level ? `<span class="agi" title="${esc(AGITATION[level].cue + "; " + AGITATION[level].bed)}"><span aria-hidden="true">${agitationDots(level)}</span> ${AGITATION[level].word}</span>` : "";
+      return `<tr><td class="t">${esc(p.time)}</td><td class="w">${to}</td><td>${esc(p.action)}${flow || agi ? `<div class="flow">${[agi, flow].filter(Boolean).join(" · ")}</div>` : ""}</td></tr>`;
     }).join("");
     const gd = grindDisplay(c, r.grind, r.grindNote);
     const keyRows = esp ? `<div class="key">
@@ -2001,7 +2035,7 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
   const mmss = (sec) => { const t = Math.max(0, Math.floor(sec)); return `${Math.floor(t / 60)}:${String(t % 60).padStart(2, "0")}`; };
   const buildTimeline = (r, esp) => {
     let prev = 0;
-    const steps = (r.pours || []).map((p) => ({ t: secOf(p.time), to: grams(p.to), action: p.action || "", rate: Number(p.rate) || 0, label: p.to })).filter((p) => p.t !== null).sort((a, b) => a.t - b.t)
+    const steps = (r.pours || []).map((p) => ({ t: secOf(p.time), to: grams(p.to), action: p.action || "", rate: Number(p.rate) || 0, label: p.to, agitation: esp ? 0 : agitationOf(p) })).filter((p) => p.t !== null).sort((a, b) => a.t - b.t)
       .map((p) => {
         const pour = p.to !== null && p.to > prev;
         const delta = pour ? p.to - prev : 0;
@@ -2051,8 +2085,12 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
   };
   document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible" && timer.running) keepAwake(true); });
   const renderTimerSteps = (activeIdx, doneBefore) => {
-    $("t_steps").innerHTML = timer.tl.steps.map((s, i) => `<li class="${i === activeIdx ? "active" : i < doneBefore ? "done" : ""}"><span class="t">${mmss(s.t)}</span><span class="w">${s.pour ? `→ ${s.to} g` : "—"}</span><span>${esc(s.action)}</span></li>`).join("");
+    $("t_steps").innerHTML = timer.tl.steps.map((s, i) => `<li class="${i === activeIdx ? "active" : i < doneBefore ? "done" : ""}"><span class="t">${mmss(s.t)}</span><span class="w">${s.pour ? `→ ${s.to} g` : "—"}</span><span>${esc(s.action)}${s.pour && s.agitation ? `<span class="agi" aria-label="${AGITATION[s.agitation].word} agitation"><span aria-hidden="true">${agitationDots(s.agitation)}</span></span>` : ""}</span></li>`).join("");
   };
+  // How each level looks in the timer: the kettle's height above the dripper (where the stream starts), how thick and fast the stream is,
+  // how much the water's surface rocks, and how far drops jump where the stream lands. Gentle is a thin, low, quiet pour; Strong comes
+  // from high, thick and fast, and throws the surface about.
+  const POUR_LOOK = { 1: { top: 24, width: 2, dash: 0.75, rock: 0, hop: 0 }, 2: { top: 13, width: 3, dash: 0.5, rock: 1.1, hop: 3.5 }, 3: { top: 2, width: 4.4, dash: 0.3, rock: 2.8, hop: 8 } };
   // The pour and the swirl, read from the recipe's own words. A spiral pour moves the stream slowly from side to side, the passes
   // widening and narrowing as the kettle circles out from the centre and back in; a pour down the centre stays still. A step that
   // says swirl rocks the dripper in small circles for a few seconds once its water is in, and the water tips with it.
@@ -2097,6 +2135,9 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
     const swirl = timer.esp ? null : swirlAt(tl.steps, t);
     if (swirl && !pouring) phase = phase.startsWith("Wait · ") ? "Swirl · " + phase.slice(7) : `Swirl · ${phase.charAt(0).toLowerCase()}${phase.slice(1)}`;
     $("t_phase").textContent = phase;
+    // The level for the pour in hand, or the one coming next.
+    const agiStep = pouring ? s : (!timer.esp && next && next.pour && (!s || t >= (s.pour ? s.end : s.t)) ? next : null), agiLevel = agiStep ? agiStep.agitation : 0;
+    $("t_agi").innerHTML = agiLevel ? `${pouring ? "" : "Next: "}<span class="agi"><span aria-hidden="true">${agitationDots(agiLevel)}</span> ${AGITATION[agiLevel].word}</span> · ${esc(AGITATION[agiLevel].cue)}` : "";
     $("t_water").textContent = `${Math.round(w)} g`;
     $("t_goal").textContent = goal;
     $("t_bar").style.width = `${tl.total ? Math.min(100, (w / tl.total) * 100) : 0}%`;
@@ -2106,14 +2147,28 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
     const level = $("t_level"); level.setAttribute("y", String(104 - h)); level.setAttribute("height", String(h + 20));
     // The stream runs down to the water and moves no wider than the cone allows at that height, with a little room to the wall.
     const surface = Math.max(40, 104 - h), stream = $("t_stream");
-    stream.setAttribute("y2", surface.toFixed(1));
-    stream.setAttribute("transform", `translate(${(pouring ? streamOffset(s, t, coneHalfAt(surface) - 7) : 0).toFixed(2)} 0)`);
+    const look = POUR_LOOK[(pouring && s.agitation) || 2], streamX = pouring ? streamOffset(s, t, coneHalfAt(surface) - 7) : 0;
+    stream.setAttribute("y1", String(Math.min(look.top, surface - 8))); stream.setAttribute("y2", surface.toFixed(1));
+    stream.style.strokeWidth = String(look.width); stream.style.animationDuration = look.dash + "s";
+    stream.setAttribute("transform", `translate(${streamX.toFixed(2)} 0)`);
+    // Where the stream lands: drops jump from the surface, higher the harder the pour. Nothing jumps on a gentle pour or with reduced motion.
+    const splash = $("t_splash"), lively = pouring && look.hop > 0 && !STILL.matches;
+    splash.setAttribute("opacity", lively ? ".85" : "0");
+    if (lively) [...splash.children].forEach((drop, i) => {
+      const beat = (t * (1.6 + look.hop * 0.12) + i * 0.27) % 1, side = (i % 2 ? 1 : -1) * (2.5 + i * 1.3) * (0.4 + beat);
+      drop.setAttribute("cx", (60 + streamX + side).toFixed(2)); drop.setAttribute("cy", (surface - look.hop * 4 * beat * (1 - beat)).toFixed(2)); drop.setAttribute("opacity", (1 - beat).toFixed(2));
+    });
     if (swirl && !STILL.matches) {
       const ease = Math.sin(Math.PI * swirl.u / swirl.span), turn = 2 * Math.PI * swirl.u / SWIRL_TURN_S, r = (swirl.gentle ? 2.5 : 4) * ease;
       const tilt = (swirl.gentle ? 6 : 9) * ease * Math.min(1, h / 10) * Math.cos(turn - 0.6); // the water lags the cone a little
       $("t_dripper").setAttribute("transform", `translate(${(r * Math.cos(turn)).toFixed(2)} ${(r * 0.35 * Math.sin(turn)).toFixed(2)})`);
       level.setAttribute("transform", `rotate(${tilt.toFixed(2)} 60 ${(104 - h).toFixed(1)})`);
-    } else { $("t_dripper").removeAttribute("transform"); level.removeAttribute("transform"); }
+    } else {
+      $("t_dripper").removeAttribute("transform");
+      // While pouring, the surface rocks with the force of the pour.
+      if (pouring && look.rock && !STILL.matches) level.setAttribute("transform", `rotate(${(look.rock * Math.sin(t * 9) * Math.min(1, h / 10)).toFixed(2)} 60 ${(104 - h).toFixed(1)})`);
+      else level.removeAttribute("transform");
+    }
     const cupH = 30 * Math.min(1, tl.total ? tl.drained(t) / tl.total : 0);
     const cup = $("t_cupfill"); cup.setAttribute("y", String(146 - cupH)); cup.setAttribute("height", String(cupH));
     $("t_drip").setAttribute("opacity", inCone > 0.5 && t > 5 ? "0.7" : "0");
@@ -2264,7 +2319,7 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
   });
   const pourRow = (p = {}) => {
     const row = document.createElement("div"); row.className = "pour-row";
-    row.innerHTML = `<input aria-label="Time" placeholder="0:00" value="${esc(p.time)}"><input aria-label="Water to" placeholder="90 g" value="${esc(p.to)}"><input aria-label="Flow rate in grams per second" placeholder="g/s" inputmode="decimal" value="${esc(p.rate ?? "")}"><input aria-label="Action" placeholder="Bloom, swirl, wait 45 s" value="${esc(p.action)}"><button class="x" type="button" aria-label="Remove pour">×</button>`;
+    row.innerHTML = `<input aria-label="Time" placeholder="0:00" value="${esc(p.time)}"><input aria-label="Water to" placeholder="90 g" value="${esc(p.to)}"><input aria-label="Flow rate in grams per second" placeholder="g/s" inputmode="decimal" value="${esc(p.rate ?? "")}"><input aria-label="Action" placeholder="Bloom, swirl, wait 45 s" value="${esc(p.action)}"><select aria-label="Agitation"><option value="">Agitation: auto</option>${[1, 2, 3].map((n) => `<option value="${n}"${Number(p.agitation) === n ? " selected" : ""}>${AGITATION[n].word}</option>`).join("")}</select><button class="x" type="button" aria-label="Remove pour">×</button>`;
     row.querySelector(".x").addEventListener("click", () => row.remove());
     return row;
   };
@@ -2272,6 +2327,7 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
     const [t, w, f, a] = r.querySelectorAll("input");
     const p = { time: t.value.trim(), to: w.value.trim(), action: a.value.trim() };
     const rate = Number(f.value); if (rate > 0) p.rate = rate;
+    const agitation = Number(r.querySelector("select")?.value); if (AGITATION[agitation]) p.agitation = agitation;
     return p;
   }).filter((p) => p.time || p.to || p.action);
   $("addPour").addEventListener("click", () => { pourRows.appendChild(pourRow()); pourRows.lastElementChild.querySelector("input").focus(); });
