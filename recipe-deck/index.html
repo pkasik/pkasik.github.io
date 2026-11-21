@@ -364,7 +364,11 @@ label.f, .f { display: grid; gap: 5px; font: 600 10.5px/1.2 var(--body); letter-
   // Pictures are asked for after the page is drawn, so a slow or missing photo never holds anything up.
   const fillPhotos = (root) => root.querySelectorAll("img[data-photo]").forEach(async (img) => {
     const r = byId(img.dataset.photo); if (!r || !r.photo) return;
-    try { const url = await store.photoUrl(r.photo, img.dataset.size); if (url && img.isConnected) img.src = url; } catch {}
+    try {
+      const url = await store.photoUrl(r.photo, img.dataset.size); if (!url || !img.isConnected || img.src === new URL(url, location.href).href) return;
+      if (img.currentSrc) { const next = new Image(); next.src = url; try { await next.decode(); } catch {} } // a picture is already showing: swap only once the new one is ready
+      if (img.isConnected) img.src = url;
+    } catch {}
   });
 
   const renderGrid = () => {
@@ -392,7 +396,10 @@ label.f, .f { display: grid; gap: 5px; font: 600 10.5px/1.2 var(--body); letter-
     // A redraw (after an edit, say) leaves the reader where they were: both panes that can scroll are put back afterwards.
     const was = [$("v_body").scrollTop, $("v_body").querySelector(".rcp")?.scrollTop || 0];
     const ingredients = listHtml(r.ingredients, false), steps = listHtml(r.steps, true);
-    $("v_body").innerHTML = `${r.photo ? `<img class="hero" alt="${esc(r.name)}" data-photo="${esc(r.id)}" data-size="full">` : ""}
+    // The photo opens as the picture already showing: its own, on a redraw, or else the card's smaller copy. It is never an empty frame.
+    const shown = $("v_body").querySelector("img.hero"), small = tileFor(r.id)?.querySelector("img.ph");
+    const seed = shown && shown.dataset.photo === r.id && shown.currentSrc ? shown.currentSrc : small && small.complete && small.naturalWidth ? small.currentSrc : "";
+    $("v_body").innerHTML = `${r.photo ? `<img class="hero" alt="${esc(r.name)}" decoding="sync" ${seed ? `src="${esc(seed)}" ` : ""}data-photo="${esc(r.id)}" data-size="full">` : ""}
       <div class="rcp">
         ${ingredients ? fold("ingredients", "Ingredients", ingredients) : ""}
         ${steps ? fold("steps", "Steps", steps) : ""}
@@ -408,32 +415,91 @@ label.f, .f { display: grid; gap: 5px; font: 600 10.5px/1.2 var(--body); letter-
     try { if (on && "wakeLock" in navigator && !state.wake) state.wake = await navigator.wakeLock.request("screen"); else if (!on && state.wake) { await state.wake.release(); state.wake = null; } } catch { state.wake = null; }
   };
   document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible" && $("view").open) { state.wake = null; keepAwake(true); } });
-  // ---------- Opening and closing a recipe: the panel grows out of the card that was tapped, and shrinks back into it ----------
+  // ---------- Opening and closing a recipe. The photo travels between the card and the recipe, changing size and crop on the way,
+  // so each ends as exactly the picture that was already there; the rest of the recipe forms around it, or fades from around it. ----------
   const calm = window.matchMedia("(prefers-reduced-motion: reduce)"); // someone who has asked their device for less motion gets none
-  // The tile's place on screen, as a clip of the recipe's panel: the panel is revealed outward from where the card is.
-  const clipFromTile = (id) => {
-    const tile = [...document.querySelectorAll("button.tile[data-id]")].find((t) => t.dataset.id === id); if (!tile) return null;
-    const d = $("view").getBoundingClientRect(), t = tile.getBoundingClientRect(), px = (n) => Math.max(0, Math.round(n)) + "px";
+  const PACE = "cubic-bezier(.45, 0, .55, 1)"; // a gentle start and a gentle stop, the same in both directions
+  const tileFor = (id) => [...document.querySelectorAll("button.tile[data-id]")].find((t) => t.dataset.id === id);
+  // Where the card sits inside the recipe's panel: how far in from each of the panel's edges, and the card's own corner rounding.
+  const tileInsets = (id) => {
+    const tile = tileFor(id); if (!tile) return null;
+    const d = $("view").getBoundingClientRect(), t = tile.getBoundingClientRect();
     if (t.bottom < d.top || t.top > d.bottom) return null; // scrolled out of sight: nothing to grow from
-    return `inset(${px(t.top - d.top)} ${px(d.right - t.right)} ${px(d.bottom - t.bottom)} ${px(t.left - d.left)} round 20px)`;
+    return { tile, top: t.top - d.top, right: d.right - t.right, bottom: d.bottom - t.bottom, left: t.left - d.left, width: t.width, height: t.height, radius: getComputedStyle(tile).borderTopLeftRadius };
   };
+  let inFlight = null; // the animation now playing, if any
   const playView = (opening) => {
-    const view = $("view"), speed = opening ? 1 : 0.7, go = { easing: "cubic-bezier(.2, .8, .2, 1)", direction: opening ? "normal" : "reverse", fill: "both" };
-    const runs = [], run = (frames, ms, el = view) => { try { runs.push(el.animate(frames, { ...go, duration: ms * speed })); } catch {} };
-    const clip = clipFromTile(state.openId);
-    if (clip) run([{ clipPath: clip, opacity: 0 }, { opacity: 1, offset: 0.3 }, { clipPath: `inset(0px 0px 0px 0px round ${getComputedStyle(view).borderTopLeftRadius})`, opacity: 1 }], 440);
-    else run([{ opacity: 0, transform: "scale(.92)" }, { opacity: 1, transform: "none" }], 300); // no card in sight to grow from: a small zoom instead
-    run([{ opacity: 0 }, { opacity: 1 }], 440, $("scrim")); // the dimming arrives and leaves over the same time as the panel
-    return Promise.all(runs.map((a) => a.finished.catch(() => {}))).then(() => runs);
+    const view = $("view"), timing = { easing: PACE, fill: "both" };
+    // Every step below is written as the closing; the opening plays the same steps in the opposite order.
+    const mirror = (frames) => [...frames].reverse().map(({ offset, ...f }) => (offset === undefined ? f : { ...f, offset: 1 - offset }));
+    const runs = [], made = [], undo = [], run = (el, frames, ms) => { try { runs.push(el.animate(opening ? mirror(frames) : frames, { ...timing, duration: ms })); } catch {} };
+    runs.clear = () => { runs.forEach((a) => a.cancel()); made.forEach((el) => el.remove()); undo.forEach((back) => back()); }; // leaves nothing of this animation behind
+    inFlight = runs;
+    const done = () => Promise.all(runs.map((a) => a.finished.catch(() => {}))).then(() => runs);
+    const o = tileInsets(state.openId);
+    if (!o) { // no card in sight to grow from or shrink to: a small zoom instead
+      run(view, [{ opacity: 1, transform: "none" }, { opacity: 0, transform: "scale(.92)" }], 300); run($("scrim"), [{ opacity: 1 }, { opacity: 0 }], 300);
+      return done();
+    }
+    const px = (n) => Math.max(0, Math.round(n)) + "px";
+    const full = `inset(0px 0px 0px 0px round ${getComputedStyle(view).borderTopLeftRadius})`, card = `inset(${px(o.top)} ${px(o.right)} ${px(o.bottom)} ${px(o.left)} round ${o.radius})`;
+
+    // The photo's flight. It needs a photo on the card and the recipe's photo at least partly in view.
+    const flyPhoto = (ms) => {
+      const hero = view.querySelector("#v_body img.hero"), ph = o.tile.querySelector("img.ph"); if (!hero || !ph) return false;
+      const loaded = hero.naturalWidth && hero.currentSrc ? hero : ph; // on opening the recipe's own copy may not have arrived yet; the card's has
+      if (!loaded.naturalWidth || !loaded.currentSrc) return false;
+      const d = view.getBoundingClientRect(), hr = hero.getBoundingClientRect(), br = $("v_body").getBoundingClientRect(), tr = ph.getBoundingClientRect();
+      // It leaves from the part of the photo that can be seen (the recipe may be scrolled part-way past it).
+      const from = { left: Math.max(hr.left, br.left), top: Math.max(hr.top, br.top), right: Math.min(hr.right, br.right), bottom: Math.min(hr.bottom, br.bottom) };
+      if (from.right - from.left < 8 || from.bottom - from.top < hr.height * 0.15) return false; // scrolled out of sight: nothing to fly
+      // Both the recipe and the card show the photo filling its frame, cropped from the centre. These are the whole photo's
+      // position and size in each place; moving the picture from one to the other inside a frame that moves from the recipe's
+      // to the card's reproduces the first crop at one end, the second at the other, and a steady change between.
+      const shape = loaded.naturalWidth / loaded.naturalHeight;
+      const whole = (b) => { const w = b.right - b.left, h = b.bottom - b.top, wider = w / h > shape, iw = wider ? w : h * shape, ih = wider ? w / shape : h; return { left: b.left + (w - iw) / 2, top: b.top + (h - ih) / 2, width: iw, height: ih }; };
+      const inRecipe = whole(hr), inCard = whole(tr), at = (n) => n.toFixed(2) + "px";
+      const box = document.createElement("div"); box.className = "tile"; box.setAttribute("aria-hidden", "true");
+      Object.assign(box.style, { position: "absolute", margin: "0", overflow: "hidden", boxShadow: "none", pointerEvents: "none", zIndex: "2" });
+      const img = document.createElement("img"); img.alt = ""; img.decoding = "sync"; img.src = loaded.currentSrc;
+      Object.assign(img.style, { position: "absolute", maxWidth: "none" });
+      box.append(img);
+      const info = o.tile.querySelector(".info") ? o.tile.querySelector(".info").cloneNode(true) : null; if (info) box.append(info); // the card's name and its shading
+      view.append(box); made.push(box);
+      run(box, [{ left: at(from.left - d.left), top: at(from.top - d.top), width: at(from.right - from.left), height: at(from.bottom - from.top), borderRadius: "0px" },
+                { left: at(tr.left - d.left), top: at(tr.top - d.top), width: at(tr.width), height: at(tr.height), borderRadius: o.radius }], ms);
+      run(img, [{ left: at(inRecipe.left - from.left), top: at(inRecipe.top - from.top), width: at(inRecipe.width), height: at(inRecipe.height) },
+                { left: at(inCard.left - tr.left), top: at(inCard.top - tr.top), width: at(inCard.width), height: at(inCard.height) }], ms);
+      if (info) run(info, [{ opacity: 0 }, { opacity: 0, offset: 0.7 }, { opacity: 1 }], ms); // only once the picture is nearly the card's size
+      // The rest of the panel (its bar, its text and its own background) is there for the half of the flight nearer the recipe.
+      run(view.querySelector(".frame"), [{ opacity: 1 }, { opacity: 0, offset: 0.5 }, { opacity: 0 }], ms);
+      run(view, [{ backgroundColor: getComputedStyle(view).backgroundColor }, { backgroundColor: "rgba(0, 0, 0, 0)", offset: 0.5 }, { backgroundColor: "rgba(0, 0, 0, 0)" }], ms);
+      // One photo at a time: the recipe's own copy and the card on the dashboard are out of sight while the travelling one is in flight.
+      hero.style.visibility = "hidden"; o.tile.style.visibility = "hidden";
+      undo.push(() => { hero.style.visibility = ""; o.tile.style.visibility = ""; });
+      return true;
+    };
+
+    if (flyPhoto(500)) { run(view, [{ clipPath: full }, { clipPath: card }], 500); run($("scrim"), [{ opacity: 1 }, { opacity: 0 }], 500); return done(); }
+    // No photo to fly (the recipe has none, or it is scrolled out of sight): the panel still shrinks to the card's shape, and a copy
+    // of the card comes into view inside it on the way, so it arrives showing the card. Opening, the card gives way to the recipe.
+    const ghost = o.tile.cloneNode(true); ghost.removeAttribute("data-id"); ghost.setAttribute("aria-hidden", "true"); ghost.tabIndex = -1;
+    ghost.querySelectorAll("img").forEach((img) => { img.loading = "eager"; });
+    Object.assign(ghost.style, { position: "absolute", left: o.left + "px", top: o.top + "px", width: o.width + "px", height: o.height + "px", margin: "0", boxShadow: "none", pointerEvents: "none", zIndex: "2" });
+    view.append(ghost); made.push(ghost);
+    run(ghost, [{ opacity: 0 }, { opacity: 0, offset: 0.4 }, { opacity: 1 }], 440);
+    run(view, [{ clipPath: full }, { clipPath: card }], 440); run($("scrim"), [{ opacity: 1 }, { opacity: 0 }], 440);
+    return done();
   };
   const closeView = async () => {
     const view = $("view"); if (!view.open || state.closing) return;
     if (calm.matches) { view.close(); return; }
-    state.closing = true; const runs = await playView(false); view.close(); $("scrim").hidden = true; runs.forEach((a) => a.cancel()); state.closing = false;
+    state.closing = true; if (inFlight) inFlight.clear(); // a close during the opening ends the opening first
+    const runs = await playView(false); view.close(); $("scrim").hidden = true; runs.clear(); inFlight = null; state.closing = false;
   };
   const openView = (id) => {
     state.openId = id; renderView(); $("scrim").hidden = false; $("view").showModal(); $("v_body").scrollTop = 0; const text = $("v_body").querySelector(".rcp"); if (text) text.scrollTop = 0; $("v_title").focus({ preventScroll: true }); keepAwake(true);
-    if (!calm.matches) playView(true).then((runs) => runs.forEach((a) => a.cancel())); // once it has arrived, nothing of the animation is left on the panel
+    if (!calm.matches) playView(true).then((runs) => { if (inFlight === runs) { runs.clear(); inFlight = null; } }); // once it has arrived, nothing of the animation is left on the panel
   };
   $("view").addEventListener("close", () => { state.openId = null; keepAwake(false); $("scrim").hidden = true; });
   $("v_close").addEventListener("click", closeView);
