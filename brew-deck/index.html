@@ -31,6 +31,7 @@ img { max-width: 100%; }
   --bg: #efeee9; --fg: #1f1c18; --muted: #6b655c; --line: #d6d2c8; --paper: #fbfaf6; --chip: #e6e2d8;
   --amber: #e2711d; --amber-ink: #2a1607; --amber-soft: #f3dcc6;
   --danger: #a8341c; --ok: #3f6b3a;
+  --amber-light: color-mix(in srgb, var(--amber) 80%, #ffcf8f); --amber-dark: color-mix(in srgb, var(--amber) 80%, #4a1f05);
   --display: "Newsreader", Georgia, "Times New Roman", serif;
   --body: "Figtree", system-ui, -apple-system, "Segoe UI", sans-serif;
   --mono: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
@@ -174,8 +175,11 @@ body:has(#dash:not([hidden])) .wrap { display: flex; flex-direction: column; hei
 .deck-scroll { flex: 1 1 auto; min-height: 0; overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; margin-inline: -16px; padding: 0 16px 28px; }
 .deck-pane { position: relative; }
 .seg.mode button { flex: 1; padding: 8px 12px; }
-.tile.espresso { background: #d4621a; }
-.card.espresso { --c-bg: #d4621a; }
+.tile.espresso:not([data-roast]) { background: #d4621a; }
+.card.espresso:not([data-roast]) { --c-bg: #d4621a; }
+/* Roast tone: everything inside takes its orange from --amber, so changing it here shifts the whole tile, card or timer together. */
+[data-roast="light"] { --amber: var(--amber-light); }
+[data-roast="dark"] { --amber: var(--amber-dark); }
 .grid .empty { grid-column: 1 / -1; padding: 8px 0 4px; }
 .scaled { margin: 0; font-size: 12.5px; color: var(--c-muted); }
 .auth { background: var(--paper); border: 1px solid var(--line); border-radius: 8px; padding: 18px 20px; display: grid; gap: 10px; margin-bottom: 4px; }
@@ -566,6 +570,7 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
       <label class="f">Variety<input id="f_variety" name="variety" autocomplete="off"></label>
       <label class="f">Altitude<input id="f_altitude" name="altitude" autocomplete="off" placeholder="1795 masl"></label>
       <label class="f">Process<input id="f_process" name="process" autocomplete="off" placeholder="Washed"></label>
+      <label class="f">Roast<select id="f_roast" name="roast"><option value="">From the card’s words</option><option value="light">Light</option><option value="medium">Medium</option><option value="dark">Dark</option></select></label>
       <label class="f">Roast date<input id="f_roasted" name="roasted" type="date"></label>
       <label class="f">Deck<select id="f_kind" name="kind"><option value="filter">Filter</option><option value="espresso">Espresso</option></select></label>
     </div>
@@ -1249,7 +1254,7 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
           <div><span>Grind${{ c40: " · Red Clix", ode: " · Ode" }[grinder] || ""}</span><strong>${esc(gd.main)}</strong><small>${esc(gd.small)}</small></div>
         </div>`;
     const infoOpen = !!state.info[c.id];
-    return `<article class="card${c.archived ? " archived" : ""}${esp ? " espresso" : ""}" data-id="${esc(c.id)}" aria-label="${esc(c.name)} recipe${c.archived ? " (archived)" : ""}">
+    return `<article class="card${c.archived ? " archived" : ""}${esp ? " espresso" : ""}"${roastAttr(c)} data-id="${esc(c.id)}" aria-label="${esc(c.name)} recipe${c.archived ? " (archived)" : ""}">
       <button class="close" type="button" aria-label="Close and return to the dashboard">×</button>
       <div class="main">
         <div>${c.roaster ? `<p class="roaster">${esc(c.roaster)}</p>` : ""}
@@ -1275,6 +1280,17 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
     const tmp = document.createElement("div"); tmp.innerHTML = renderCard(c); el.replaceWith(tmp.firstElementChild);
   };
 
+  // A coffee's roast: set on the card, or else read from its process line and tip ("Natural · medium-dark", "A medium-roast washed Huila").
+  // Medium-dark counts as dark. A card that says nothing is treated as medium and keeps the deck's own orange.
+  const ROASTS = ["light", "medium", "dark"];
+  const roastOf = (c) => {
+    if (ROASTS.includes(c?.roast)) return c.roast;
+    const text = `${c?.process || ""} · ${c?.tip || ""}`.toLowerCase();
+    if (/medium[-\s]dark|\bdark[-\s]roast\b|\bdark\b(?=[^.]*\broast\b)/.test(text)) return "dark";
+    if (/medium[-\s]light|\blight[-\s]roast\b/.test(text) && !/\bmedium[-\s]roast\b/.test(text)) return "light";
+    return "medium";
+  };
+  const roastAttr = (c) => (c.archived || roastOf(c) === "medium" ? "" : ` data-roast="${roastOf(c)}"`);
   const tileBody = (c) => {
     const esp = isEsp(c), b = baseOf(c);
     const key = esp ? `<span>${b ? `${b.dose} → ${b.water} g` : esc(c.dose || "—")}</span><span>${esc(c.water || "—")}</span><span>${esc(grindDisplay(c, c.grind, c.grindNote).main)}</span>`
@@ -1385,7 +1401,7 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
       html += shown.map((c) => {
         const idx = state.coffees.indexOf(c);
         const draggable = state.canWrite && !c.archived && !finding;
-        return `<button class="tile${c.archived ? " archived" : ""}${isEsp(c) ? " espresso" : ""}${draggable ? " draggable" : ""}" type="button" data-i="${idx}" data-id="${esc(c.id)}" aria-label="Open ${esc(c.name)}${draggable ? " (press and hold to reorder)" : ""}">${tileBody(c)}</button>`;
+        return `<button class="tile${c.archived ? " archived" : ""}${isEsp(c) ? " espresso" : ""}${draggable ? " draggable" : ""}" type="button"${roastAttr(c)} data-i="${idx}" data-id="${esc(c.id)}" aria-label="Open ${esc(c.name)}${draggable ? " (press and hold to reorder)" : ""}">${tileBody(c)}</button>`;
       }).join("");
       if (hidden) html += `<button class="tile more" type="button" id="moreTile" aria-label="Show ${hidden} more archived coffees"><span><b>+${hidden}</b><br>Show more</span></button>`;
       else if (g === 1 && state.showAllArchived && !finding && group.length > ARCHIVED_SHOWN) html += `<button class="tile more" type="button" id="moreTile" aria-label="Show fewer archived coffees"><span>Show less</span></button>`;
@@ -2211,6 +2227,7 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
     const c = state.coffees.find((x) => x.id === id); if (!c) return;
     const r = activeRecipe(c);
     timer.coffee = c; timer.tl = buildTimeline(r, isEsp(c));
+    if (roastOf(c) === "medium") $("timerDialog").removeAttribute("data-roast"); else $("timerDialog").dataset.roast = roastOf(c);
     $("t_name").textContent = c.name; $("t_method").textContent = `${methodLabel(r)} · ${r.dose || ""} · ${r.water || ""}`.replace(/( · )+$/, "");
     timer.esp = isEsp(c); $("t_art").style.display = timer.esp ? "none" : ""; $("t_press").hidden = !timer.esp || !timer.tl.bands.length; $("t_waterLabel").hidden = !timer.esp;
     $("t_art").parentElement.style.gridTemplateColumns = timer.esp ? "1fr 1fr" : "";
@@ -2287,7 +2304,7 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
   // wrote half-filled log entries and cards. Saving is the button's job.
   const keepReturnFromSaving = (form) => form.addEventListener("keydown", (e) => { if (e.key !== "Enter" || e.target.tagName !== "INPUT") return; e.preventDefault(); e.target.blur(); });
   [cardForm, $("brewForm")].forEach(keepReturnFromSaving);
-  const CARD_FIELDS = ["name", "roaster", "tasting", "origin", "producer", "variety", "altitude", "process", "roasted", "kind"];
+  const CARD_FIELDS = ["name", "roaster", "tasting", "origin", "producer", "variety", "altitude", "process", "roast", "roasted", "kind"];
   const DEFAULT_SHOT = [{ time: "0:00", to: "2–3 bar", action: "Preinfuse gently until the first drops" }, { time: "0:10", to: "43 g", rate: 1.9, action: "6–8 bar · ramp smoothly, hold steady" }, { time: "0:32", to: "—", action: "Stop on weight, not time" }];
   const DEFAULT_POURS = [{ time: "0:00", to: "90 g", action: "Bloom, swirl, wait 45 s" }, {}, {}];
   const blankRecipe = () => ({ label: "", dose: "", water: "", filter: "", filterNote: "", grind: "", grindNote: "", finish: "", pressure: "", pourTitle: "", tip: "", pours: [] });
