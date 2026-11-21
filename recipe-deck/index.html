@@ -123,6 +123,18 @@ dialog#view .frame { height: 100dvh; max-height: 100dvh; }
 /* Edit and Close are icons in the top bar; there is no bar at the foot, so the recipe gets the height. */
 dialog#view .frame { grid-template-rows: auto minmax(0, 1fr); }
 #view .head { padding: 8px 12px 8px 18px; }
+/* The top bar carries the recipe's name: up to two lines, then cut short. */
+#view .head h2 { font: 700 20px/1.2 var(--body); letter-spacing: -.01em; min-width: 0; overflow-wrap: anywhere; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
+#view .head .actions { flex: none; }
+/* Ingredients, Steps and Notes: each heading is a button that folds its part away. */
+.fold summary { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 36px; margin-bottom: 4px; cursor: pointer; list-style: none; -webkit-tap-highlight-color: transparent; }
+.fold summary::-webkit-details-marker { display: none; }
+.fold summary h3 { margin: 0; }
+.fold summary svg { width: 20px; height: 20px; flex: none; fill: none; stroke: var(--muted); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; transition: transform .15s; }
+.fold[open] summary svg { transform: rotate(180deg); }
+.fold:not([open]) summary { margin-bottom: 0; }
+.fold summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 6px; }
+@media (prefers-reduced-motion: reduce) { .fold summary svg { transition: none; } }
 @media (max-width: 560px) { #view .head { padding-top: calc(8px + env(safe-area-inset-top, 0px)); } }
 #view .body { padding: 0 0 calc(18px + env(safe-area-inset-bottom, 0px)); gap: 0; }
 @media (min-width: 760px) {
@@ -134,7 +146,7 @@ dialog#view .frame { grid-template-rows: auto minmax(0, 1fr); }
   #view .hero { height: 100%; aspect-ratio: auto; }
   #view .rcp { overflow-y: auto; overscroll-behavior: contain; padding: 34px clamp(28px, 4vw, 56px) 40px; align-content: start; gap: 22px; }
   #view .body:not(:has(.hero)) .rcp { width: min(760px, 100%); margin: 0 auto; }
-  #view .rcp h2 { font-size: 36px; }
+  #view .head h2 { font-size: 24px; }
   #view .rcp ul li, #view .rcp ol li { font-size: 17px; }
 }
 .hero { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; background: var(--chip); }
@@ -202,7 +214,7 @@ label.f, .f { display: grid; gap: 5px; font: 600 10.5px/1.2 var(--body); letter-
   </main>
 </div>
 
-<dialog id="view" class="sheet" aria-labelledby="v_name">
+<dialog id="view" class="sheet" aria-labelledby="v_title">
   <div class="frame">
     <div class="head"><h2 id="v_title" tabindex="-1">Recipe</h2>
       <div class="actions">
@@ -278,7 +290,7 @@ label.f, .f { display: grid; gap: 5px; font: 600 10.5px/1.2 var(--body); letter-
   "use strict";
   const $ = (id) => document.getElementById(id);
   const esc = (v) => String(v ?? "").replace(/[&<>"']/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]));
-  const state = { recipes: [], loaded: false, signedIn: false, canWrite: false, uid: null, email: "", openId: null, editingId: null, picked: null, dropPhoto: false, saving: false, wake: null };
+  const state = { recipes: [], loaded: false, signedIn: false, canWrite: false, uid: null, email: "", openId: null, editingId: null, picked: null, dropPhoto: false, saving: false, wake: null, open: { ingredients: true, steps: true, notes: true } };
   const setStatus = (text, detail) => { $("status").textContent = text || ""; $("status").title = detail || ""; }; // the note is short; any detail is kept as its tooltip
   const friendly = (err, doing) => `Couldn't ${doing}${err && err.message ? ": " + err.message : ""}. Check the connection and try again.`;
 
@@ -368,16 +380,19 @@ label.f, .f { display: grid; gap: 5px; font: 600 10.5px/1.2 var(--body); letter-
     const items = linesOf(text).map((line) => (isHeading(line) ? `<li class="sub">${esc(line.replace(/:$/, ""))}</li>` : `<li>${ordered ? "<span>" + esc(line.replace(/^\d+[.)]\s*/, "")) + "</span>" : esc(line)}</li>`)).join("");
     return items ? (ordered ? `<ol>${items}</ol>` : `<ul>${items}</ul>`) : "";
   };
+  // Each part of a recipe folds away under its heading; the choice is kept while the page is open, across recipes and redraws.
+  const fold = (part, title, html) => `<details class="fold" data-part="${part}"${state.open[part] ? " open" : ""}><summary><h3>${title}</h3><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></summary>${html}</details>`;
   const renderView = () => {
     const r = byId(state.openId); if (!r) return;
     const ingredients = listHtml(r.ingredients, false), steps = listHtml(r.steps, true);
     $("v_body").innerHTML = `${r.photo ? `<img class="hero" alt="${esc(r.name)}" data-photo="${esc(r.id)}" data-size="full">` : ""}
       <div class="rcp">
-        <h2 id="v_name">${esc(r.name)}</h2>
-        ${ingredients ? `<section><h3>Ingredients</h3>${ingredients}</section>` : ""}
-        ${steps ? `<section><h3>Steps</h3>${steps}</section>` : ""}
-        ${r.notes ? `<section><h3>Notes</h3><p class="notes">${esc(r.notes)}</p></section>` : ""}
+        ${ingredients ? fold("ingredients", "Ingredients", ingredients) : ""}
+        ${steps ? fold("steps", "Steps", steps) : ""}
+        ${r.notes ? fold("notes", "Notes", `<p class="notes">${esc(r.notes)}</p>`) : ""}
       </div>`;
+    $("v_title").textContent = r.name; // the recipe's name is the top bar's title
+    $("v_body").querySelectorAll("details.fold").forEach((el) => el.addEventListener("toggle", () => { state.open[el.dataset.part] = el.open; }));
     fillPhotos($("v_body")); $("v_edit").hidden = !state.canWrite;
   };
   // While a recipe is open the screen is kept awake, where the phone allows it: hands are usually busy.
