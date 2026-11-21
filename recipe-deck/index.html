@@ -418,12 +418,15 @@ label.f, .f { display: grid; gap: 5px; font: 600 10.5px/1.2 var(--body); letter-
     return `inset(${px(t.top - d.top)} ${px(d.right - t.right)} ${px(d.bottom - t.bottom)} ${px(t.left - d.left)} round 20px)`;
   };
   const playView = (opening) => {
-    const view = $("view"), speed = opening ? 1 : 0.7, go = { easing: "cubic-bezier(.2, .8, .2, 1)", direction: opening ? "normal" : "reverse", fill: "both" };
-    const runs = [], run = (frames, ms, el = view) => { try { runs.push(el.animate(frames, { ...go, duration: ms * speed })); } catch {} };
-    const clip = clipFromTile(state.openId);
-    if (clip) run([{ clipPath: clip, opacity: 0 }, { opacity: 1, offset: 0.3 }, { clipPath: `inset(0px 0px 0px 0px round ${getComputedStyle(view).borderTopLeftRadius})`, opacity: 1 }], 440);
-    else run([{ opacity: 0, transform: "scale(.92)" }, { opacity: 1, transform: "none" }], 300); // no card in sight to grow from: a small zoom instead
-    run([{ opacity: 0 }, { opacity: 1 }], 440, $("scrim")); // the dimming arrives and leaves over the same time as the panel
+    // Opening: a quick start that eases to rest at full size. Closing is not that played backwards (which would crawl, then snap shut):
+    // it has its own pace, starting promptly and slowing as it settles into the card, and it takes about as long as the opening.
+    const view = $("view"), go = { easing: opening ? "cubic-bezier(.2, .8, .2, 1)" : "cubic-bezier(.4, 0, .2, 1)", fill: "both" };
+    const runs = [], run = (frames, ms, el = view) => { try { runs.push(el.animate(opening ? frames : [...frames].reverse().map(({ offset, ...f }) => (offset === undefined ? f : { ...f, offset: 1 - offset })), { ...go, duration: ms })); } catch {} };
+    const clip = clipFromTile(state.openId), ms = clip ? (opening ? 440 : 460) : 300;
+    // Written as the opening; closing runs the same steps in the opposite order. The panel is see-through only for the part nearest the card.
+    if (clip) run([{ clipPath: clip, opacity: 0 }, { opacity: 1, offset: 0.3 }, { clipPath: `inset(0px 0px 0px 0px round ${getComputedStyle(view).borderTopLeftRadius})`, opacity: 1 }], ms);
+    else run([{ opacity: 0, transform: "scale(.92)" }, { opacity: 1, transform: "none" }], ms); // no card in sight to grow from: a small zoom instead
+    run([{ opacity: 0 }, { opacity: 1 }], ms, $("scrim")); // the dimming arrives and leaves over the same time as the panel
     return Promise.all(runs.map((a) => a.finished.catch(() => {}))).then(() => runs);
   };
   const closeView = async () => {
