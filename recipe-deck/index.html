@@ -38,12 +38,13 @@ html:has(dialog[open]), body:has(dialog[open]) { overflow: hidden; }
 .wrap { max-width: 760px; height: 100%; margin: 0 auto; padding: 16px 16px 0; display: flex; flex-direction: column; }
 main { flex: 1 1 auto; min-height: 0; overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; margin-inline: -16px; padding: 4px 16px 40px; }
 /* Installed on an iPhone the status bar sits over the page and blurs what's under it: push the first row down out of that band. */
-@media (display-mode: standalone) { .wrap { padding-top: calc(16px + 26px); } }
+@media (max-width: 560px) { .wrap { padding-top: 8px; } }
+@media (display-mode: standalone) { .wrap { padding-top: calc(8px + 26px); } } /* with 44px buttons, this puts the title on the same line as Brew Deck's */
 
-header.top { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 14px; }
-header.top h1 { font: 500 26px/1.1 var(--display); margin: 0; letter-spacing: -.01em; }
+header.top { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
+header.top h1 { flex: none; font: 500 26px/1.1 var(--display); margin: 0; letter-spacing: -.01em; }
 @media (max-width: 560px) { header.top h1 { font-size: 22px; } }
-.actions { display: flex; gap: 10px; align-items: center; }
+.actions { display: flex; gap: 10px; align-items: center; min-width: 0; }
 /* The header's round icon buttons: add a recipe, open settings. */
 .icon-btn { flex: none; width: 44px; height: 44px; padding: 0; border: 1px solid var(--line); background: var(--paper); color: var(--fg); border-radius: 50%; display: inline-grid; place-items: center; }
 .icon-btn svg, .row svg { width: 22px; height: 22px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
@@ -52,7 +53,9 @@ header.top h1 { font: 500 26px/1.1 var(--display); margin: 0; letter-spacing: -.
 .btn.quiet { background: transparent; }
 .btn.danger { color: var(--danger); }
 .btn[disabled] { opacity: .55; }
-.status { font: 500 12px/1.3 var(--mono); color: var(--muted); min-height: 1.3em; margin: 0 0 10px; }
+/* A short note beside the header buttons, as in Brew Deck: "Syncing…", "Offline". Cut short with an ellipsis if the screen is too narrow for it. */
+.status { font: 500 12px/1.3 var(--mono); color: var(--muted); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.status:empty { display: none; }
 
 /* The dashboard: each recipe is its photo, filling the tile, with the name over a soft shadow at the foot. The name and its padding are
    sized from the tile's own width. Two tiles to a row on a phone and on a tablet held upright. */
@@ -171,11 +174,11 @@ label.f, .f { display: grid; gap: 5px; font: 600 10.5px/1.2 var(--body); letter-
   <header class="top">
     <h1>Recipe Deck</h1>
     <div class="actions">
+      <span class="status" id="status" role="status" aria-live="polite"></span>
       <button class="icon-btn" id="addBtn" type="button" aria-label="Add recipe" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>
       <button class="icon-btn" id="accountBtn" type="button" aria-label="Settings" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg></button>
     </div>
   </header>
-  <p class="status" id="status" role="status" aria-live="polite"></p>
   <main>
     <form class="auth" id="authPanel" hidden novalidate>
       <h2>Sign in to your deck</h2>
@@ -276,7 +279,7 @@ label.f, .f { display: grid; gap: 5px; font: 600 10.5px/1.2 var(--body); letter-
   const $ = (id) => document.getElementById(id);
   const esc = (v) => String(v ?? "").replace(/[&<>"']/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]));
   const state = { recipes: [], loaded: false, signedIn: false, canWrite: false, uid: null, email: "", openId: null, editingId: null, picked: null, dropPhoto: false, saving: false, wake: null };
-  const setStatus = (text) => { $("status").textContent = text || ""; };
+  const setStatus = (text, detail) => { $("status").textContent = text || ""; $("status").title = detail || ""; }; // the note is short; any detail is kept as its tooltip
   const friendly = (err, doing) => `Couldn't ${doing}${err && err.message ? ": " + err.message : ""}. Check the connection and try again.`;
 
   /* STORE:BEGIN — where recipes and photos are kept: the chowello Supabase project that Brew Deck also uses. Recipes are rows in the
@@ -328,8 +331,9 @@ label.f, .f { display: grid; gap: 5px; font: 600 10.5px/1.2 var(--body); letter-
   const showList = (list) => { state.recipes = list; state.loaded = true; renderGrid(); if ($("view").open) { if (byId(state.openId)) renderView(); else $("view").close(); } };
   const refresh = async () => {
     if (!state.uid) return;
+    if (!$("status").textContent) setStatus("Syncing…");
     try { const list = await store.list(); keepList(list); showList(list); if (/^(Offline|Syncing…|Couldn't load)/.test($("status").textContent)) setStatus(""); }
-    catch (err) { setStatus(navigator.onLine === false ? "Offline: showing the recipes as last seen." : friendly(err, "load the recipes")); }
+    catch (err) { if (navigator.onLine === false) setStatus("Offline", "Showing the recipes as last seen."); else setStatus("Couldn't load", friendly(err, "load the recipes")); }
   };
   /* STORE:END */
 
@@ -516,28 +520,20 @@ label.f, .f { display: grid; gap: 5px; font: 600 10.5px/1.2 var(--body); letter-
   });
   $("authCode").addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); $("authVerify").click(); } });
 
-  // ---------- Rotation: an iPhone can stay slightly zoomed after turning back from landscape, until the page is pinched.
-  // A page cannot set the zoom itself, but the phone re-applies it when the viewport setting changes: pin it at 1 for a moment, then
-  // put the setting back so pinch-to-zoom still works. Safari takes the first pin. The app on the home screen ignores one made while
-  // the turn is still under way, so the pin is repeated over the next second, and the turn is noticed three ways because the
-  // installed app does not reliably report all of them. ----------
+  // ---------- Rotation: iPhone Safari can stay slightly zoomed after turning back from landscape, until the page is pinched.
+  // A page cannot set the zoom itself, but Safari re-applies it when the viewport setting changes: pin it at 1 for a moment, then
+  // put the setting back so pinch-to-zoom still works. ----------
   const viewportMeta = document.querySelector('meta[name="viewport"]');
   const viewportSetting = viewportMeta ? viewportMeta.content : "";
-  const PINNED = "width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, viewport-fit=cover";
-  let zoomTimers = [];
+  let zoomTimer = 0;
   const resetZoom = () => {
     if (!viewportMeta) return;
-    zoomTimers.forEach(clearTimeout);
-    const pin = () => { viewportMeta.content = PINNED; }, release = () => { viewportMeta.content = viewportSetting; };
-    pin();
-    zoomTimers = [[release, 250], [pin, 500], [release, 750], [pin, 1000], [release, 1250]].map(([step, after]) => setTimeout(step, after));
+    clearTimeout(zoomTimer);
+    viewportMeta.content = viewportSetting + ", maximum-scale=1";
+    zoomTimer = setTimeout(() => { viewportMeta.content = viewportSetting; }, 400);
   };
-  const isPortrait = () => window.innerHeight >= window.innerWidth;
-  let wasPortrait = isPortrait();
   const portrait = window.matchMedia("(orientation: portrait)");
   if (portrait.addEventListener) portrait.addEventListener("change", resetZoom); else if (portrait.addListener) portrait.addListener(resetZoom);
-  window.addEventListener("orientationchange", resetZoom);
-  window.addEventListener("resize", () => { const now = isPortrait(); if (now === wasPortrait) return; wasPortrait = now; resetZoom(); }); // only a turn, not every resize
 
   // ---------- Start ----------
   const handleSession = (session) => {
@@ -558,7 +554,7 @@ label.f, .f { display: grid; gap: 5px; font: 600 10.5px/1.2 var(--body); letter-
     if (event === "SIGNED_IN" && (location.hash || location.search.includes("code="))) history.replaceState(null, "", APP_URL);
   });
   window.addEventListener("online", () => refresh());
-  window.addEventListener("offline", () => { if (state.signedIn) setStatus("Offline: showing the recipes as last seen."); });
+  window.addEventListener("offline", () => { if (state.signedIn) setStatus("Offline", "Showing the recipes as last seen."); });
   if ("serviceWorker" in navigator) window.addEventListener("load", () => { navigator.serviceWorker.register("./sw.js").catch(() => {}); });
 })();
 </script>
