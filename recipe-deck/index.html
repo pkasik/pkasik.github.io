@@ -137,9 +137,13 @@ dialog#view .frame { grid-template-rows: auto minmax(0, 1fr); }
 @media (prefers-reduced-motion: reduce) { .fold summary svg { transition: none; } }
 @media (max-width: 560px) { #view .head { padding-top: calc(8px + env(safe-area-inset-top, 0px)); } }
 #view .body { padding: 0 0 calc(18px + env(safe-area-inset-bottom, 0px)); gap: 0; }
+/* The dimming behind an open recipe is this page's own layer, not the dialog's built-in one, so it can fade in step with the panel
+   as it grows and shrinks. (The built-in one cannot be animated reliably, and darkened all at once when the panel arrived.) */
+dialog#view::backdrop { background: transparent; }
+#scrim { position: fixed; inset: 0; z-index: 10; background: rgb(0 0 0 / .5); pointer-events: none; }
 @media (min-width: 760px) {
   /* on a wide screen it floats 20px in from every edge, with the dashboard dimmed behind it */
-  dialog#view { inset: 20px; width: calc(100% - 40px); max-width: calc(100% - 40px); height: calc(100dvh - 40px); max-height: calc(100dvh - 40px); border-radius: 18px; box-shadow: 0 20px 60px rgb(0 0 0 / .35); }
+  dialog#view { inset: 20px; width: calc(100% - 40px); max-width: calc(100% - 40px); height: calc(100dvh - 40px); max-height: calc(100dvh - 40px); border-radius: 18px; }
   dialog#view .frame { height: calc(100dvh - 40px); max-height: calc(100dvh - 40px); }
   #view .body { padding: 0; overflow: hidden; grid-template-columns: minmax(0, 46%) minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); align-content: stretch; }
   #view .body:not(:has(.hero)) { grid-template-columns: minmax(0, 1fr); }
@@ -214,6 +218,7 @@ label.f, .f { display: grid; gap: 5px; font: 600 10.5px/1.2 var(--body); letter-
   </main>
 </div>
 
+<div id="scrim" aria-hidden="true" hidden></div>
 <dialog id="view" class="sheet" aria-labelledby="v_title">
   <div class="frame">
     <div class="head"><h2 id="v_title" tabindex="-1">Recipe</h2>
@@ -382,7 +387,6 @@ label.f, .f { display: grid; gap: 5px; font: 600 10.5px/1.2 var(--body); letter-
   };
   // Each part of a recipe folds away under its heading; the choice is kept while the page is open, across recipes and redraws.
   const fold = (part, title, html) => `<details class="fold" data-part="${part}"${state.open[part] ? " open" : ""}><summary><h3>${title}</h3><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></summary>${html}</details>`;
-  const countOf = (text) => linesOf(text).filter((line) => !isHeading(line)).length; // how many ingredients or steps; a heading line is not one
   const renderView = () => {
     const r = byId(state.openId); if (!r) return;
     // A redraw (after an edit, say) leaves the reader where they were: both panes that can scroll are put back afterwards.
@@ -390,8 +394,8 @@ label.f, .f { display: grid; gap: 5px; font: 600 10.5px/1.2 var(--body); letter-
     const ingredients = listHtml(r.ingredients, false), steps = listHtml(r.steps, true);
     $("v_body").innerHTML = `${r.photo ? `<img class="hero" alt="${esc(r.name)}" data-photo="${esc(r.id)}" data-size="full">` : ""}
       <div class="rcp">
-        ${ingredients ? fold("ingredients", `Ingredients (${countOf(r.ingredients)})`, ingredients) : ""}
-        ${steps ? fold("steps", `Steps (${countOf(r.steps)})`, steps) : ""}
+        ${ingredients ? fold("ingredients", "Ingredients", ingredients) : ""}
+        ${steps ? fold("steps", "Steps", steps) : ""}
         ${r.notes ? fold("notes", "Notes", `<p class="notes">${esc(r.notes)}</p>`) : ""}
       </div>`;
     $("v_title").textContent = r.name; // the recipe's name is the top bar's title
@@ -415,23 +419,23 @@ label.f, .f { display: grid; gap: 5px; font: 600 10.5px/1.2 var(--body); letter-
   };
   const playView = (opening) => {
     const view = $("view"), speed = opening ? 1 : 0.7, go = { easing: "cubic-bezier(.2, .8, .2, 1)", direction: opening ? "normal" : "reverse", fill: "both" };
-    const runs = [], run = (frames, ms, more) => { try { runs.push(view.animate(frames, { ...go, duration: ms * speed, ...more })); } catch {} };
+    const runs = [], run = (frames, ms, el = view) => { try { runs.push(el.animate(frames, { ...go, duration: ms * speed })); } catch {} };
     const clip = clipFromTile(state.openId);
     if (clip) run([{ clipPath: clip, opacity: 0 }, { opacity: 1, offset: 0.3 }, { clipPath: `inset(0px 0px 0px 0px round ${getComputedStyle(view).borderTopLeftRadius})`, opacity: 1 }], 440);
     else run([{ opacity: 0, transform: "scale(.92)" }, { opacity: 1, transform: "none" }], 300); // no card in sight to grow from: a small zoom instead
-    run([{ opacity: 0 }, { opacity: 1 }], 300, { pseudoElement: "::backdrop" });
+    run([{ opacity: 0 }, { opacity: 1 }], 440, $("scrim")); // the dimming arrives and leaves over the same time as the panel
     return Promise.all(runs.map((a) => a.finished.catch(() => {}))).then(() => runs);
   };
   const closeView = async () => {
     const view = $("view"); if (!view.open || state.closing) return;
     if (calm.matches) { view.close(); return; }
-    state.closing = true; const runs = await playView(false); view.close(); runs.forEach((a) => a.cancel()); state.closing = false;
+    state.closing = true; const runs = await playView(false); view.close(); $("scrim").hidden = true; runs.forEach((a) => a.cancel()); state.closing = false;
   };
   const openView = (id) => {
-    state.openId = id; renderView(); $("view").showModal(); $("v_body").scrollTop = 0; const text = $("v_body").querySelector(".rcp"); if (text) text.scrollTop = 0; $("v_title").focus({ preventScroll: true }); keepAwake(true);
+    state.openId = id; renderView(); $("scrim").hidden = false; $("view").showModal(); $("v_body").scrollTop = 0; const text = $("v_body").querySelector(".rcp"); if (text) text.scrollTop = 0; $("v_title").focus({ preventScroll: true }); keepAwake(true);
     if (!calm.matches) playView(true).then((runs) => runs.forEach((a) => a.cancel())); // once it has arrived, nothing of the animation is left on the panel
   };
-  $("view").addEventListener("close", () => { state.openId = null; keepAwake(false); });
+  $("view").addEventListener("close", () => { state.openId = null; keepAwake(false); $("scrim").hidden = true; });
   $("v_close").addEventListener("click", closeView);
   $("view").addEventListener("cancel", (e) => { e.preventDefault(); closeView(); }); // the Escape key closes it the same way
   $("grid").addEventListener("click", (e) => { const tile = e.target.closest("button.tile[data-id]"); if (tile) openView(tile.dataset.id); });
