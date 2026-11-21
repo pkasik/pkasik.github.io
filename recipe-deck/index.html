@@ -516,20 +516,28 @@ label.f, .f { display: grid; gap: 5px; font: 600 10.5px/1.2 var(--body); letter-
   });
   $("authCode").addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); $("authVerify").click(); } });
 
-  // ---------- Rotation: iPhone Safari can stay slightly zoomed after turning back from landscape, until the page is pinched.
-  // A page cannot set the zoom itself, but Safari re-applies it when the viewport setting changes: pin it at 1 for a moment, then
-  // put the setting back so pinch-to-zoom still works. ----------
+  // ---------- Rotation: an iPhone can stay slightly zoomed after turning back from landscape, until the page is pinched.
+  // A page cannot set the zoom itself, but the phone re-applies it when the viewport setting changes: pin it at 1 for a moment, then
+  // put the setting back so pinch-to-zoom still works. Safari takes the first pin. The app on the home screen ignores one made while
+  // the turn is still under way, so the pin is repeated over the next second, and the turn is noticed three ways because the
+  // installed app does not reliably report all of them. ----------
   const viewportMeta = document.querySelector('meta[name="viewport"]');
   const viewportSetting = viewportMeta ? viewportMeta.content : "";
-  let zoomTimer = 0;
+  const PINNED = "width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, viewport-fit=cover";
+  let zoomTimers = [];
   const resetZoom = () => {
     if (!viewportMeta) return;
-    clearTimeout(zoomTimer);
-    viewportMeta.content = viewportSetting + ", maximum-scale=1";
-    zoomTimer = setTimeout(() => { viewportMeta.content = viewportSetting; }, 400);
+    zoomTimers.forEach(clearTimeout);
+    const pin = () => { viewportMeta.content = PINNED; }, release = () => { viewportMeta.content = viewportSetting; };
+    pin();
+    zoomTimers = [[release, 250], [pin, 500], [release, 750], [pin, 1000], [release, 1250]].map(([step, after]) => setTimeout(step, after));
   };
+  const isPortrait = () => window.innerHeight >= window.innerWidth;
+  let wasPortrait = isPortrait();
   const portrait = window.matchMedia("(orientation: portrait)");
   if (portrait.addEventListener) portrait.addEventListener("change", resetZoom); else if (portrait.addListener) portrait.addListener(resetZoom);
+  window.addEventListener("orientationchange", resetZoom);
+  window.addEventListener("resize", () => { const now = isPortrait(); if (now === wasPortrait) return; wasPortrait = now; resetZoom(); }); // only a turn, not every resize
 
   // ---------- Start ----------
   const handleSession = (session) => {
