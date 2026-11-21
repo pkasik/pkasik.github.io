@@ -31,7 +31,7 @@ img { max-width: 100%; }
   --bg: #efeee9; --fg: #1f1c18; --muted: #6b655c; --line: #d6d2c8; --paper: #fbfaf6; --chip: #e6e2d8;
   --amber: #e2711d; --amber-ink: #2a1607; --amber-soft: #f3dcc6;
   --danger: #a8341c; --ok: #3f6b3a;
-  --amber-light: color-mix(in srgb, var(--amber) 88%, #ffcf8f); --amber-dark: color-mix(in srgb, var(--amber) 90%, #4a1f05);
+  --amber-light: color-mix(in srgb, var(--amber) 94%, #ffcf8f); --amber-dark: color-mix(in srgb, var(--amber) 95%, #4a1f05);
   --display: "Newsreader", Georgia, "Times New Roman", serif;
   --body: "Figtree", system-ui, -apple-system, "Segoe UI", sans-serif;
   --mono: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
@@ -179,11 +179,7 @@ body:has(#dash:not([hidden])) .wrap { display: flex; flex-direction: column; hei
 .card.espresso:not([data-roast]) { --c-bg: #d4621a; }
 /* Roast tone: everything inside takes its orange from --amber, so changing it here shifts the whole tile, card or timer together. */
 [data-roast="light"] { --amber: var(--amber-light); }
-[data-roast="dark"] { --amber: var(--amber-dark); --amber-ink: #170a02; }
-/* The deeper orange takes contrast from the small grey text most, so on a dark roast that text is mixed closer to the ink. */
-.tile[data-roast="dark"] .t-roaster { color: color-mix(in srgb, var(--amber-ink) 80%, var(--amber)); }
-.tile[data-roast="dark"] .t-notes { color: color-mix(in srgb, var(--amber-ink) 90%, var(--amber)); }
-.card[data-roast="dark"], dialog.timer[data-roast="dark"] { --c-muted: color-mix(in srgb, var(--amber-ink) 80%, var(--amber)); }
+[data-roast="dark"] { --amber: var(--amber-dark); }
 .grid .empty { grid-column: 1 / -1; padding: 8px 0 4px; }
 .scaled { margin: 0; font-size: 12.5px; color: var(--c-muted); }
 .auth { background: var(--paper); border: 1px solid var(--line); border-radius: 8px; padding: 18px 20px; display: grid; gap: 10px; margin-bottom: 4px; }
