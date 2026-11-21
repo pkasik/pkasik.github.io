@@ -1,0 +1,493 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#efeee9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#171512" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Recipe Deck">
+<meta name="description" content="Recipes with a photo, the ingredients and the steps.">
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="icon" href="./icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="./apple-touch-icon.png">
+<title>Recipe Deck</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Figtree:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Recipe Deck: a dashboard of photo tiles; a tile opens the full recipe; one form adds and edits. Same family as Brew Deck, with a green accent. */
+:root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px);
+  --bg: #efeee9; --fg: #1f1c18; --muted: #6b655c; --line: #d6d2c8; --paper: #fbfaf6; --chip: #e6e2d8;
+  --accent: #3f6a4a; --accent-ink: #f6f3ea; --accent-soft: #dbe6d6; --danger: #a8341c;
+  --display: "Fraunces", Georgia, "Times New Roman", serif; --body: "Figtree", system-ui, sans-serif; --mono: "IBM Plex Mono", ui-monospace, Menlo, monospace; }
+@media (prefers-color-scheme: dark) { :root { --bg: #171512; --fg: #ece8e0; --muted: #a39b8f; --line: #36312a; --paper: #221f1b; --chip: #2e2a24; --accent: #7fa987; --accent-ink: #10180f; --accent-soft: #263325; --danger: #e0735a; } }
+html { -webkit-text-size-adjust: 100%; }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--fg); font: 15px/1.45 var(--body); }
+[hidden] { display: none !important; }
+img { max-width: 100%; display: block; }
+button, input, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; -webkit-tap-highlight-color: transparent; }
+button:focus-visible, input:focus-visible, textarea:focus-visible, a:focus-visible, label.btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+html:has(dialog[open]), body:has(dialog[open]) { overflow: hidden; }
+.wrap { max-width: 760px; margin: 0 auto; padding: 16px 16px 40px; }
+
+header.top { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
+header.top h1 { font: 500 28px/1.1 var(--display); margin: 0; letter-spacing: -.01em; }
+.actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.btn { border: 1px solid var(--line); background: var(--paper); color: var(--fg); border-radius: 999px; padding: 9px 15px; font: 500 14px/1.2 var(--body); display: inline-flex; align-items: center; gap: 6px; text-decoration: none; }
+.btn.primary { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+.btn.quiet { background: transparent; }
+.btn.danger { color: var(--danger); }
+.btn[disabled] { opacity: .55; }
+.status { font: 500 12px/1.3 var(--mono); color: var(--muted); min-height: 1.3em; margin: 0 0 10px; }
+
+/* The dashboard: each recipe is its photo, filling the tile, with the name over a soft shadow at the foot. The name and its padding are
+   sized from the tile's own width. One tile to a row on a phone. */
+.grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; }
+/* A tablet or a desktop has room for two side by side; a phone stays at one. */
+@media (min-width: 760px) { .wrap { max-width: 1040px; padding-inline: 24px; } .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; } }
+.tile { position: relative; display: block; width: 100%; min-width: 0; padding: 0; border: 0; background: none; color: #fff; text-align: left; container-type: inline-size;
+  border-radius: clamp(10px, 5.4cqi, 20px); overflow: hidden; box-shadow: 0 6px 20px rgb(0 0 0 / .14); }
+.tile .ph { display: block; width: 100%; aspect-ratio: 4 / 5; object-fit: cover; background: var(--accent); }
+.tile .info { position: absolute; left: 0; right: 0; bottom: 0; padding: 19cqi 5.4cqi 5.4cqi; background: linear-gradient(to top, rgb(0 0 0 / .8), rgb(0 0 0 / .4) 50%, transparent); }
+.tile .name { display: block; font: 500 clamp(12.5px, 10cqi, 34px)/1.08 var(--display); letter-spacing: -.015em; text-wrap: balance; overflow-wrap: anywhere; text-shadow: 0 1px 12px rgb(0 0 0 / .35); }
+.empty { background: var(--paper); border: 1px dashed var(--line); border-radius: 10px; padding: 36px 22px; text-align: center; display: grid; gap: 10px; justify-items: center; }
+.empty h2 { font: 500 24px/1.15 var(--display); margin: 0; }
+.empty p { margin: 0; color: var(--muted); max-width: 40ch; }
+
+/* Sheets: full screen on a phone, a centred panel on anything wider */
+dialog { border: 0; padding: 0; background: var(--paper); color: var(--fg); border-radius: 14px; width: min(680px, calc(100% - 24px)); max-height: calc(100dvh - 24px); overflow: hidden; }
+dialog::backdrop { background: rgb(0 0 0 / .5); }
+dialog:focus, dialog h2:focus { outline: none; }
+dialog .frame { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; max-height: calc(100dvh - 24px); }
+dialog .head { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 14px 18px; border-bottom: 1px solid var(--line); }
+dialog .head h2 { font: 600 17px/1.2 var(--body); margin: 0; }
+dialog .body { overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; padding: 16px 18px; display: grid; gap: 14px; align-content: start; }
+dialog .foot { display: flex; justify-content: space-between; gap: 8px; padding: 12px 18px calc(12px + env(safe-area-inset-bottom, 0px)); border-top: 1px solid var(--line); }
+dialog .foot .right { display: flex; gap: 8px; margin-left: auto; }
+@media (max-width: 560px) {
+  dialog.sheet { width: 100%; max-width: 100%; height: 100dvh; max-height: 100dvh; margin: 0; border-radius: 0; inset: 0; }
+  dialog.sheet .frame { height: 100dvh; max-height: 100dvh; }
+  input, textarea { font-size: 16px !important; } /* smaller text makes iOS zoom the page when a field is focused */
+}
+dialog.small { width: min(380px, calc(100% - 32px)); }
+dialog.small .body { gap: 8px; }
+
+/* The recipe: always the whole screen. On a phone the photo sits on top and the page scrolls; on a wide screen the photo holds the
+   left side and the ingredients and steps scroll beside it. */
+dialog#view { width: 100%; max-width: 100%; height: 100dvh; max-height: 100dvh; margin: 0; border-radius: 0; inset: 0; }
+dialog#view .frame { height: 100dvh; max-height: 100dvh; }
+#view .body { padding: 0 0 18px; gap: 0; }
+@media (min-width: 760px) {
+  /* on a wide screen it floats 20px in from every edge, with the dashboard dimmed behind it */
+  dialog#view { inset: 20px; width: calc(100% - 40px); max-width: calc(100% - 40px); height: calc(100dvh - 40px); max-height: calc(100dvh - 40px); border-radius: 18px; box-shadow: 0 20px 60px rgb(0 0 0 / .35); }
+  dialog#view .frame { height: calc(100dvh - 40px); max-height: calc(100dvh - 40px); }
+  #view .body { padding: 0; overflow: hidden; grid-template-columns: minmax(0, 46%) minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); align-content: stretch; }
+  #view .body:not(:has(.hero)) { grid-template-columns: minmax(0, 1fr); }
+  #view .hero { height: 100%; aspect-ratio: auto; }
+  #view .rcp { overflow-y: auto; overscroll-behavior: contain; padding: 34px clamp(28px, 4vw, 56px) 40px; align-content: start; gap: 22px; }
+  #view .body:not(:has(.hero)) .rcp { width: min(760px, 100%); margin: 0 auto; }
+  #view .rcp h2 { font-size: 36px; }
+  #view .rcp ul li, #view .rcp ol li { font-size: 17px; }
+}
+.hero { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; background: var(--chip); }
+.rcp { padding: 16px 18px 0; display: grid; gap: 16px; }
+.rcp h2 { font: 700 27px/1.15 var(--body); margin: 0; letter-spacing: -.015em; text-wrap: balance; }
+.rcp h3 { font: 600 11px/1.2 var(--body); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 0 0 8px; }
+.rcp ul, .rcp ol { margin: 0; padding: 0; list-style: none; display: grid; }
+.rcp ul li { padding: 9px 0; border-top: 1px solid var(--line); font-size: 16px; }
+.rcp ul li:first-child, .rcp ol li:first-child { border-top: 0; padding-top: 0; }
+.rcp ul li.sub, .rcp ol li.sub { font: 600 11px/1.2 var(--body); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); padding-top: 16px; border-top: 0; display: block; }
+.rcp ol { counter-reset: step; }
+.rcp ol li { display: grid; grid-template-columns: 30px minmax(0, 1fr); gap: 4px; padding: 11px 0; border-top: 1px solid var(--line); font-size: 16px; line-height: 1.5; }
+.rcp ol li:not(.sub)::before { counter-increment: step; content: counter(step); font: 500 15px/1.5 var(--mono); color: var(--accent); }
+.rcp .notes { margin: 0; white-space: pre-wrap; color: var(--fg); font-size: 15px; background: var(--accent-soft); border-radius: 8px; padding: 12px 14px; }
+
+/* The form */
+label.f, .f { display: grid; gap: 5px; font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); min-width: 0; }
+.f input, .f textarea { font: 400 15px/1.4 var(--body); letter-spacing: 0; text-transform: none; color: var(--fg); background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 10px 11px; width: 100%; min-width: 0; }
+.f textarea { min-height: 150px; resize: vertical; }
+.f small { font: 400 12.5px/1.4 var(--body); letter-spacing: 0; text-transform: none; color: var(--muted); }
+.photo-row { display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 12px; align-items: center; }
+.photo-row .thumb { width: 96px; aspect-ratio: 4 / 5; border-radius: 8px; border: 1px solid var(--line); background: var(--chip); object-fit: cover; }
+.photo-row .thumb.none { display: grid; place-items: center; color: var(--muted); font: 500 11px/1.2 var(--mono); text-transform: none; letter-spacing: 0; }
+.photo-row .choices { display: flex; flex-wrap: wrap; gap: 8px; }
+.err { color: var(--danger); font-size: 13.5px; margin: 0; }
+.auth { background: var(--paper); border: 1px solid var(--line); border-radius: 12px; padding: 20px; display: grid; gap: 12px; max-width: 520px; }
+.auth h2 { font: 500 24px/1.15 var(--display); margin: 0; }
+.auth p { margin: 0; color: var(--muted); }
+.auth-row { display: flex; gap: 10px; align-items: end; flex-wrap: wrap; }
+.auth-msg { min-height: 1.3em; font-size: 13.5px; }
+.auth-msg.ok { color: var(--accent); } .auth-msg.err { color: var(--danger); }
+.acct { display: grid; gap: 10px; } .acct .btn { justify-content: center; }
+.acct .who { margin: 0; font: 500 13px/1.4 var(--mono); color: var(--muted); overflow-wrap: anywhere; }
+.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <h1>Recipe Deck</h1>
+    <div class="actions">
+      <button class="btn" id="accountBtn" type="button" hidden>Account</button>
+      <button class="btn primary" id="addBtn" type="button" hidden>+ Add recipe</button>
+    </div>
+  </header>
+  <p class="status" id="status" role="status" aria-live="polite"></p>
+  <main>
+    <form class="auth" id="authPanel" hidden novalidate>
+      <h2>Sign in to your deck</h2>
+      <p>Enter your email and we’ll send a 6-digit code. No password.</p>
+      <div class="auth-row">
+        <label class="f" style="flex:1 1 220px">Email<input id="authEmail" type="email" autocomplete="email" inputmode="email" required placeholder="you@example.com"></label>
+        <button class="btn primary" type="submit" id="authSend">Send code</button>
+      </div>
+      <div class="auth-row" id="authCodeRow" hidden>
+        <label class="f" style="flex:1 1 160px">Code from the email<input id="authCode" inputmode="numeric" pattern="[0-9]*" autocomplete="one-time-code" maxlength="8" placeholder="123456"></label>
+        <button class="btn primary" type="button" id="authVerify">Verify</button>
+      </div>
+      <p class="auth-msg" id="authMsg" aria-live="polite"></p>
+    </form>
+    <div class="grid" id="grid"></div>
+    <div class="empty" id="empty" hidden>
+      <h2 id="emptyTitle">No recipes yet</h2>
+      <p id="emptyText">Add your first recipe: a name, a photo of the finished dish, the ingredients and the steps.</p>
+      <button class="btn primary" id="addFirst" type="button" hidden>+ Add a recipe</button>
+    </div>
+  </main>
+</div>
+
+<dialog id="view" class="sheet" aria-labelledby="v_name">
+  <div class="frame">
+    <div class="head"><h2 id="v_title" tabindex="-1">Recipe</h2><button class="btn quiet" id="v_close" type="button">Close</button></div>
+    <div class="body" id="v_body"></div>
+    <div class="foot"><div class="right"><button class="btn" id="v_edit" type="button" hidden>Edit</button></div></div>
+  </div>
+</dialog>
+
+<dialog id="edit" class="sheet" aria-labelledby="e_title">
+  <form class="frame" id="editForm" method="dialog" novalidate>
+    <div class="head"><h2 id="e_title" tabindex="-1">Add recipe</h2></div>
+    <div class="body">
+      <label class="f">Name<input id="e_name" autocomplete="off" placeholder="Hainanese chicken rice"></label>
+      <div class="f">Photo of the finished dish
+        <div class="photo-row">
+          <img class="thumb" id="e_thumb" alt="" hidden><div class="thumb none" id="e_nothumb">No photo</div>
+          <div class="choices">
+            <label class="btn" for="e_file" role="button" tabindex="0" id="e_pick">Choose photo</label>
+            <input class="visually-hidden" id="e_file" type="file" accept="image/*" tabindex="-1">
+            <button class="btn quiet" id="e_nophoto" type="button" hidden>Remove</button>
+          </div>
+        </div>
+        <small>The photo is made smaller on this device before it is stored.</small>
+      </div>
+      <label class="f">Ingredients<textarea id="e_ingredients" placeholder="One per line&#10;1 whole chicken&#10;2 cups jasmine rice"></textarea><small>One per line. End a line with a colon to make it a heading, like “For the sauce:”.</small></label>
+      <label class="f">Steps<textarea id="e_steps" placeholder="One per line&#10;Poach the chicken for 30 minutes.&#10;Cook the rice in the stock."></textarea><small>One per line. They are numbered for you.</small></label>
+      <label class="f">Notes<textarea id="e_notes" style="min-height:90px" placeholder="Tips, swaps, what to change next time."></textarea></label>
+      <p class="err" id="e_err" hidden></p>
+    </div>
+    <div class="foot">
+      <button class="btn danger" id="e_delete" type="button" hidden>Delete</button>
+      <div class="right"><button class="btn" id="e_cancel" type="button">Cancel</button><button class="btn primary" id="e_save" type="submit">Save</button></div>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="account" class="small" aria-labelledby="a_title">
+  <div class="frame">
+    <div class="head"><h2 id="a_title" tabindex="-1">Account</h2><button class="btn quiet" id="a_close" type="button">Close</button></div>
+    <div class="body acct">
+      <p class="who" id="a_who"></p>
+      <button class="btn" id="exportBtn" type="button">Export recipes</button>
+      <label class="btn" id="importBtn" for="importFile" role="button" tabindex="0">Import recipes</label>
+      <input class="visually-hidden" id="importFile" type="file" accept="application/json,.json" tabindex="-1">
+      <button class="btn danger" id="signOut" type="button">Sign out</button>
+      <p class="auth-msg" id="a_msg" aria-live="polite"></p>
+    </div>
+  </div>
+</dialog>
+
+<dialog id="confirm" class="small" aria-labelledby="c_title">
+  <div class="frame">
+    <div class="head"><h2 id="c_title" tabindex="-1">Delete this recipe?</h2></div>
+    <div class="body"><p id="c_text" style="margin:0;color:var(--muted)"></p></div>
+    <div class="foot"><div class="right"><button class="btn" id="c_no" type="button">Keep</button><button class="btn danger" id="c_yes" type="button">Delete</button></div></div>
+  </div>
+</dialog>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.js"></script>
+<script>
+(() => {
+  "use strict";
+  const $ = (id) => document.getElementById(id);
+  const esc = (v) => String(v ?? "").replace(/[&<>"']/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]));
+  const state = { recipes: [], loaded: false, signedIn: false, canWrite: false, uid: null, email: "", openId: null, editingId: null, picked: null, dropPhoto: false, saving: false, wake: null };
+  const setStatus = (text) => { $("status").textContent = text || ""; };
+  const friendly = (err, doing) => `Couldn't ${doing}${err && err.message ? ": " + err.message : ""}. Check the connection and try again.`;
+
+  /* STORE:BEGIN — where recipes and photos are kept: the chowello Supabase project that Brew Deck also uses. Recipes are rows in the
+     `recipes` table, each visible only to the account that made it; photos are files in the private `recipe-photos` bucket, in a
+     folder named after the account. A photo is { full, thumb }: the two files' paths. The key below is the project's public one. */
+  const SUPABASE_URL = "https://vbydbjfrhjbrlqybgcoh.supabase.co";
+  const SUPABASE_KEY = "sb_publishable_x-FvT__bdgDB87Lus0kOJQ_X6L5qQa8";
+  const APP_URL = location.origin + location.pathname, BUCKET = "recipe-photos", PHOTO_CACHE = "recipe-deck-photos";
+  const sb = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true } }) : null;
+  const unwrap = ({ data, error }) => { if (error) throw error; return data; };
+  const requireClient = () => { if (!sb) throw new Error("The sync library didn't load"); return sb; };
+  const rowToRecipe = (row) => ({ ...(row.data || {}), id: row.id, order: row.order ?? 0, archived: Boolean(row.archived) });
+  const recipeToRow = (id, doc) => { const { id: _id, order, archived, owner: _owner, ...data } = doc; return { id, data, order: Number.isFinite(Number(order)) ? Number(order) : 0, archived: Boolean(archived), updated_at: new Date().toISOString() }; };
+  // Photos are private, so they are fetched signed-in and kept on the device: shown at once the next time, and when offline.
+  const photoUrls = new Map(), photoKey = (path) => new Request(location.origin + "/__recipe-photo/" + path);
+  const keptPhotos = () => ("caches" in window ? caches.open(PHOTO_CACHE).catch(() => null) : Promise.resolve(null));
+  const pathsOf = (photo) => [photo?.full, photo?.thumb].filter(Boolean);
+  const store = {
+    list: async () => unwrap(await requireClient().from("recipes").select("id,data,order,archived").order("order", { ascending: true })).map(rowToRecipe),
+    save: async (id, doc) => { unwrap(await requireClient().from("recipes").upsert(recipeToRow(id, doc), { onConflict: "id" })); await refresh(); },
+    remove: async (id) => { unwrap(await requireClient().from("recipes").delete().eq("id", id)); await refresh(); },
+    async putPhoto(id, full, thumb) {
+      const stamp = Date.now().toString(36), photo = { full: `${state.uid}/${id}-${stamp}.jpg`, thumb: `${state.uid}/${id}-${stamp}-card.jpg` }, kept = await keptPhotos();
+      for (const [path, blob] of [[photo.full, full], [photo.thumb, thumb]]) {
+        unwrap(await requireClient().storage.from(BUCKET).upload(path, blob, { contentType: "image/jpeg", cacheControl: "31536000", upsert: false }));
+        if (kept) await kept.put(photoKey(path), new Response(blob, { headers: { "Content-Type": "image/jpeg" } })).catch(() => {});
+      }
+      return photo;
+    },
+    async photoUrl(photo, size) {
+      const path = size === "thumb" ? photo?.thumb || photo?.full : photo?.full || photo?.thumb; if (!path) return "";
+      if (photoUrls.has(path)) return photoUrls.get(path);
+      const kept = await keptPhotos(), hit = kept ? await kept.match(photoKey(path)) : null;
+      let blob = hit ? await hit.blob() : null;
+      if (!blob) { blob = unwrap(await requireClient().storage.from(BUCKET).download(path)); if (kept) kept.put(photoKey(path), new Response(blob, { headers: { "Content-Type": "image/jpeg" } })).catch(() => {}); }
+      const url = URL.createObjectURL(blob); photoUrls.set(path, url); return url;
+    },
+    async dropPhoto(photo) {
+      const paths = pathsOf(photo); if (!paths.length) return;
+      try { await requireClient().storage.from(BUCKET).remove(paths); } catch {}
+      const kept = await keptPhotos(); for (const path of paths) { if (kept) kept.delete(photoKey(path)).catch(() => {}); const url = photoUrls.get(path); if (url) { URL.revokeObjectURL(url); photoUrls.delete(path); } }
+    },
+    saveFile: async (filename, text) => { const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([text], { type: "application/json" })); a.download = filename; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 2000); },
+  };
+  // The list as last seen, kept on the device so the deck paints at once and opens offline. One copy per account.
+  const listKey = () => "recipedeck.list." + state.uid;
+  const keepList = (list) => { try { localStorage.setItem(listKey(), JSON.stringify(list)); } catch {} };
+  const keptList = () => { try { return JSON.parse(localStorage.getItem(listKey()) || "[]"); } catch { return []; } };
+  const showList = (list) => { state.recipes = list; state.loaded = true; renderGrid(); if ($("view").open) { if (byId(state.openId)) renderView(); else $("view").close(); } };
+  const refresh = async () => {
+    if (!state.uid) return;
+    try { const list = await store.list(); keepList(list); showList(list); if (/^(Offline|Syncing…|Couldn't load)/.test($("status").textContent)) setStatus(""); }
+    catch (err) { setStatus(navigator.onLine === false ? "Offline: showing the recipes as last seen." : friendly(err, "load the recipes")); }
+  };
+  /* STORE:END */
+
+  // ---------- Recipes ----------
+  const linesOf = (text) => String(text || "").split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+  const isHeading = (line) => /:$/.test(line) && line.length < 60;
+  const sorted = (list) => [...list].sort((a, b) => (a.order ?? 0) - (b.order ?? 0) || String(a.name || "").localeCompare(String(b.name || "")));
+  const byId = (id) => state.recipes.find((r) => r.id === id);
+  const newId = (name) => (String(name).toLowerCase().normalize("NFKD").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40) || "recipe") + "-" + Math.random().toString(36).slice(2, 7);
+
+  // Pictures are asked for after the page is drawn, so a slow or missing photo never holds anything up.
+  const fillPhotos = (root) => root.querySelectorAll("img[data-photo]").forEach(async (img) => {
+    const r = byId(img.dataset.photo); if (!r || !r.photo) return;
+    try { const url = await store.photoUrl(r.photo, img.dataset.size); if (url && img.isConnected) img.src = url; } catch {}
+  });
+
+  const renderGrid = () => {
+    const list = sorted(state.recipes.filter((r) => !r.archived));
+    $("grid").innerHTML = list.map((r) => {
+      return `<button class="tile" type="button" data-id="${esc(r.id)}" aria-label="Open ${esc(r.name)}">${r.photo ? `<img class="ph" alt="" loading="lazy" decoding="async" data-photo="${esc(r.id)}" data-size="thumb">` : `<span class="ph" aria-hidden="true"></span>`}<span class="info"><span class="name">${esc(r.name)}</span></span></button>`;
+    }).join("");
+    fillPhotos($("grid"));
+    const none = state.loaded && state.signedIn && !list.length;
+    $("empty").hidden = !none;
+    if (none) {
+    }
+    $("addBtn").hidden = $("addFirst").hidden = $("accountBtn").hidden = !state.signedIn;
+    $("authPanel").hidden = !state.loaded || state.signedIn; $("grid").hidden = none || !state.signedIn;
+  };
+
+  const listHtml = (text, ordered) => {
+    const items = linesOf(text).map((line) => (isHeading(line) ? `<li class="sub">${esc(line.replace(/:$/, ""))}</li>` : `<li>${ordered ? "<span>" + esc(line.replace(/^\d+[.)]\s*/, "")) + "</span>" : esc(line)}</li>`)).join("");
+    return items ? (ordered ? `<ol>${items}</ol>` : `<ul>${items}</ul>`) : "";
+  };
+  const renderView = () => {
+    const r = byId(state.openId); if (!r) return;
+    const ingredients = listHtml(r.ingredients, false), steps = listHtml(r.steps, true);
+    $("v_body").innerHTML = `${r.photo ? `<img class="hero" alt="${esc(r.name)}" data-photo="${esc(r.id)}" data-size="full">` : ""}
+      <div class="rcp">
+        <h2 id="v_name">${esc(r.name)}</h2>
+        ${ingredients ? `<section><h3>Ingredients</h3>${ingredients}</section>` : ""}
+        ${steps ? `<section><h3>Steps</h3>${steps}</section>` : ""}
+        ${r.notes ? `<section><h3>Notes</h3><p class="notes">${esc(r.notes)}</p></section>` : ""}
+      </div>`;
+    fillPhotos($("v_body")); $("v_edit").hidden = !state.canWrite;
+  };
+  // While a recipe is open the screen is kept awake, where the phone allows it: hands are usually busy.
+  const keepAwake = async (on) => {
+    try { if (on && "wakeLock" in navigator && !state.wake) state.wake = await navigator.wakeLock.request("screen"); else if (!on && state.wake) { await state.wake.release(); state.wake = null; } } catch { state.wake = null; }
+  };
+  document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible" && $("view").open) { state.wake = null; keepAwake(true); } });
+  const openView = (id) => { state.openId = id; renderView(); $("view").showModal(); $("v_body").scrollTop = 0; const text = $("v_body").querySelector(".rcp"); if (text) text.scrollTop = 0; $("v_title").focus({ preventScroll: true }); keepAwake(true); };
+  $("view").addEventListener("close", () => { state.openId = null; keepAwake(false); });
+  $("v_close").addEventListener("click", () => $("view").close());
+  $("grid").addEventListener("click", (e) => { const tile = e.target.closest("button.tile[data-id]"); if (tile) openView(tile.dataset.id); });
+
+  // ---------- Photos: made smaller on the device before they are stored ----------
+  const shrink = async (file, longest, quality) => {
+    let source;
+    try { source = await createImageBitmap(file, { imageOrientation: "from-image" }); }
+    catch { source = await new Promise((done, fail) => { const img = new Image(); img.onload = () => done(img); img.onerror = () => fail(new Error("That file isn't a picture this device can read.")); img.src = URL.createObjectURL(file); }); }
+    const w = source.width || source.naturalWidth, h = source.height || source.naturalHeight, scale = Math.min(1, longest / Math.max(w, h));
+    const canvas = document.createElement("canvas"); canvas.width = Math.round(w * scale); canvas.height = Math.round(h * scale);
+    canvas.getContext("2d").drawImage(source, 0, 0, canvas.width, canvas.height);
+    return new Promise((done, fail) => canvas.toBlob((blob) => (blob ? done(blob) : fail(new Error("Couldn't prepare the photo."))), "image/jpeg", quality));
+  };
+  const showThumb = (url) => { $("e_thumb").hidden = !url; $("e_nothumb").hidden = Boolean(url); if (url) $("e_thumb").src = url; $("e_nophoto").hidden = !url; $("e_pick").textContent = url ? "Replace photo" : "Choose photo"; };
+  $("e_file").addEventListener("change", async () => {
+    const file = $("e_file").files[0]; $("e_file").value = ""; if (!file) return;
+    $("e_err").hidden = true; $("e_save").disabled = true;
+    try {
+      const [full, thumb] = await Promise.all([shrink(file, 1600, 0.82), shrink(file, 1000, 0.78)]);
+      if (state.picked) URL.revokeObjectURL(state.picked.url);
+      state.picked = { full, thumb, url: URL.createObjectURL(thumb) }; state.dropPhoto = false; showThumb(state.picked.url);
+    } catch (err) { $("e_err").textContent = err.message || "Couldn't read that photo."; $("e_err").hidden = false; }
+    $("e_save").disabled = false;
+  });
+  $("e_nophoto").addEventListener("click", () => { if (state.picked) URL.revokeObjectURL(state.picked.url); state.picked = null; state.dropPhoto = true; showThumb(""); });
+  [["e_pick", "e_file"], ["importBtn", "importFile"]].forEach(([label, input]) => $(label).addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); $(input).click(); } }));
+
+  // ---------- Add and edit ----------
+  const FIELDS = ["name", "ingredients", "steps", "notes"];
+  const openEdit = async (id) => {
+    const r = id ? byId(id) : null;
+    state.editingId = r ? r.id : null; state.picked = null; state.dropPhoto = false;
+    FIELDS.forEach((f) => { $("e_" + f).value = r?.[f] || ""; });
+    $("e_title").textContent = r ? "Edit recipe" : "Add recipe"; $("e_delete").hidden = !r; $("e_err").hidden = true; $("e_save").disabled = false; $("e_save").textContent = "Save";
+    showThumb("");
+    $("edit").showModal(); $("edit").querySelector(".body").scrollTop = 0;
+    $("e_title").focus({ preventScroll: true }); // the heading, not a field: no keyboard until one is tapped
+    if (r?.photo) { try { const url = await store.photoUrl(r.photo, "thumb"); if (state.editingId === r.id && !state.picked && !state.dropPhoto) showThumb(url); } catch {} }
+  };
+  $("addBtn").addEventListener("click", () => openEdit(null));
+  $("addFirst").addEventListener("click", () => openEdit(null));
+  $("v_edit").addEventListener("click", () => { const id = state.openId; $("view").close(); openEdit(id); });
+  $("e_cancel").addEventListener("click", () => $("edit").close());
+  $("edit").addEventListener("close", () => { if (state.picked) URL.revokeObjectURL(state.picked.url); state.picked = null; });
+  $("editForm").addEventListener("submit", async (e) => {
+    e.preventDefault(); if (state.saving) return;
+    const name = $("e_name").value.trim();
+    if (!name) { $("e_err").textContent = "Give the recipe a name."; $("e_err").hidden = false; return; }
+    const old = state.editingId ? byId(state.editingId) : null, id = old ? old.id : newId(name);
+    state.saving = true; $("e_save").disabled = true; $("e_save").textContent = "Saving…"; $("e_err").hidden = true;
+    try {
+      let photo = old?.photo || null;
+      if (state.picked) photo = await store.putPhoto(id, state.picked.full, state.picked.thumb); else if (state.dropPhoto) photo = null;
+      const doc = { ...Object.fromEntries(FIELDS.map((f) => [f, $("e_" + f).value.trim()])), photo,
+        order: old ? old.order ?? 0 : Math.min(0, ...state.recipes.map((r) => r.order ?? 0)) - 1, // a new recipe goes first
+        archived: Boolean(old?.archived), createdAt: old?.createdAt || new Date().toISOString(), updatedAt: new Date().toISOString() };
+      await store.save(id, doc);
+      if (old?.photo && photo !== old.photo) store.dropPhoto(old.photo); // the replaced picture is no longer used anywhere
+      $("edit").close();
+    } catch (err) { $("e_err").textContent = friendly(err, "save the recipe"); $("e_err").hidden = false; }
+    state.saving = false; $("e_save").disabled = false; $("e_save").textContent = "Save";
+  });
+  $("e_delete").addEventListener("click", () => { const r = byId(state.editingId); if (!r) return; $("c_text").textContent = `“${r.name}” and its photo will be removed for good.`; $("confirm").showModal(); $("c_title").focus({ preventScroll: true }); });
+  $("c_no").addEventListener("click", () => $("confirm").close());
+  $("c_yes").addEventListener("click", async () => {
+    const r = byId(state.editingId); $("confirm").close(); if (!r) return;
+    try { await store.remove(r.id); store.dropPhoto(r.photo); $("edit").close(); } catch (err) { $("e_err").textContent = friendly(err, "delete the recipe"); $("e_err").hidden = false; }
+  });
+  // A tap on the dimmed area outside a panel closes it; the form is the exception, so a slip never loses what was typed.
+  ["view", "confirm"].forEach((id) => $(id).addEventListener("click", (e) => { if (e.target === $(id)) $(id).close(); }));
+
+  // ---------- Export and import: the recipes' words as one file. Photos stay where they are stored; the file carries their ids. ----------
+  $("exportBtn").addEventListener("click", async () => {
+    const dump = { app: "recipe-deck", exportedAt: new Date().toISOString(), recipes: sorted(state.recipes).map(({ id, ...data }) => ({ id, data })) };
+    try { await store.saveFile(`recipe-deck-${new Date().toISOString().slice(0, 10)}.json`, JSON.stringify(dump, null, 2)); note(`Exported ${dump.recipes.length} ${dump.recipes.length === 1 ? "recipe" : "recipes"}.`, "ok"); }
+    catch (err) { note(friendly(err, "export the deck"), "err"); }
+  });
+  $("importFile").addEventListener("change", async () => {
+    const file = $("importFile").files[0]; $("importFile").value = ""; if (!file) return;
+    try {
+      const dump = JSON.parse(await file.text()), rows = (Array.isArray(dump?.recipes) ? dump.recipes : []).filter((row) => row && row.id && row.data && typeof row.data === "object" && String(row.data.name || "").trim());
+      if (!rows.length) { note("That file has no recipes in it, so nothing was imported.", "err"); return; }
+      note(`Importing ${rows.length}…`);
+      for (const row of rows) { // a recipe in the file replaces the one with the same id; the rest of the deck is left alone
+        const old = byId(String(row.id)), data = { ...row.data };
+        if (data.photo === undefined && old?.photo) data.photo = old.photo; // a file written without photos keeps the ones already here
+        const doc = { order: 0, archived: false, createdAt: new Date().toISOString(), ...data, updatedAt: new Date().toISOString() };
+        // An id belongs to whoever used it first. A file from another account can carry ids this account may not write to: those recipes come in under a new id.
+        try { await store.save(String(row.id), doc); } catch (err) { if (old) throw err; await store.save(newId(doc.name), doc); }
+      }
+      note(`Imported ${rows.length} ${rows.length === 1 ? "recipe" : "recipes"}.`, "ok");
+    } catch (err) { note(err instanceof SyntaxError ? "That file isn't a Recipe Deck export." : friendly(err, "import the file"), "err"); }
+  });
+  const note = (text, kind) => { const el = $("a_msg"); el.textContent = text; el.className = "auth-msg" + (kind ? " " + kind : ""); };
+
+  // ---------- Account ----------
+  $("accountBtn").addEventListener("click", () => { $("a_who").textContent = state.email ? "Signed in as " + state.email : ""; note(""); $("account").showModal(); $("a_title").focus({ preventScroll: true }); });
+  $("a_close").addEventListener("click", () => $("account").close());
+  $("account").addEventListener("click", (e) => { if (e.target === $("account")) $("account").close(); });
+  $("signOut").addEventListener("click", async () => {
+    // Signing out leaves nothing of this account on the device: its saved list and its kept photos go too.
+    try { localStorage.removeItem(listKey()); } catch {}
+    if ("caches" in window) caches.delete(PHOTO_CACHE).catch(() => {});
+    try { await requireClient().auth.signOut(); } catch {}
+    $("account").close(); pendingEmail = ""; $("authCodeRow").hidden = true; $("authCode").value = ""; authMsg("");
+  });
+
+  // ---------- Sign in: an emailed 6-digit code ----------
+  const authMsg = (text, kind) => { const el = $("authMsg"); el.textContent = text; el.className = "auth-msg" + (kind ? " " + kind : ""); };
+  let pendingEmail = "";
+  $("authPanel").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const email = $("authEmail").value.trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { authMsg("Enter a valid email address.", "err"); return; }
+    $("authSend").disabled = true; authMsg("Sending…");
+    try {
+      unwrap(await requireClient().auth.signInWithOtp({ email, options: { emailRedirectTo: APP_URL, shouldCreateUser: false } }));
+      pendingEmail = email; $("authCodeRow").hidden = false;
+      authMsg("Check your email and type the 6-digit code here.", "ok"); $("authCode").focus();
+    } catch (err) { authMsg(/signups? not allowed|not allowed for otp|user not found/i.test(err?.message || "") ? "That email doesn't have an account here." : friendly(err, "send the code"), "err"); }
+    finally { $("authSend").disabled = false; }
+  });
+  $("authVerify").addEventListener("click", async () => {
+    const token = $("authCode").value.replace(/\D/g, "");
+    if (!pendingEmail) { authMsg("Send yourself a code first.", "err"); return; }
+    if (token.length < 6) { authMsg("The code is the 6-digit number in the email.", "err"); return; }
+    $("authVerify").disabled = true; authMsg("Checking…");
+    try { unwrap(await requireClient().auth.verifyOtp({ email: pendingEmail, token, type: "email" })); authMsg(""); }
+    catch (err) { authMsg(/expired|invalid/i.test(err?.message || "") ? "That code didn't work. Check the digits, or send yourself a new one." : friendly(err, "check the code"), "err"); }
+    finally { $("authVerify").disabled = false; }
+  });
+  $("authCode").addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); $("authVerify").click(); } });
+
+  // ---------- Start ----------
+  const handleSession = (session) => {
+    const user = session?.user || null;
+    if (user && user.id === state.uid) return; // the same account again (a refreshed sign-in): nothing to redo
+    photoUrls.forEach((url) => URL.revokeObjectURL(url)); photoUrls.clear();
+    ["view", "edit", "confirm", "account"].forEach((id) => { if ($(id).open) $(id).close(); });
+    state.uid = user ? user.id : null; state.email = user?.email || ""; state.signedIn = Boolean(user); state.canWrite = Boolean(user); state.loaded = true;
+    if (!user) { state.recipes = []; setStatus(""); renderGrid(); return; }
+    $("authCodeRow").hidden = true; $("authCode").value = ""; authMsg("");
+    showList(keptList()); refresh();
+  };
+  renderGrid();
+  if (!sb) { state.loaded = true; renderGrid(); authMsg("The sync library didn't load. Check your connection and reload.", "err"); }
+  else sb.auth.onAuthStateChange((event, session) => {
+    if (event === "TOKEN_REFRESHED") return;
+    handleSession(session);
+    if (event === "SIGNED_IN" && (location.hash || location.search.includes("code="))) history.replaceState(null, "", APP_URL);
+  });
+  window.addEventListener("online", () => refresh());
+  window.addEventListener("offline", () => { if (state.signedIn) setStatus("Offline: showing the recipes as last seen."); });
+  if ("serviceWorker" in navigator) window.addEventListener("load", () => { navigator.serviceWorker.register("./sw.js").catch(() => {}); });
+})();
+</script>
+</body>
+</html>
