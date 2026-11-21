@@ -1,6 +1,7 @@
 // Recipe Deck service worker: network-first for the page (so updates land on the next open), cache-first for everything else, and the cached page as an offline fallback.
-const CACHE = "recipe-deck-v8";
-const PRECACHE = ["./", "./index.html", "./manifest.webmanifest", "./icon-192.png", "./icon-512.png", "./apple-touch-icon.png"];
+const CACHE = "recipe-deck-v9";
+// The icon files carry a version in their names: an iPhone keeps an icon it has already fetched for as long as the address stays the same.
+const PRECACHE = ["./", "./index.html", "./manifest.webmanifest", "./icon-192-v2.png", "./icon-512-v2.png", "./apple-touch-icon-v2.png"];
 // The sync library the page loads. Without it the app opens signed out, so it is kept at install as well as on first use.
 // Keep this the same address as the <script> tag in index.html; if they drift apart the copy is simply made on first use instead.
 const LIBRARY = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.js";
