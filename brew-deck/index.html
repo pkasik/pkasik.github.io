@@ -179,7 +179,11 @@ body:has(#dash:not([hidden])) .wrap { display: flex; flex-direction: column; hei
 .card.espresso:not([data-roast]) { --c-bg: #d4621a; }
 /* Roast tone: everything inside takes its orange from --amber, so changing it here shifts the whole tile, card or timer together. */
 [data-roast="light"] { --amber: var(--amber-light); }
-[data-roast="dark"] { --amber: var(--amber-dark); }
+[data-roast="dark"] { --amber: var(--amber-dark); --amber-ink: #170a02; }
+/* The deeper orange takes contrast from the small grey text most, so on a dark roast that text is mixed closer to the ink. */
+.tile[data-roast="dark"] .t-roaster { color: color-mix(in srgb, var(--amber-ink) 80%, var(--amber)); }
+.tile[data-roast="dark"] .t-notes { color: color-mix(in srgb, var(--amber-ink) 90%, var(--amber)); }
+.card[data-roast="dark"], dialog.timer[data-roast="dark"] { --c-muted: color-mix(in srgb, var(--amber-ink) 80%, var(--amber)); }
 .grid .empty { grid-column: 1 / -1; padding: 8px 0 4px; }
 .scaled { margin: 0; font-size: 12.5px; color: var(--c-muted); }
 .auth { background: var(--paper); border: 1px solid var(--line); border-radius: 8px; padding: 18px 20px; display: grid; gap: 10px; margin-bottom: 4px; }
