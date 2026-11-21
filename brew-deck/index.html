@@ -365,6 +365,7 @@ dialog.sheet { overflow: hidden; }
 dialog.sheet form { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; gap: 0; padding: 0; max-height: calc(100dvh - 32px); }
 .sheet-head { padding: 16px 20px 12px; border-bottom: 1px solid var(--line); }
 .sheet-head h2:focus { outline: none; }
+#settingsTitle:focus { outline: none; }
 .sheet-body { overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; padding: 16px 20px; display: grid; gap: 14px; align-content: start; min-width: 0; }
 .sheet-body > * { min-width: 0; max-width: 100%; }
 .sheet-foot { padding: 12px 20px; border-top: 1px solid var(--line); background: var(--paper); }
@@ -732,7 +733,7 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
 <!-- Brew settings -->
 <dialog id="settingsDialog" aria-labelledby="settingsTitle">
   <div class="settings">
-    <div class="guide-head"><h2 id="settingsTitle">Brew settings</h2><button class="btn quiet" id="closeSettings" type="button" aria-label="Close">Done</button></div>
+    <div class="guide-head"><h2 id="settingsTitle" tabindex="-1">Brew settings</h2></div>
     <p class="settings-for" id="settingsFor"></p>
     <div class="setting" id="brewerRow"><span class="dose-label">Brewer</span><div class="seg wrap" id="brewerSeg" role="radiogroup" aria-label="Brewer"></div></div>
     <div class="setting" id="methodRow"><span class="dose-label">Method</span><div class="seg wrap" id="methodSeg" role="radiogroup" aria-label="Brew method"></div></div>
@@ -765,7 +766,7 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
         <button type="button" data-g="ode" role="radio" aria-checked="false">Ode</button>
       </div>
     </div>
-    <div class="actions"><button class="btn" id="resetSettings" type="button">Reset</button></div>
+    <div class="actions"><button class="btn" id="resetSettings" type="button">Reset</button><button class="btn" id="closeSettings" type="button" aria-label="Close">Done</button></div>
     <p class="guide-note" id="settingsNote">Choosing a different paper from the one the recipe was written for moves the grind by its offset from TH-2 (TH-1 1 mark coarser; TH-3 and Abaca 1 mark finer; PURE.F 2 marks finer) and adjusts the finish window. The TH-1 and TH-3 offsets are first estimates. With 4:6, the balance sets the first pour: smaller is sweeter, bigger is brighter; the dot marks how the recipe was written. Every choice here is remembered for this coffee only, and the paper for each method separately. Reset returns this coffee to its written recipe: Casa, its base dose, first brewer, method and paper.</p>
   </div>
 </dialog>
@@ -2009,7 +2010,7 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
     try { ["brewer", "method", "balance", "variant", "dose", "grinder", "filter", "paper", "ratio"].forEach((key) => localStorage.removeItem(`brewdeck.${key}.${c.id}`)); } catch {}
     renderMethodSeg(); renderFilterSeg(); renderDoseSeg(); renderGrinderSeg(); rerenderCard(c); renderGrid();
   });
-  const openSettings = (id) => { state.settingsFor = id; renderMethodSeg(); renderFilterSeg(); renderDoseSeg(); renderGrinderSeg(); $("settingsDialog").showModal(); };
+  const openSettings = (id) => { state.settingsFor = id; renderMethodSeg(); renderFilterSeg(); renderDoseSeg(); renderGrinderSeg(); $("settingsDialog").showModal(); $("settingsTitle").focus({ preventScroll: true }); };
   $("closeSettings").addEventListener("click", () => $("settingsDialog").close());
   $("balanceSeg").addEventListener("click", (e) => {
     const b = e.target.closest("button[data-bal]"); if (!b) return;
