@@ -290,7 +290,7 @@ label.f, .f { display: grid; gap: 5px; font: 600 10.5px/1.2 var(--body); letter-
   "use strict";
   const $ = (id) => document.getElementById(id);
   const esc = (v) => String(v ?? "").replace(/[&<>"']/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]));
-  const state = { recipes: [], loaded: false, signedIn: false, canWrite: false, uid: null, email: "", openId: null, editingId: null, picked: null, dropPhoto: false, saving: false, wake: null, open: { ingredients: true, steps: true, notes: true } };
+  const state = { recipes: [], loaded: false, signedIn: false, canWrite: false, uid: null, email: "", openId: null, editingId: null, picked: null, dropPhoto: false, saving: false, wake: null, open: { ingredients: true, steps: true, notes: true }, closing: false };
   const setStatus = (text, detail) => { $("status").textContent = text || ""; $("status").title = detail || ""; }; // the note is short; any detail is kept as its tooltip
   const friendly = (err, doing) => `Couldn't ${doing}${err && err.message ? ": " + err.message : ""}. Check the connection and try again.`;
 
@@ -400,9 +400,36 @@ label.f, .f { display: grid; gap: 5px; font: 600 10.5px/1.2 var(--body); letter-
     try { if (on && "wakeLock" in navigator && !state.wake) state.wake = await navigator.wakeLock.request("screen"); else if (!on && state.wake) { await state.wake.release(); state.wake = null; } } catch { state.wake = null; }
   };
   document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible" && $("view").open) { state.wake = null; keepAwake(true); } });
-  const openView = (id) => { state.openId = id; renderView(); $("view").showModal(); $("v_body").scrollTop = 0; const text = $("v_body").querySelector(".rcp"); if (text) text.scrollTop = 0; $("v_title").focus({ preventScroll: true }); keepAwake(true); };
+  // ---------- Opening and closing a recipe: the panel grows out of the card that was tapped, and shrinks back into it ----------
+  const calm = window.matchMedia("(prefers-reduced-motion: reduce)"); // someone who has asked their device for less motion gets none
+  // The tile's place on screen, as a clip of the recipe's panel: the panel is revealed outward from where the card is.
+  const clipFromTile = (id) => {
+    const tile = [...document.querySelectorAll("button.tile[data-id]")].find((t) => t.dataset.id === id); if (!tile) return null;
+    const d = $("view").getBoundingClientRect(), t = tile.getBoundingClientRect(), px = (n) => Math.max(0, Math.round(n)) + "px";
+    if (t.bottom < d.top || t.top > d.bottom) return null; // scrolled out of sight: nothing to grow from
+    return `inset(${px(t.top - d.top)} ${px(d.right - t.right)} ${px(d.bottom - t.bottom)} ${px(t.left - d.left)} round 20px)`;
+  };
+  const playView = (opening) => {
+    const view = $("view"), speed = opening ? 1 : 0.7, go = { easing: "cubic-bezier(.2, .8, .2, 1)", direction: opening ? "normal" : "reverse", fill: "both" };
+    const runs = [], run = (frames, ms, more) => { try { runs.push(view.animate(frames, { ...go, duration: ms * speed, ...more })); } catch {} };
+    const clip = clipFromTile(state.openId);
+    if (clip) run([{ clipPath: clip, opacity: 0 }, { opacity: 1, offset: 0.3 }, { clipPath: `inset(0px 0px 0px 0px round ${getComputedStyle(view).borderTopLeftRadius})`, opacity: 1 }], 440);
+    else run([{ opacity: 0, transform: "scale(.92)" }, { opacity: 1, transform: "none" }], 300); // no card in sight to grow from: a small zoom instead
+    run([{ opacity: 0 }, { opacity: 1 }], 300, { pseudoElement: "::backdrop" });
+    return Promise.all(runs.map((a) => a.finished.catch(() => {}))).then(() => runs);
+  };
+  const closeView = async () => {
+    const view = $("view"); if (!view.open || state.closing) return;
+    if (calm.matches) { view.close(); return; }
+    state.closing = true; const runs = await playView(false); view.close(); runs.forEach((a) => a.cancel()); state.closing = false;
+  };
+  const openView = (id) => {
+    state.openId = id; renderView(); $("view").showModal(); $("v_body").scrollTop = 0; const text = $("v_body").querySelector(".rcp"); if (text) text.scrollTop = 0; $("v_title").focus({ preventScroll: true }); keepAwake(true);
+    if (!calm.matches) playView(true).then((runs) => runs.forEach((a) => a.cancel())); // once it has arrived, nothing of the animation is left on the panel
+  };
   $("view").addEventListener("close", () => { state.openId = null; keepAwake(false); });
-  $("v_close").addEventListener("click", () => $("view").close());
+  $("v_close").addEventListener("click", closeView);
+  $("view").addEventListener("cancel", (e) => { e.preventDefault(); closeView(); }); // the Escape key closes it the same way
   $("grid").addEventListener("click", (e) => { const tile = e.target.closest("button.tile[data-id]"); if (tile) openView(tile.dataset.id); });
 
   // ---------- Photos: made smaller on the device before they are stored ----------
@@ -471,7 +498,7 @@ label.f, .f { display: grid; gap: 5px; font: 600 10.5px/1.2 var(--body); letter-
     try { await store.remove(r.id); store.dropPhoto(r.photo); $("edit").close(); } catch (err) { $("e_err").textContent = friendly(err, "delete the recipe"); $("e_err").hidden = false; }
   });
   // A tap on the dimmed area outside a panel closes it; the form is the exception, so a slip never loses what was typed.
-  ["view", "confirm"].forEach((id) => $(id).addEventListener("click", (e) => { if (e.target === $(id)) $(id).close(); }));
+  ["view", "confirm"].forEach((id) => $(id).addEventListener("click", (e) => { if (e.target !== $(id)) return; if (id === "view") closeView(); else $(id).close(); }));
 
   // ---------- Export and import: the recipes' words as one file. Photos stay where they are stored; the file carries their ids. ----------
   $("exportBtn").addEventListener("click", async () => {
