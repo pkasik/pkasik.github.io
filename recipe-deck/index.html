@@ -382,7 +382,6 @@ label.f, .f { display: grid; gap: 5px; font: 600 10.5px/1.2 var(--body); letter-
   };
   // Each part of a recipe folds away under its heading; the choice is kept while the page is open, across recipes and redraws.
   const fold = (part, title, html) => `<details class="fold" data-part="${part}"${state.open[part] ? " open" : ""}><summary><h3>${title}</h3><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></summary>${html}</details>`;
-  const countOf = (text) => linesOf(text).filter((line) => !isHeading(line)).length; // how many ingredients or steps; a heading line is not one
   const renderView = () => {
     const r = byId(state.openId); if (!r) return;
     // A redraw (after an edit, say) leaves the reader where they were: both panes that can scroll are put back afterwards.
@@ -390,8 +389,8 @@ label.f, .f { display: grid; gap: 5px; font: 600 10.5px/1.2 var(--body); letter-
     const ingredients = listHtml(r.ingredients, false), steps = listHtml(r.steps, true);
     $("v_body").innerHTML = `${r.photo ? `<img class="hero" alt="${esc(r.name)}" data-photo="${esc(r.id)}" data-size="full">` : ""}
       <div class="rcp">
-        ${ingredients ? fold("ingredients", `Ingredients (${countOf(r.ingredients)})`, ingredients) : ""}
-        ${steps ? fold("steps", `Steps (${countOf(r.steps)})`, steps) : ""}
+        ${ingredients ? fold("ingredients", "Ingredients", ingredients) : ""}
+        ${steps ? fold("steps", "Steps", steps) : ""}
         ${r.notes ? fold("notes", "Notes", `<p class="notes">${esc(r.notes)}</p>`) : ""}
       </div>`;
     $("v_title").textContent = r.name; // the recipe's name is the top bar's title
