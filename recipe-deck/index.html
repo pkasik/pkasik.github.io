@@ -31,13 +31,16 @@ body { margin: 0; background: var(--bg); color: var(--fg); font: 15px/1.45 var(-
 img { max-width: 100%; display: block; }
 button, input, textarea { font: inherit; color: inherit; }
 button { cursor: pointer; -webkit-tap-highlight-color: transparent; }
-button:focus-visible, input:focus-visible, textarea:focus-visible, a:focus-visible, label.btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+button:focus-visible, input:focus-visible, textarea:focus-visible, a:focus-visible, label.btn:focus-visible, label.row:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 html:has(dialog[open]), body:has(dialog[open]) { overflow: hidden; }
 .wrap { max-width: 760px; margin: 0 auto; padding: 16px 16px 40px; }
 
-header.top { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
+header.top { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 14px; }
 header.top h1 { font: 500 28px/1.1 var(--display); margin: 0; letter-spacing: -.01em; }
-.actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.actions { display: flex; gap: 10px; align-items: center; }
+/* The header's round icon buttons: add a recipe, open settings. */
+.icon-btn { flex: none; width: 44px; height: 44px; padding: 0; border: 1px solid var(--line); background: var(--paper); color: var(--fg); border-radius: 50%; display: inline-grid; place-items: center; }
+.icon-btn svg, .row svg { width: 22px; height: 22px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .btn { border: 1px solid var(--line); background: var(--paper); color: var(--fg); border-radius: 999px; padding: 9px 15px; font: 500 14px/1.2 var(--body); display: inline-flex; align-items: center; gap: 6px; text-decoration: none; }
 .btn.primary { background: var(--fg); color: var(--bg); border-color: var(--fg); }
 .btn.quiet { background: transparent; }
@@ -76,6 +79,31 @@ dialog .foot .right { display: flex; gap: 8px; margin-left: auto; }
 }
 dialog.small { width: min(380px, calc(100% - 32px)); }
 dialog.small .body { gap: 8px; }
+
+/* Settings: a centred panel on a wide screen, a sheet rising from the bottom edge on a phone. */
+dialog#account { width: min(460px, calc(100% - 24px)); }
+dialog#account .frame { grid-template-rows: auto minmax(0, 1fr); }
+dialog#account .head { border-bottom: 0; padding: 18px 18px 6px; }
+dialog#account .head h2 { font: 500 26px/1.15 var(--display); letter-spacing: -.01em; }
+dialog#account .body { padding: 10px 18px calc(20px + env(safe-area-inset-bottom, 0px)); }
+dialog#account .auth-msg { margin: 0; }
+dialog#account .auth-msg:empty { min-height: 0; margin-block: -7px; } /* no gap while there is nothing to say */
+.grab { display: none; width: 36px; height: 4px; border-radius: 999px; background: var(--line); margin: 8px auto 0; }
+.rows { display: grid; gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+.row { display: flex; align-items: center; gap: 14px; width: 100%; padding: 15px 16px; border: 0; background: var(--paper); color: var(--fg); text-align: left; font: 500 16px/1.3 var(--body); cursor: pointer; }
+.row .hint { margin-left: auto; color: var(--muted); font: 400 14px/1.3 var(--body); }
+.row:focus-visible { outline-offset: -2px; }
+.explain { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.5; }
+.signed { display: flex; align-items: center; justify-content: space-between; gap: 12px; border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+.signed > div { min-width: 0; }
+.signed .btn { flex: none; }
+.signed .label { display: block; font: 600 10.5px/1.2 var(--body); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
+.signed .who { display: block; font: 500 14px/1.4 var(--mono); overflow-wrap: anywhere; }
+@media (max-width: 560px) {
+  dialog#account { width: 100%; max-width: 100%; margin: auto 0 0; border-radius: 18px 18px 0 0; }
+  dialog#account .head { padding-top: 10px; }
+  .grab { display: block; }
+}
 
 /* The recipe: always the whole screen. On a phone the photo sits on top and the page scrolls; on a wide screen the photo holds the
    left side and the ingredients and steps scroll beside it. */
@@ -123,8 +151,6 @@ label.f, .f { display: grid; gap: 5px; font: 600 10.5px/1.2 var(--body); letter-
 .auth-row { display: flex; gap: 10px; align-items: end; flex-wrap: wrap; }
 .auth-msg { min-height: 1.3em; font-size: 13.5px; }
 .auth-msg.ok { color: var(--accent); } .auth-msg.err { color: var(--danger); }
-.acct { display: grid; gap: 10px; } .acct .btn { justify-content: center; }
-.acct .who { margin: 0; font: 500 13px/1.4 var(--mono); color: var(--muted); overflow-wrap: anywhere; }
 .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 </style>
 </head>
@@ -133,8 +159,8 @@ label.f, .f { display: grid; gap: 5px; font: 600 10.5px/1.2 var(--body); letter-
   <header class="top">
     <h1>Recipe Deck</h1>
     <div class="actions">
-      <button class="btn" id="accountBtn" type="button" hidden>Account</button>
-      <button class="btn primary" id="addBtn" type="button" hidden>+ Add recipe</button>
+      <button class="icon-btn" id="addBtn" type="button" aria-label="Add recipe" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>
+      <button class="icon-btn" id="accountBtn" type="button" aria-label="Settings" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg></button>
     </div>
   </header>
   <p class="status" id="status" role="status" aria-live="polite"></p>
@@ -197,16 +223,24 @@ label.f, .f { display: grid; gap: 5px; font: 600 10.5px/1.2 var(--body); letter-
   </form>
 </dialog>
 
-<dialog id="account" class="small" aria-labelledby="a_title">
+<dialog id="account" aria-labelledby="a_title">
   <div class="frame">
-    <div class="head"><h2 id="a_title" tabindex="-1">Account</h2><button class="btn quiet" id="a_close" type="button">Close</button></div>
-    <div class="body acct">
-      <p class="who" id="a_who"></p>
-      <button class="btn" id="exportBtn" type="button">Export recipes</button>
-      <label class="btn" id="importBtn" for="importFile" role="button" tabindex="0">Import recipes</label>
+    <div>
+      <div class="grab" aria-hidden="true"></div>
+      <div class="head"><h2 id="a_title" tabindex="-1">Settings</h2><button class="btn" id="a_close" type="button">Done</button></div>
+    </div>
+    <div class="body">
+      <div class="rows">
+        <button class="row" id="exportBtn" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg><span>Export deck</span><span class="hint">JSON</span></button>
+        <label class="row" id="importBtn" for="importFile" role="button" tabindex="0"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M17 8l-5-5-5 5"/><path d="M12 3v12"/></svg><span>Import deck</span><span class="hint">merge a file</span></label>
+      </div>
       <input class="visually-hidden" id="importFile" type="file" accept="application/json,.json" tabindex="-1">
-      <button class="btn danger" id="signOut" type="button">Sign out</button>
       <p class="auth-msg" id="a_msg" aria-live="polite"></p>
+      <p class="explain">Export writes every recipe to a file you can keep or move to another account; photos are not in the file. Import merges a file into this deck; existing recipes with the same id are replaced.</p>
+      <div class="signed">
+        <div><span class="label">Signed in as</span><span class="who" id="a_who"></span></div>
+        <button class="btn danger" id="signOut" type="button">Sign out</button>
+      </div>
     </div>
   </div>
 </dialog>
@@ -428,8 +462,8 @@ label.f, .f { display: grid; gap: 5px; font: 600 10.5px/1.2 var(--body); letter-
   });
   const note = (text, kind) => { const el = $("a_msg"); el.textContent = text; el.className = "auth-msg" + (kind ? " " + kind : ""); };
 
-  // ---------- Account ----------
-  $("accountBtn").addEventListener("click", () => { $("a_who").textContent = state.email ? "Signed in as " + state.email : ""; note(""); $("account").showModal(); $("a_title").focus({ preventScroll: true }); });
+  // ---------- Settings: export, import and the account, behind the gear ----------
+  $("accountBtn").addEventListener("click", () => { $("a_who").textContent = state.email || ""; note(""); $("account").showModal(); $("a_title").focus({ preventScroll: true }); });
   $("a_close").addEventListener("click", () => $("account").close());
   $("account").addEventListener("click", (e) => { if (e.target === $("account")) $("account").close(); });
   $("signOut").addEventListener("click", async () => {
