@@ -53,7 +53,7 @@ html, body { height: 100%; }
 body { background: var(--bg); color: var(--fg); font: 15px/1.5 var(--body); padding-inline: 16px; padding-block: 18px 40px; }
 .wrap { max-width: 720px; margin-inline: auto; display: grid; gap: 16px; }
 button { font: inherit; color: inherit; cursor: pointer; }
-button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible, label.row:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
 .btn { border: 1px solid var(--line); background: var(--paper); border-radius: 999px; padding: 8px 14px; font-weight: 500; font-size: 14px; display: inline-flex; align-items: center; gap: 6px; }
 .btn.primary { background: var(--fg); color: var(--bg); border-color: var(--fg); }
 .btn.quiet { border-color: transparent; background: transparent; color: var(--muted); }
@@ -807,10 +807,10 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
         <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
         <span class="grow">Export deck</span><span class="hint">JSON</span>
       </button>
-      <label class="row" for="importFile" id="importRow" role="button" tabindex="0">
+      <button class="row" id="importRow" type="button">
         <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
         <span class="grow">Import deck</span><span class="hint">merge a file</span>
-      </label>
+      </button>
       <input id="importFile" type="file" accept="application/json,.json" hidden>
     </div>
     <p class="guide-note" id="accountNote">Export writes every coffee, recipe variant and brew to a file you can keep or move to another account. Import merges a file into this deck; existing coffees with the same id are replaced.</p>
@@ -1495,7 +1495,7 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
   const toggleArchive = async (id) => {
     const c = state.coffees.find((x) => x.id === id); if (!c) return false;
     const archived = !c.archived;
-    try { await store.updateCoffee(id, { archived, order: topOrder(archived) }); await refresh(); return true; }
+    try { await store.updateCoffee(id, { archived, order: topOrder(archived) }); await refresh({ afterWrite: true }); return true; }
     catch (err) { setStatus(friendly(err, archived ? "archive the card" : "unarchive the card")); return false; }
   };
   // From the card: archive or unarchive, then land back on the dashboard where the tile has moved.
@@ -2461,7 +2461,7 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
         await store.saveCoffee(id, { ...data, order, archived: false, createdAt: new Date().toISOString() });
         state.pendingFocus = id;
       }
-      cardDialog.close(); await refresh();
+      cardDialog.close(); await refresh({ afterWrite: true });
     } catch (err) { showErr("cardErr", friendly(err, "save the card")); }
     finally { save.disabled = false; }
   });
@@ -2485,7 +2485,7 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
         const name = state.coffees.find((x) => x.id === p.id)?.name || "the card";
         await store.deleteCoffee(p.id);
         // Back to the dashboard, as archiving does; staying put would show whichever coffee took the deleted one's place.
-        cardDialog.close(); showView("grid"); await refresh();
+        cardDialog.close(); showView("grid"); await refresh({ afterWrite: true });
         setStatus(`Deleted ${name}`); setTimeout(() => { if (status.textContent === `Deleted ${name}`) setStatus(""); }, 2500);
       } else {
         await store.deleteBrew(p.id);
@@ -2600,21 +2600,22 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
       const rows = await store.listBrews(c.id);
       if (state.brewsFor !== c.id) return;
       state.brews = rows; cache.setBrews(c.id, rows); find.best.set(c.id, bestRatingOf(rows)); renderBrews();
-    } catch (err) { setStatus(friendly(err, "load the brew log")); }
+    } catch (err) { setStatus(friendly(err, "load the brew log"), { onCard: navigator.onLine !== false }); } // offline the log as last seen is already showing
   };
   const subscribeBrews = () => { loadBrews(false); };
 
   // ---------- Helpers ----------
   const showErr = (id, msg) => { const el = $(id); el.textContent = msg; el.hidden = false; try { el.scrollIntoView({ block: "nearest" }); } catch {} };
-  // The note beside the header's buttons. A card hides the header, so there the same note shows briefly over the foot of the card;
-  // "Syncing…" comes and goes with every refresh and is left out of that.
+  // The note beside the header's buttons. A card hides the header, so there the same note shows briefly over the foot of the card.
+  // `onCard: false` is for loading that goes on behind the page: it would pop up over a card with nothing having been tapped.
   const SYNCING = "Syncing…", CARD_STATUS_MS = 4000;
   let cardStatusTimer = 0;
-  const setStatus = (msg) => {
+  const setStatus = (msg, { onCard = true } = {}) => {
     status.textContent = msg;
+    const shown = onCard && msg !== SYNCING ? msg : "";
     clearTimeout(cardStatusTimer);
-    $("cardStatus").textContent = msg === SYNCING ? "" : msg;
-    if (msg && msg !== SYNCING) cardStatusTimer = setTimeout(() => { $("cardStatus").textContent = ""; }, CARD_STATUS_MS);
+    $("cardStatus").textContent = shown;
+    if (shown) cardStatusTimer = setTimeout(() => { $("cardStatus").textContent = ""; }, CARD_STATUS_MS);
   };
   const isDenied = (err) => err?.code === "42501" || /row-level security/i.test(String(err?.message || ""));
   const friendly = (err, what) => {
@@ -2653,9 +2654,10 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
     for (;;) { const batch = unwrap(await page().range(rows.length, rows.length + PAGE_ROWS - 1)); if (!batch.length) return rows; rows.push(...batch); }
   };
   // An id belongs to whoever used it first, across every account. A file from another account (or the starter deck, already imported
-  // by someone else) carries ids this account may not write to; those come in under the id with this account's mark on the end,
-  // which stays the same from one import to the next, so importing the same file again still replaces and never doubles.
+  // by someone else) carries ids this account may not write to; those come in under the id with this account's mark on the end.
+  // A coffee that has come in that way once keeps coming in that way, so importing the same file again replaces and never doubles.
   const ownId = (id) => `${id}-${String(state.user?.id || "").slice(0, 8)}`;
+  const ID_LOOKUP_ROWS = 100; // ids asked about per request: they travel in the address, which has a length limit
 
   const store = {
     listCoffees: async () => unwrap(await requireClient().from("coffees").select("id,data,order,archived").order("order", { ascending: true })).map(rowToCoffee),
@@ -2680,14 +2682,20 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
       if (!coffees.length) throw new Error("That file has no coffees in it.");
       const rows = coffees.filter((c) => c && c.id && c.data && typeof c.data === "object").map((c) => coffeeToRow(String(c.id), { ...c.data, order: c.order, archived: c.archived }));
       const save = async (table, list) => unwrap(await client.from(table).upsert(list, { onConflict: "id" }));
-      // All at once when every id is this account's to write. If any is not, one at a time, so only those change id.
+      // The coffees this account already holds under its own mark, from an earlier import: they stay there, even if the plain id has since come free.
       const moved = new Set();
-      try { await save("coffees", rows); }
+      for (let i = 0; i < rows.length; i += ID_LOOKUP_ROWS) {
+        const asked = new Map(rows.slice(i, i + ID_LOOKUP_ROWS).map((r) => [ownId(r.id), r.id]));
+        unwrap(await client.from("coffees").select("id").in("id", [...asked.keys()])).forEach((r) => moved.add(asked.get(r.id)));
+      }
+      const placed = (row) => (moved.has(row.id) ? { ...row, id: ownId(row.id) } : row);
+      // All at once when every id is this account's to write. If any is not, one at a time, so only those change id.
+      try { await save("coffees", rows.map(placed)); }
       catch (err) {
         if (!isDenied(err)) throw err;
         for (const row of rows) {
-          try { await save("coffees", row); }
-          catch (rowErr) { if (!isDenied(rowErr)) throw rowErr; await save("coffees", { ...row, id: ownId(row.id) }); moved.add(row.id); }
+          try { await save("coffees", placed(row)); }
+          catch (rowErr) { if (!isDenied(rowErr) || moved.has(row.id)) throw rowErr; moved.add(row.id); await save("coffees", placed(row)); }
         }
       }
       const ids = new Set(rows.map((r) => r.id));
@@ -2732,14 +2740,17 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
   };
 
   let refreshing = null, refreshNext = null;
-  const refresh = async () => {
+  // `afterWrite` is for a caller that has just saved something. A read already on its way may have been sent before that save, so one
+  // more is queued behind it, shared by every such caller meanwhile. Anyone else is content with the read already on its way.
+  const refresh = async ({ afterWrite = false } = {}) => {
     if (!state.user) return;
-    // One is already on its way, and may have been sent before whatever was just saved: queue one more behind it, shared by everyone who asks meanwhile.
+    if (refreshing && !afterWrite) return refreshing;
     if (refreshing) { if (!refreshNext) refreshNext = refreshing.then(() => { refreshNext = null; return refresh(); }); return refreshNext; }
+    const uid = state.user.id, stale = () => state.user?.id !== uid; // signed out, or another account, while the answer was on its way
     setStatus(SYNCING);
     refreshing = (async () => {
-      try { const rows = await store.listCoffees(); applyCoffees(rows); cache.setCoffees(rows); setStatus(""); }
-      catch (err) { setStatus(friendly(err, "load the cards")); }
+      try { const rows = await store.listCoffees(); if (stale()) return; applyCoffees(rows); cache.setCoffees(rows); setStatus(""); }
+      catch (err) { if (!stale()) setStatus(friendly(err, "load the cards"), { onCard: false }); }
       finally { refreshing = null; }
     })();
     return refreshing;
@@ -2750,7 +2761,7 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
     state.canWrite = signedIn;
     $("authPanel").hidden = signedIn;
     $("addFirst").hidden = !signedIn; $("addBrew").hidden = !signedIn; $("importStarter").hidden = !signedIn;
-    $("exportDeck").disabled = !signedIn; $("importRow").classList.toggle("disabled", !signedIn); $("importRow").setAttribute("aria-disabled", String(!signedIn)); $("importRow").tabIndex = signedIn ? 0 : -1; $("importFile").disabled = !signedIn;
+    $("exportDeck").disabled = !signedIn; $("importRow").disabled = !signedIn; $("importFile").disabled = !signedIn;
     $("signOut").hidden = !signedIn; $("goSignIn").hidden = signedIn; $("whoLabel").textContent = signedIn ? "Signed in as" : "Not signed in";
     $("emptyDeck").querySelector("h2").textContent = signedIn ? "No cards yet" : "Your deck is waiting";
     $("emptyText").textContent = signedIn
@@ -2820,12 +2831,11 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
   });
   const importDump = async (dump, note) => {
     const n = await store.importAll(dump);
-    await refresh();
+    await refresh({ afterWrite: true });
     if (state.view === "card") await loadBrews(true);
     note(`Imported ${n.coffees} coffees and ${n.brews} brews.`, "ok");
   };
-  // The row is a label for a hidden file field: a tap opens the picker by itself, the keyboard needs this.
-  $("importRow").addEventListener("keydown", (e) => { if ((e.key !== "Enter" && e.key !== " ") || $("importFile").disabled) return; e.preventDefault(); $("importFile").click(); });
+  $("importRow").addEventListener("click", () => $("importFile").click()); // the row is a button; the file field it opens stays out of sight
   $("importFile").addEventListener("change", async (e) => {
     const file = e.target.files?.[0]; e.target.value = "";
     if (!file) return;
@@ -2851,6 +2861,8 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
     try { localStorage.removeItem(SESSION_KEY); } catch {}
     await handleSession(null);
   };
+  // Another tab (this app's or Recipe Deck's) removed the sign-in by hand, which the sync library does not announce: it is over here too.
+  window.addEventListener("storage", (e) => { if ((e.key !== SESSION_KEY && e.key !== null) || !state.user) return; try { if (!localStorage.getItem(SESSION_KEY)) handleSession(null); } catch {} });
   $("signOut").addEventListener("click", async () => {
     await endSession();
     accountDialog.close();
