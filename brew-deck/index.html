@@ -1504,7 +1504,7 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
     const name = c.name, archiving = !c.archived;
     if (!(await toggleArchive(id))) return; // not saved: stay on the card, where the reason is shown
     showView("grid");
-    setStatus(`${archiving ? "Archived" : "Unarchived"} ${name}`); setTimeout(() => { if (status.textContent.endsWith(name)) setStatus(""); }, 2500);
+    setStatus(`${archiving ? "Archived" : "Unarchived"} ${name}`, { onCard: false }); setTimeout(() => { if (status.textContent.endsWith(name)) setStatus(""); }, 2500);
   };
 
   // The rail holds only the group the active card belongs to (active or archived), so swiping never crosses from one into the other.
@@ -1527,6 +1527,7 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
 
   const showView = (view) => {
     const wasGrid = state.view === "grid";
+    clearCardStatus(); // a note shown over one card is not carried to the next
     if (wasGrid && view !== "grid") state.gridScroll = $("deckScroll").scrollTop; // remember where you were on the dashboard
     state.view = view;
     const isGrid = view === "grid";
@@ -2486,7 +2487,7 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
         await store.deleteCoffee(p.id);
         // Back to the dashboard, as archiving does; staying put would show whichever coffee took the deleted one's place.
         cardDialog.close(); showView("grid"); await refresh({ afterWrite: true });
-        setStatus(`Deleted ${name}`); setTimeout(() => { if (status.textContent === `Deleted ${name}`) setStatus(""); }, 2500);
+        setStatus(`Deleted ${name}`, { onCard: false }); setTimeout(() => { if (status.textContent === `Deleted ${name}`) setStatus(""); }, 2500);
       } else {
         await store.deleteBrew(p.id);
         await loadBrews(true);
@@ -2609,13 +2610,16 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
   // The note beside the header's buttons. A card hides the header, so there the same note shows briefly over the foot of the card.
   // `onCard: false` is for loading that goes on behind the page: it would pop up over a card with nothing having been tapped.
   const SYNCING = "Syncing…", CARD_STATUS_MS = 4000;
+  // The card's copy is left alone by notes that are not for it (loading starting or finishing behind the page): it goes when its time is
+  // up, when another note for the card replaces it, or when the page moves to another view.
   let cardStatusTimer = 0;
+  const clearCardStatus = () => { clearTimeout(cardStatusTimer); $("cardStatus").textContent = ""; };
   const setStatus = (msg, { onCard = true } = {}) => {
     status.textContent = msg;
-    const shown = onCard && msg !== SYNCING ? msg : "";
-    clearTimeout(cardStatusTimer);
-    $("cardStatus").textContent = shown;
-    if (shown) cardStatusTimer = setTimeout(() => { $("cardStatus").textContent = ""; }, CARD_STATUS_MS);
+    if (!onCard || !msg || msg === SYNCING) return;
+    clearCardStatus();
+    $("cardStatus").textContent = msg;
+    cardStatusTimer = setTimeout(clearCardStatus, CARD_STATUS_MS);
   };
   const isDenied = (err) => err?.code === "42501" || /row-level security/i.test(String(err?.message || ""));
   const friendly = (err, what) => {
@@ -2682,21 +2686,29 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
       if (!coffees.length) throw new Error("That file has no coffees in it.");
       const rows = coffees.filter((c) => c && c.id && c.data && typeof c.data === "object").map((c) => coffeeToRow(String(c.id), { ...c.data, order: c.order, archived: c.archived }));
       const save = async (table, list) => unwrap(await client.from(table).upsert(list, { onConflict: "id" }));
+      // Which of these ids this account holds: it can only ever see its own.
+      const held = async (ids) => {
+        const found = new Set();
+        for (let i = 0; i < ids.length; i += ID_LOOKUP_ROWS) unwrap(await client.from("coffees").select("id").in("id", ids.slice(i, i + ID_LOOKUP_ROWS))).forEach((r) => found.add(r.id));
+        return found;
+      };
       // The coffees this account already holds under its own mark, from an earlier import: they stay there, even if the plain id has since come free.
-      const moved = new Set();
-      for (let i = 0; i < rows.length; i += ID_LOOKUP_ROWS) {
-        const asked = new Map(rows.slice(i, i + ID_LOOKUP_ROWS).map((r) => [ownId(r.id), r.id]));
-        unwrap(await client.from("coffees").select("id").in("id", [...asked.keys()])).forEach((r) => moved.add(asked.get(r.id)));
-      }
+      const marked = await held(rows.map((r) => ownId(r.id)));
+      const moved = new Set(rows.filter((r) => marked.has(ownId(r.id))).map((r) => r.id));
       const placed = (row) => (moved.has(row.id) ? { ...row, id: ownId(row.id) } : row);
-      // All at once when every id is this account's to write. If any is not, one at a time, so only those change id.
+      // All at once when every id is this account's to write. Nothing is saved when one is not, and then it is worked out which:
+      // not the ids this account holds, and not the ones that go in as new. The rest are someone else's and change id, and the
+      // whole list is saved in one go again. Each step saves all of its rows or none, so a lost connection never leaves part of a list.
       try { await save("coffees", rows.map(placed)); }
       catch (err) {
         if (!isDenied(err)) throw err;
-        for (const row of rows) {
-          try { await save("coffees", placed(row)); }
-          catch (rowErr) { if (!isDenied(rowErr) || moved.has(row.id)) throw rowErr; moved.add(row.id); await save("coffees", placed(row)); }
-        }
+        const plain = rows.filter((r) => !moved.has(r.id));
+        const mine = await held(plain.map((r) => r.id));
+        const unsure = plain.filter((r) => !mine.has(r.id));
+        if (!unsure.length) throw err;
+        const added = new Set(unwrap(await client.from("coffees").upsert(unsure, { onConflict: "id", ignoreDuplicates: true }).select("id")).map((r) => r.id));
+        unsure.forEach((r) => { if (!added.has(r.id)) moved.add(r.id); });
+        await save("coffees", rows.map(placed));
       }
       const ids = new Set(rows.map((r) => r.id));
       // A brew follows its coffee: under a new id, and pointing at the coffee's new id, when the coffee was given one.
@@ -2739,21 +2751,27 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
     if (state.view === "card") { jumpTo(state.active); if (state.brewsFor !== state.coffees[state.active]?.id) subscribeBrews(); }
   };
 
-  let refreshing = null, refreshNext = null;
+  let refreshing = null, refreshNext = null, refreshUid = null;
   // `afterWrite` is for a caller that has just saved something. A read already on its way may have been sent before that save, so one
   // more is queued behind it, shared by every such caller meanwhile. Anyone else is content with the read already on its way.
   const refresh = async ({ afterWrite = false } = {}) => {
     if (!state.user) return;
-    if (refreshing && !afterWrite) return refreshing;
-    if (refreshing) { if (!refreshNext) refreshNext = refreshing.then(() => { refreshNext = null; return refresh(); }); return refreshNext; }
     const uid = state.user.id, stale = () => state.user?.id !== uid; // signed out, or another account, while the answer was on its way
-    setStatus(SYNCING);
-    refreshing = (async () => {
+    if (refreshUid !== uid) { refreshing = null; refreshNext = null; } // a read on its way for another account is of no use to this one
+    if (refreshing && !afterWrite) return refreshing;
+    if (refreshing) {
+      if (refreshNext) return refreshNext;
+      const next = refreshing.then(() => { if (refreshNext === next) refreshNext = null; return refresh(); });
+      refreshNext = next; return next;
+    }
+    setStatus(SYNCING); refreshUid = uid;
+    const read = (async () => {
       try { const rows = await store.listCoffees(); if (stale()) return; applyCoffees(rows); cache.setCoffees(rows); setStatus(""); }
       catch (err) { if (!stale()) setStatus(friendly(err, "load the cards"), { onCard: false }); }
-      finally { refreshing = null; }
+      finally { if (refreshing === read) refreshing = null; }
     })();
-    return refreshing;
+    refreshing = read;
+    return read;
   };
 
   const applyAuthUI = () => {
@@ -2775,7 +2793,7 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
     state.user = session?.user || null;
     state.loaded = true;
     applyAuthUI();
-    if (!state.user) { if (state.coffees.length) setStatus("Signed out"); return; }
+    if (!state.user) { setStatus(state.coffees.length ? "Signed out" : ""); return; } // also clears a "Syncing…" left by a read that no longer counts
     await refresh();
     if (state.view === "card") subscribeBrews();
   };
@@ -2862,15 +2880,20 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
     await handleSession(null);
   };
   // Another tab (this app's or Recipe Deck's) removed the sign-in by hand, which the sync library does not announce: it is over here too.
-  window.addEventListener("storage", (e) => { if ((e.key !== SESSION_KEY && e.key !== null) || !state.user) return; try { if (!localStorage.getItem(SESSION_KEY)) handleSession(null); } catch {} });
-  $("signOut").addEventListener("click", async () => {
-    await endSession();
-    accountDialog.close();
+  // Signing out on purpose leaves nothing of the account on the page or the device.
+  const clearDeck = () => {
+    document.querySelectorAll("dialog[open]").forEach((dialog) => dialog.close());
     cache.clear(); state.coffees = []; state.brews = []; state.brewsFor = null; find.best.clear(); find.ratingsLoaded = false; pendingEmail = "";
     $("authCodeRow").hidden = true; authMsg("");
     showView("grid");
     renderDeck();
+  };
+  const keptSession = () => { try { return localStorage.getItem(SESSION_KEY); } catch { return null; } };
+  window.addEventListener("storage", async (e) => {
+    if ((e.key !== SESSION_KEY && e.key !== null) || !state.user || keptSession()) return;
+    await handleSession(null); clearDeck();
   });
+  $("signOut").addEventListener("click", async () => { await endSession(); clearDeck(); });
 
   // ---------- Boot ----------
   renderDeck();
