@@ -53,7 +53,7 @@ html, body { height: 100%; }
 body { background: var(--bg); color: var(--fg); font: 15px/1.5 var(--body); padding-inline: 16px; padding-block: 18px 40px; }
 .wrap { max-width: 720px; margin-inline: auto; display: grid; gap: 16px; }
 button { font: inherit; color: inherit; cursor: pointer; }
-button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible, label.row:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
 .btn { border: 1px solid var(--line); background: var(--paper); border-radius: 999px; padding: 8px 14px; font-weight: 500; font-size: 14px; display: inline-flex; align-items: center; gap: 6px; }
 .btn.primary { background: var(--fg); color: var(--bg); border-color: var(--fg); }
 .btn.quiet { border-color: transparent; background: transparent; color: var(--muted); }
@@ -86,6 +86,8 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
 .top h1 { font: 500 26px/1.1 var(--display); margin: 0; }
 .top .sub { font: 500 11px/1 var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--muted); margin-top: 6px; }
 .status { font: 12.5px/1.3 var(--mono); color: var(--muted); }
+/* With a card open the header and its note are out of sight, so the note is shown for a few seconds over the foot of the card instead. */
+.card-status { position: fixed; left: 50%; bottom: calc(18px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); z-index: 5; margin: 0; max-width: calc(100% - 32px); padding: 9px 15px; border-radius: 999px; background: var(--fg); color: var(--bg); text-align: center; pointer-events: none; box-shadow: 0 6px 20px rgb(0 0 0 / .25); }
 
 /* Deck */
 .deck { position: relative; }
@@ -114,6 +116,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
 .name { font: 400 clamp(28px, 6vw, 36px)/1.02 var(--display); margin: 0; text-wrap: balance; }
 .tasting { margin: 6px 0 0; font-weight: 500; }
 .key { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1px; background: var(--c-line); border: 1px solid var(--c-line); border-radius: 4px; overflow: hidden; }
+.key.pair { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .key div { background: var(--c-bg); padding: 9px 10px; display: grid; gap: 2px; min-width: 0; }
 .key span { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform: uppercase; color: var(--c-muted); }
 .key strong { font: 500 18px/1.15 var(--mono); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
@@ -186,6 +189,8 @@ body:has(#dash:not([hidden])) .wrap { display: flex; flex-direction: column; hei
 .auth h2 { font: 500 22px/1.2 var(--display); margin: 0; }
 .auth p { margin: 0; color: var(--muted); }
 .auth-row { display: flex; gap: 10px; align-items: end; flex-wrap: wrap; }
+.auth-row label.f { flex: 1 1 220px; }
+#authCodeRow label.f { flex-basis: 160px; }
 .auth-msg { min-height: 1.2em; font-size: 13.5px; }
 .auth-msg.ok { color: var(--ok); }
 .auth-msg.err { color: var(--danger); }
@@ -369,6 +374,7 @@ label.f input[type="search"] { -webkit-appearance: none; appearance: none; }
 .empty-deck { background: var(--paper); border: 1px dashed var(--line); border-radius: 8px; padding: 36px 24px; text-align: center; display: grid; gap: 10px; justify-items: center; }
 .empty-deck h2 { font: 500 24px/1.15 var(--display); margin: 0; }
 .empty-deck p { margin: 0; color: var(--muted); max-width: 42ch; }
+.empty-actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
 
 /* Dialogs */
 dialog { border: 0; border-radius: 10px; padding: 0; background: var(--paper); color: var(--fg); width: min(640px, calc(100vw - 32px)); max-height: calc(100dvh - 32px); }
@@ -405,7 +411,7 @@ html, body { overflow-x: hidden; max-width: 100%; }
 dialog h2 { font: 500 24px/1.15 var(--display); margin: 0; }
 .grid2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 12px; }
 .grid3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px 12px; }
-label.f { display: grid; gap: 4px; font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); min-width: 0; }
+label.f, div.f { display: grid; gap: 4px; font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); min-width: 0; }
 label.f input, label.f textarea, label.f select { font: 15px/1.4 var(--body); letter-spacing: 0; text-transform: none; color: var(--fg); background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; width: 100%; min-width: 0; }
 label.f textarea { min-height: 72px; resize: vertical; }
 /* iOS gives date fields an intrinsic width and its own look, which pushed them past their grid column */
@@ -413,6 +419,7 @@ label.f input[type="date"] { -webkit-appearance: none; appearance: none; display
 label.f input[type="date"]::-webkit-date-and-time-value { text-align: left; }
 fieldset { border: 1px solid var(--line); border-radius: 6px; padding: 10px 12px 12px; margin: 0; display: grid; gap: 8px; min-width: 0; }
 legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); padding-inline: 4px; }
+#pourRows { display: grid; gap: 6px; }
 .pour-row { display: grid; grid-template-columns: 64px 76px 54px minmax(0, 1fr) 128px auto; gap: 6px; align-items: center; }
 .pour-row input { font: 14px/1.3 var(--body); color: var(--fg); background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 7px 8px; width: 100%; min-width: 0; }
 .pour-row .x { border: 0; background: transparent; color: var(--muted); padding: 4px 6px; font-size: 18px; line-height: 1; }
@@ -485,11 +492,11 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
       <h2>Sign in to your deck</h2>
       <p>Enter your email and we'll send a one-time sign-in link. No password.</p>
       <div class="auth-row">
-        <label class="f" style="flex:1 1 220px">Email<input id="authEmail" type="email" autocomplete="email" inputmode="email" required placeholder="you@example.com"></label>
+        <label class="f">Email<input id="authEmail" type="email" autocomplete="email" inputmode="email" required placeholder="you@example.com"></label>
         <button class="btn primary" type="submit" id="authSend">Send link</button>
       </div>
       <div class="auth-row" id="authCodeRow" hidden>
-        <label class="f" style="flex:1 1 160px">Code from the email<input id="authCode" inputmode="numeric" pattern="[0-9]*" autocomplete="one-time-code" maxlength="8" placeholder="123456"></label>
+        <label class="f">Code from the email<input id="authCode" inputmode="numeric" pattern="[0-9]*" autocomplete="one-time-code" maxlength="8" placeholder="123456"></label>
         <button class="btn primary" type="button" id="authVerify">Verify</button>
       </div>
       <p class="auth-msg" id="authMsg" aria-live="polite"></p>
@@ -509,7 +516,7 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
     <div class="empty-deck" id="emptyDeck" hidden>
       <h2>No cards yet</h2>
       <p id="emptyText">Add your first coffee and its recipe. Each card holds the bag details, water, filter, grind and pour schedule.</p>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center">
+      <div class="empty-actions">
         <button class="btn primary" id="importStarter" type="button" hidden>Import my deck</button>
         <button class="btn" id="addFirst" type="button" hidden>+ Add a card</button>
       </div>
@@ -518,6 +525,7 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
   </section>
 
   <section class="deck" id="deck" aria-label="Recipe cards" hidden>
+    <p class="status card-status" id="cardStatus" role="status" aria-live="polite"></p>
     <div class="rail" id="rail" aria-roledescription="carousel"></div>
     <div class="nav" id="nav" hidden>
       <div class="dots" id="dots" role="tablist" aria-label="Cards"></div>
@@ -611,7 +619,7 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
         <label class="f">Pressure (espresso)<input id="f_pressure" name="pressure" autocomplete="off" placeholder="6–8 bar"></label>
       </div>
       <label class="f">Pour style<input id="f_pourTitle" name="pourTitle" autocomplete="off" placeholder="5 stages, gentle"></label>
-      <div id="pourRows" style="display:grid;gap:6px"></div>
+      <div id="pourRows"></div>
       <div><button class="btn" id="addPour" type="button">+ Add pour</button></div>
     </fieldset>
     <label class="f">Tip<textarea id="f_tip" name="tip" placeholder="What to expect, and what to change if it's off."></textarea></label>
@@ -640,7 +648,7 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
       <label class="f">Dose<input id="b_dose" name="dose" autocomplete="off" placeholder="30 g / 500 g"></label>
       <label class="f">Finish time<input id="b_finish" name="finish" autocomplete="off" placeholder="3:58"></label>
     </div>
-    <div class="f" style="display:grid;gap:4px;font:600 10.5px/1.2 var(--body);letter-spacing:.06em;text-transform:uppercase;color:var(--muted)">
+    <div class="f">
       Rating
       <div class="stars" id="stars" role="radiogroup" aria-label="Rating out of 5">
         <button type="button" data-v="1" aria-pressed="false">1</button>
@@ -799,7 +807,7 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
         <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
         <span class="grow">Export deck</span><span class="hint">JSON</span>
       </button>
-      <label class="row" for="importFile" id="importRow">
+      <label class="row" for="importFile" id="importRow" role="button" tabindex="0">
         <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
         <span class="grow">Import deck</span><span class="hint">merge a file</span>
       </label>
@@ -1079,7 +1087,7 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
     let finish = shiftFinish(r.finish, Math.round((dose - base.dose) * 3)); // ~3 s per gram
     // A timed-pour method (4:6) can't finish before its last pour: keep the window at least 20 s after it.
     const lastPour = Math.max(0, ...(r.pours || []).map((p) => /^\d+:\d{2}$/.test(p.time || "") ? toSec(p.time) : 0));
-    const fm = finish.match(/(\d+:\d{2})\s*[–-]\s*(\d+:\d{2})/);
+    const fm = String(finish || "").match(/(\d+:\d{2})\s*[–-]\s*(\d+:\d{2})/);
     if (fm && lastPour && toSec(fm[1]) < lastPour + 20) finish = shiftFinish(finish, lastPour + 20 - toSec(fm[1]));
     return { ...r, label: labelAt(r.label, dose), dose: `${dose} g / ${water} g`, pours, finish, scaled: true, scaledFrom: base.dose };
   };
@@ -1260,7 +1268,7 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
           <div><span>Yield</span><strong>${esc(String(baseOf(r)?.water ?? "—"))} g</strong><small>${esc(ratioLabel(r.ratio))}${r.finish ? " · " + esc(shotWindow(r.finish)) : ""}</small></div>
           <div><span>Grind${grinder === "c40" ? " · Red Clix" : ""}</span><strong>${esc(gd.main)}</strong><small>${esc(gd.small)}</small></div>
         </div>
-        <div class="key" style="grid-template-columns: repeat(2, minmax(0, 1fr))">
+        <div class="key pair">
           <div><span>Water</span><strong>${esc(r.water || "—")}</strong><small>kettle, into a cold basket</small></div>
           <div><span>Pressure</span><strong>${esc(r.pressure || "—")}</strong><small>after a gentle preinfusion</small></div>
         </div>` : `<div class="key">
@@ -1485,15 +1493,16 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
   };
   $("grid").addEventListener("contextmenu", (e) => { if (e.target.closest(".tile.draggable")) e.preventDefault(); });
   const toggleArchive = async (id) => {
-    const c = state.coffees.find((x) => x.id === id); if (!c) return;
+    const c = state.coffees.find((x) => x.id === id); if (!c) return false;
     const archived = !c.archived;
-    try { await store.updateCoffee(id, { archived, order: topOrder(archived) }); await refresh(); } catch (err) { setStatus(friendly(err, archived ? "archive the card" : "unarchive the card")); }
+    try { await store.updateCoffee(id, { archived, order: topOrder(archived) }); await refresh(); return true; }
+    catch (err) { setStatus(friendly(err, archived ? "archive the card" : "unarchive the card")); return false; }
   };
   // From the card: archive or unarchive, then land back on the dashboard where the tile has moved.
   const archiveFromCard = async (id) => {
     const c = state.coffees.find((x) => x.id === id); if (!c) return;
     const name = c.name, archiving = !c.archived;
-    await toggleArchive(id);
+    if (!(await toggleArchive(id))) return; // not saved: stay on the card, where the reason is shown
     showView("grid");
     setStatus(`${archiving ? "Archived" : "Unarchived"} ${name}`); setTimeout(() => { if (status.textContent.endsWith(name)) setStatus(""); }, 2500);
   };
@@ -1616,8 +1625,9 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
     if (pager.phase !== "idle") return;
     if (e.touches.length !== 1 || $("dash").hidden || document.querySelector("dialog[open]") || drag.suppressClick) return;
     pager.phase = "watching"; pager.x = e.touches[0].clientX; pager.y = e.touches[0].clientY; pager.dx = 0; pager.trail = [{ dx: 0, t: Date.now() }];
+    if (!e.target.isConnected) followDetachedTouch(e.target);
   }, { passive: true });
-  document.addEventListener("touchmove", (e) => {
+  const handleDeckTouchMove = (e) => {
     if (pager.phase !== "watching" && pager.phase !== "dragging") return;
     const dx = e.touches[0].clientX - pager.x, dy = e.touches[0].clientY - pager.y;
     if (pager.phase === "watching") {
@@ -1632,7 +1642,8 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
     // Remember roughly the last tenth of a second of movement, to tell a flick from a slow drag when the finger lifts.
     const now = Date.now(); pager.trail.push({ dx, t: now }); while (pager.trail.length > 2 && now - pager.trail[0].t > 120) pager.trail.shift();
     pager.dx = dx; placeDecks(dx, false);
-  }, { passive: false });
+  };
+  document.addEventListener("touchmove", handleDeckTouchMove, { passive: false });
   const releaseDecks = (cancelled) => {
     if (pager.phase === "watching") { pager.phase = "idle"; return; }
     if (pager.phase !== "dragging") return;
@@ -1644,6 +1655,15 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
   };
   document.addEventListener("touchend", () => releaseDecks(false), { passive: true });
   document.addEventListener("touchcancel", () => releaseDecks(true), { passive: true });
+  // A touch keeps reporting to the element it began on. When finishing a glide has just taken that tile off the page, its moves and
+  // its lift no longer reach the document, so for this one touch they are listened for on the tile itself.
+  const followDetachedTouch = (target) => {
+    const handleEnd = () => { unfollow(); releaseDecks(false); }, handleCancel = () => { unfollow(); releaseDecks(true); };
+    const unfollow = () => { target.removeEventListener("touchmove", handleDeckTouchMove); target.removeEventListener("touchend", handleEnd); target.removeEventListener("touchcancel", handleCancel); };
+    target.addEventListener("touchmove", handleDeckTouchMove, { passive: false });
+    target.addEventListener("touchend", handleEnd, { passive: true });
+    target.addEventListener("touchcancel", handleCancel, { passive: true });
+  };
   // The touch that dragged the decks must not also open the tile it started on.
   $("dash").addEventListener("click", (e) => { if (Date.now() < pager.blockClicksUntil && !e.target.closest("#modeSeg")) { e.stopPropagation(); e.preventDefault(); } }, true); // the tabs are never blocked
   const findDialog = $("findDialog");
@@ -2018,10 +2038,14 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
     $("filterSeg").hidden = locked; $("filterLocked").hidden = !locked; $("filterLockedName").textContent = (locked && ruleOf(c).paper) || base.filter || "—";
     [...$("filterSeg").children].forEach((b) => b.setAttribute("aria-checked", String(b.dataset.f === cur)));
   };
+  // Everything chosen for a card in Brew settings, on screen and as kept on the device.
+  const forgetChoices = (id) => {
+    [state.brewerBy, state.methodBy, state.balanceBy, state.doseBy, state.grinderBy, state.filterBy, state.ratioBy].forEach((choices) => { delete choices[id]; });
+    try { ["brewer", "method", "balance", "variant", "dose", "grinder", "filter", "paper", "ratio"].forEach((key) => localStorage.removeItem(`brewdeck.${key}.${id}`)); } catch {}
+  };
   $("resetSettings").addEventListener("click", () => {
     const c = state.coffees.find((x) => x.id === state.settingsFor); if (!c) return;
-    [state.brewerBy, state.methodBy, state.balanceBy, state.doseBy, state.grinderBy, state.filterBy, state.ratioBy].forEach((choices) => { delete choices[c.id]; });
-    try { ["brewer", "method", "balance", "variant", "dose", "grinder", "filter", "paper", "ratio"].forEach((key) => localStorage.removeItem(`brewdeck.${key}.${c.id}`)); } catch {}
+    forgetChoices(c.id);
     renderMethodSeg(); renderFilterSeg(); renderDoseSeg(); renderGrinderSeg(); rerenderCard(c); renderGrid();
   });
   const openSettings = (id) => { state.settingsFor = id; renderMethodSeg(); renderFilterSeg(); renderDoseSeg(); renderGrinderSeg(); $("settingsDialog").showModal(); $("settingsTitle").focus({ preventScroll: true }); };
@@ -2104,7 +2128,7 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
     };
     return { steps, total: prev, winStart, winEnd, end, water, drained, level, peak, bands, pressure };
   };
-  const timer = { tl: null, coffee: null, start: 0, raf: 0, running: false, lock: null, audio: null, cued: new Set() };
+  const timer = { tl: null, coffee: null, start: 0, raf: 0, running: false, lock: null, awake: false, audio: null, cued: new Set() };
   const beep = (n = 1) => {
     try {
       if (!timer.audio) timer.audio = new (window.AudioContext || window.webkitAudioContext)();
@@ -2116,10 +2140,18 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
       }
     } catch {}
   };
+  // The phone lets go of the lock whenever the app is put away, so a lock that has been released counts as none and is asked for again.
   const keepAwake = async (on) => {
-    try { if (on && "wakeLock" in navigator && !timer.lock) timer.lock = await navigator.wakeLock.request("screen"); if (!on && timer.lock) { await timer.lock.release(); timer.lock = null; } } catch { timer.lock = null; }
+    timer.awake = on;
+    try {
+      if (on && "wakeLock" in navigator && (!timer.lock || timer.lock.released)) {
+        const lock = await navigator.wakeLock.request("screen");
+        if (!timer.awake || (timer.lock && !timer.lock.released)) { await lock.release(); return; } // the brew was stopped, or another request got there first, while this one was on its way
+        timer.lock = lock;
+      } else if (!on && timer.lock) { const lock = timer.lock; timer.lock = null; await lock.release(); }
+    } catch {}
   };
-  document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible" && timer.running) keepAwake(true); });
+  document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible" && timer.awake) keepAwake(true); });
   const renderTimerSteps = (activeIdx, doneBefore) => {
     $("t_steps").innerHTML = timer.tl.steps.map((s, i) => `<li class="${i === activeIdx ? "active" : i < doneBefore ? "done" : ""}"><span class="t">${mmss(s.t)}</span><span class="w">${s.pour ? `→ ${s.to} g` : "—"}</span><span>${esc(s.action)}${s.pour && s.agitation ? `<span class="agi" aria-label="${AGITATION[s.agitation].word} agitation"><span aria-hidden="true">${agitationDots(s.agitation)}</span></span>` : ""}</span></li>`).join("");
   };
@@ -2222,7 +2254,7 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
   const tick = () => {
     if (!timer.running) return;
     const t = (Date.now() - timer.start) / 1000; timer.elapsed = t; // the wall clock: it keeps counting if the phone locks or the app is put away mid-brew
-    if (t >= timer.tl.end) { paintTimer(timer.tl.end); finishTimer("Done — enjoy."); return; }
+    if (t >= timer.tl.end) { timer.elapsed = timer.tl.end; paintTimer(timer.tl.end); finishTimer("Done — enjoy."); return; } // back from being put away after the end: the time is the end, not the return
     paintTimer(t);
     timer.raf = requestAnimationFrame(tick);
   };
@@ -2323,10 +2355,22 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
   const DEFAULT_SHOT = [{ time: "0:00", to: "2–3 bar", action: "Preinfuse gently until the first drops" }, { time: "0:10", to: "43 g", rate: 1.9, action: "6–8 bar · ramp smoothly, hold steady" }, { time: "0:32", to: "—", action: "Stop on weight, not time" }];
   const DEFAULT_POURS = [{ time: "0:00", to: "90 g", action: "Bloom, swirl, wait 45 s" }, {}, {}];
   const blankRecipe = () => ({ label: "", dose: "", water: "", filter: "", filterNote: "", grind: "", grindNote: "", finish: "", pressure: "", pourTitle: "", tip: "", pours: [] });
-  const loadRecipeForm = (r) => {
+  // What a new card starts from, per deck: a recipe to edit and a first pour schedule.
+  const STARTERS = {
+    filter: { recipe: { label: "30 g · NEO", dose: "30 g / 500 g" }, pours: DEFAULT_POURS },
+    espresso: { recipe: { label: "18 g · Robot", dose: "18 g → 43 g", water: "92°C", pressure: "6–8 bar", finish: "0:30 – 0:35", pourTitle: "3 stages" }, pours: DEFAULT_SHOT },
+  };
+  const starterOf = (kind) => STARTERS[kind] || STARTERS.filter;
+  const starterRecipe = (kind) => ({ ...blankRecipe(), ...starterOf(kind).recipe });
+  // The starter exactly as the form hands it back when nothing has been typed: empty pour rows dropped, each pour's fields in the form's order.
+  const starterAsRead = (kind) => ({ ...starterRecipe(kind), pours: starterOf(kind).pours.filter((p) => p.time || p.to || p.action).map(({ time = "", to = "", action = "", rate }) => (rate > 0 ? { time, to, action, rate } : { time, to, action })) });
+  const sameRecipe = (a, b) => RECIPE_FIELDS.every((f) => (a[f] || "") === (b[f] || "")) && JSON.stringify(a.pours || []) === JSON.stringify(b.pours || []);
+  // `isNew` is for a recipe being made now: it opens with the starter pour schedule filled in. A saved recipe with no pours opens with
+  // none; filling them in would write a schedule it never had the next time the card is saved.
+  const loadRecipeForm = (r, isNew = false) => {
     RECIPE_FIELDS.forEach((f) => { $("f_" + f).value = r[f] || ""; });
     pourRows.innerHTML = "";
-    (r.pours?.length ? r.pours : ($("f_kind").value === "espresso" ? DEFAULT_SHOT : DEFAULT_POURS)).forEach((p) => pourRows.appendChild(pourRow(p)));
+    (r.pours?.length ? r.pours : isNew ? starterOf($("f_kind").value).pours : []).forEach((p) => pourRows.appendChild(pourRow(p)));
   };
   const stashRecipeForm = () => {
     const r = Object.fromEntries(RECIPE_FIELDS.map((f) => [f, $("f_" + f).value.trim()]));
@@ -2347,7 +2391,7 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
     stashRecipeForm();
     const base = state.editRecipes[state.editIdx];
     state.editRecipes.push({ ...blankRecipe(), water: base.water, filter: base.filter, grind: base.grind, pours: [] });
-    state.editIdx = state.editRecipes.length - 1; loadRecipeForm(state.editRecipes[state.editIdx]); renderVariantSel(); $("f_label").focus();
+    state.editIdx = state.editRecipes.length - 1; loadRecipeForm(state.editRecipes[state.editIdx], true); renderVariantSel(); $("f_label").focus();
   });
   $("removeVariant").addEventListener("click", () => {
     if (state.editRecipes.length <= 1) return;
@@ -2376,13 +2420,22 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
     $("deleteCard").hidden = !c; $("cardErr").hidden = true;
     CARD_FIELDS.forEach((f) => { $("f_" + f).value = c?.[f] || ""; });
     $("f_kind").value = c ? kindOf(c) : state.kind;
-    const espNew = !c && state.kind === "espresso";
-    state.editRecipes = c ? recipesOf(c).map((r) => ({ ...r, pours: (r.pours || []).map((p) => ({ ...p })) })) : [espNew ? { ...blankRecipe(), label: "18 g · Robot", dose: "18 g → 43 g", water: "92°C", pressure: "6–8 bar", finish: "0:30 – 0:35", pourTitle: "3 stages" } : { ...blankRecipe(), label: "30 g · NEO", dose: "30 g / 500 g" }];
+    state.editRecipes = c ? recipesOf(c).map((r) => ({ ...r, pours: (r.pours || []).map((p) => ({ ...p })) })) : [starterRecipe(state.kind)];
     // Open on the recipe the card is showing. (The method's position is not the recipe's: a method can have two recipes, as Switch does.)
     state.editIdx = c ? Math.max(0, recipesOf(c).indexOf(baseRecipe(c))) : 0;
-    loadRecipeForm(state.editRecipes[state.editIdx]); renderVariantSel();
+    loadRecipeForm(state.editRecipes[state.editIdx], !c); renderVariantSel();
     openSheet(cardDialog);
   };
+  // A new card opens with the starter recipe of the deck it was added from. Choosing the other deck swaps in that deck's starter,
+  // as long as the recipe is still exactly the starter: anything typed is kept.
+  $("f_kind").addEventListener("change", () => {
+    if (state.editingId || state.editRecipes.length !== 1) return;
+    const kind = $("f_kind").value, was = kind === "espresso" ? "filter" : "espresso";
+    stashRecipeForm();
+    if (!sameRecipe(state.editRecipes[0], starterAsRead(was))) return;
+    state.editRecipes = [starterRecipe(kind)]; state.editIdx = 0;
+    loadRecipeForm(state.editRecipes[0], true); renderVariantSel();
+  });
   $("addFirst").addEventListener("click", () => openCardEditor(null));
   $("cancelCard").addEventListener("click", () => cardDialog.close());
 
@@ -2401,6 +2454,7 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
       if (state.editingId) {
         const prev = state.coffees.find((x) => x.id === state.editingId);
         await store.saveCoffee(state.editingId, { ...data, order: prev?.order ?? 0, archived: !!prev?.archived, createdAt: prev?.createdAt || new Date().toISOString() });
+        if (prev && kindOf(prev) !== kindOf(data)) forgetChoices(prev.id); // moved to the other deck: a 30 g filter dose means nothing to an espresso card
       } else {
         const order = topOrder(false);
         const id = newId(data.name);
@@ -2552,11 +2606,21 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
 
   // ---------- Helpers ----------
   const showErr = (id, msg) => { const el = $(id); el.textContent = msg; el.hidden = false; try { el.scrollIntoView({ block: "nearest" }); } catch {} };
-  const setStatus = (msg) => { status.textContent = msg; };
+  // The note beside the header's buttons. A card hides the header, so there the same note shows briefly over the foot of the card;
+  // "Syncing…" comes and goes with every refresh and is left out of that.
+  const SYNCING = "Syncing…", CARD_STATUS_MS = 4000;
+  let cardStatusTimer = 0;
+  const setStatus = (msg) => {
+    status.textContent = msg;
+    clearTimeout(cardStatusTimer);
+    $("cardStatus").textContent = msg === SYNCING ? "" : msg;
+    if (msg && msg !== SYNCING) cardStatusTimer = setTimeout(() => { $("cardStatus").textContent = ""; }, CARD_STATUS_MS);
+  };
+  const isDenied = (err) => err?.code === "42501" || /row-level security/i.test(String(err?.message || ""));
   const friendly = (err, what) => {
     const msg = String(err?.message || "");
     if (!navigator.onLine) return `You're offline, so this couldn't ${what}. It will work again once you're back online.`;
-    if (err?.code === "42501" || /row-level security/i.test(msg)) return `You don't have permission to ${what} here. Sign in first.`;
+    if (isDenied(err)) return `You don't have permission to ${what} here. Sign in first.`;
     if (/JWT|session/i.test(msg)) return `Your sign-in has expired. Sign in again to ${what}.`;
     return `Couldn't ${what}. ${msg}`.trim();
   };
@@ -2582,20 +2646,31 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
   const unwrap = ({ data, error }) => { if (error) throw error; return data; };
   const requireClient = () => { if (!sb) throw new Error("The sync library didn't load. Check your connection and reload."); return sb; };
 
+  // The server hands back a limited number of rows per request. Anything that must be complete is read page by page until a page comes back empty.
+  const PAGE_ROWS = 1000;
+  const allRows = async (page) => {
+    const rows = [];
+    for (;;) { const batch = unwrap(await page().range(rows.length, rows.length + PAGE_ROWS - 1)); if (!batch.length) return rows; rows.push(...batch); }
+  };
+  // An id belongs to whoever used it first, across every account. A file from another account (or the starter deck, already imported
+  // by someone else) carries ids this account may not write to; those come in under the id with this account's mark on the end,
+  // which stays the same from one import to the next, so importing the same file again still replaces and never doubles.
+  const ownId = (id) => `${id}-${String(state.user?.id || "").slice(0, 8)}`;
+
   const store = {
     listCoffees: async () => unwrap(await requireClient().from("coffees").select("id,data,order,archived").order("order", { ascending: true })).map(rowToCoffee),
     saveCoffee: async (id, obj) => { unwrap(await requireClient().from("coffees").upsert(coffeeToRow(id, obj), { onConflict: "id" })); },
     updateCoffee: async (id, patch) => { unwrap(await requireClient().from("coffees").update({ ...patch, updated_at: new Date().toISOString() }).eq("id", id)); },
     deleteCoffee: async (id) => { unwrap(await requireClient().from("coffees").delete().eq("id", id)); }, // brews cascade
     listBrews: async (coffeeId) => unwrap(await requireClient().from("brews").select("id,data,brewed_on,created_at").eq("coffee_id", coffeeId).order("brewed_on", { ascending: false }).order("created_at", { ascending: false })).map(rowToBrew),
-    listRatings: async () => unwrap(await requireClient().from("brews").select("coffee_id,data")),
+    listRatings: async () => allRows(() => requireClient().from("brews").select("coffee_id,data").order("id", { ascending: true })),
     addBrew: async (coffeeId, data) => { unwrap(await requireClient().from("brews").insert(brewToRow(brewId(), coffeeId, data))); },
     updateBrew: async (id, coffeeId, data) => { const row = brewToRow(id, coffeeId, data); unwrap(await requireClient().from("brews").update({ data: row.data, brewed_on: row.brewed_on }).eq("id", id)); },
     deleteBrew: async (id) => { unwrap(await requireClient().from("brews").delete().eq("id", id)); },
     exportAll: async () => {
       const client = requireClient();
-      const coffees = unwrap(await client.from("coffees").select("id,data,order,archived").order("order", { ascending: true }));
-      const brews = unwrap(await client.from("brews").select("id,coffee_id,data,brewed_on").order("brewed_on", { ascending: false }));
+      const coffees = await allRows(() => client.from("coffees").select("id,data,order,archived").order("order", { ascending: true }).order("id", { ascending: true }));
+      const brews = await allRows(() => client.from("brews").select("id,coffee_id,data,brewed_on").order("brewed_on", { ascending: false }).order("id", { ascending: true }));
       return { exportedAt: new Date().toISOString(), coffees, brews };
     },
     importAll: async (dump) => {
@@ -2604,10 +2679,24 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
       const brews = Array.isArray(dump?.brews) ? dump.brews : [];
       if (!coffees.length) throw new Error("That file has no coffees in it.");
       const rows = coffees.filter((c) => c && c.id && c.data && typeof c.data === "object").map((c) => coffeeToRow(String(c.id), { ...c.data, order: c.order, archived: c.archived }));
-      unwrap(await client.from("coffees").upsert(rows, { onConflict: "id" }));
+      const save = async (table, list) => unwrap(await client.from(table).upsert(list, { onConflict: "id" }));
+      // All at once when every id is this account's to write. If any is not, one at a time, so only those change id.
+      const moved = new Set();
+      try { await save("coffees", rows); }
+      catch (err) {
+        if (!isDenied(err)) throw err;
+        for (const row of rows) {
+          try { await save("coffees", row); }
+          catch (rowErr) { if (!isDenied(rowErr)) throw rowErr; await save("coffees", { ...row, id: ownId(row.id) }); moved.add(row.id); }
+        }
+      }
       const ids = new Set(rows.map((r) => r.id));
-      const brewRows = brews.filter((b) => b && b.id && b.data && ids.has(String(b.coffee_id))).map((b) => ({ ...brewToRow(String(b.id), String(b.coffee_id), b.data), brewed_on: b.brewed_on || b.data.date }));
-      if (brewRows.length) unwrap(await client.from("brews").upsert(brewRows, { onConflict: "id" }));
+      // A brew follows its coffee: under a new id, and pointing at the coffee's new id, when the coffee was given one.
+      const brewRows = brews.filter((b) => b && b.id && b.data && ids.has(String(b.coffee_id))).map((b) => {
+        const coffeeId = String(b.coffee_id), id = String(b.id), isMoved = moved.has(coffeeId);
+        return { ...brewToRow(isMoved ? ownId(id) : id, isMoved ? ownId(coffeeId) : coffeeId, b.data), brewed_on: b.brewed_on || b.data.date };
+      });
+      if (brewRows.length) await save("brews", brewRows);
       return { coffees: rows.length, brews: brewRows.length };
     },
   };
@@ -2642,11 +2731,12 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
     if (state.view === "card") { jumpTo(state.active); if (state.brewsFor !== state.coffees[state.active]?.id) subscribeBrews(); }
   };
 
-  let refreshing = null;
+  let refreshing = null, refreshNext = null;
   const refresh = async () => {
     if (!state.user) return;
-    if (refreshing) return refreshing;
-    setStatus("Syncing…");
+    // One is already on its way, and may have been sent before whatever was just saved: queue one more behind it, shared by everyone who asks meanwhile.
+    if (refreshing) { if (!refreshNext) refreshNext = refreshing.then(() => { refreshNext = null; return refresh(); }); return refreshNext; }
+    setStatus(SYNCING);
     refreshing = (async () => {
       try { const rows = await store.listCoffees(); applyCoffees(rows); cache.setCoffees(rows); setStatus(""); }
       catch (err) { setStatus(friendly(err, "load the cards")); }
@@ -2660,7 +2750,7 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
     state.canWrite = signedIn;
     $("authPanel").hidden = signedIn;
     $("addFirst").hidden = !signedIn; $("addBrew").hidden = !signedIn; $("importStarter").hidden = !signedIn;
-    $("exportDeck").disabled = !signedIn; $("importRow").classList.toggle("disabled", !signedIn); $("importFile").disabled = !signedIn;
+    $("exportDeck").disabled = !signedIn; $("importRow").classList.toggle("disabled", !signedIn); $("importRow").setAttribute("aria-disabled", String(!signedIn)); $("importRow").tabIndex = signedIn ? 0 : -1; $("importFile").disabled = !signedIn;
     $("signOut").hidden = !signedIn; $("goSignIn").hidden = signedIn; $("whoLabel").textContent = signedIn ? "Signed in as" : "Not signed in";
     $("emptyDeck").querySelector("h2").textContent = signedIn ? "No cards yet" : "Your deck is waiting";
     $("emptyText").textContent = signedIn
@@ -2734,6 +2824,8 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
     if (state.view === "card") await loadBrews(true);
     note(`Imported ${n.coffees} coffees and ${n.brews} brews.`, "ok");
   };
+  // The row is a label for a hidden file field: a tap opens the picker by itself, the keyboard needs this.
+  $("importRow").addEventListener("keydown", (e) => { if ((e.key !== "Enter" && e.key !== " ") || $("importFile").disabled) return; e.preventDefault(); $("importFile").click(); });
   $("importFile").addEventListener("change", async (e) => {
     const file = e.target.files?.[0]; e.target.value = "";
     if (!file) return;
@@ -2749,8 +2841,18 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
     } catch (err) { setStatus(friendly(err, "import the deck")); }
     finally { btn.disabled = false; }
   });
+  // Signing out always ends the sign-in on this device. The sync library keeps it when it cannot reach the server (no connection),
+  // so in that case it is removed here by hand and the page is told there is no one signed in.
+  const SESSION_KEY = `sb-${new URL(SUPABASE_URL).hostname.split(".")[0]}-auth-token`; // where the sync library keeps the sign-in
+  const endSession = async () => {
+    let ended = false;
+    try { ended = !(await requireClient().auth.signOut()).error; } catch {}
+    if (ended) return;
+    try { localStorage.removeItem(SESSION_KEY); } catch {}
+    await handleSession(null);
+  };
   $("signOut").addEventListener("click", async () => {
-    try { await requireClient().auth.signOut(); } catch {}
+    await endSession();
     accountDialog.close();
     cache.clear(); state.coffees = []; state.brews = []; state.brewsFor = null; find.best.clear(); find.ratingsLoaded = false; pendingEmail = "";
     $("authCodeRow").hidden = true; authMsg("");
