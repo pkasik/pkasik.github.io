@@ -90,6 +90,7 @@ dialog .foot .right { display: flex; gap: 8px; margin-left: auto; }
 }
 dialog.small { width: min(380px, calc(100% - 32px)); }
 dialog.small .body { gap: 8px; }
+#c_text { margin: 0; color: var(--muted); }
 
 /* Settings: a centred panel on a wide screen, a sheet rising from the bottom edge on a phone. */
 dialog#account { width: min(460px, calc(100% - 24px)); }
@@ -172,6 +173,7 @@ dialog#view::backdrop { background: transparent; }
 label.f, .f { display: grid; gap: 5px; font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); min-width: 0; }
 .f input, .f textarea { font: 400 15px/1.4 var(--body); letter-spacing: 0; text-transform: none; color: var(--fg); background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 10px 11px; width: 100%; min-width: 0; }
 .f textarea { min-height: 150px; resize: vertical; }
+#e_notes { min-height: 90px; }
 .f small { font: 400 12.5px/1.4 var(--body); letter-spacing: 0; text-transform: none; color: var(--muted); }
 .photo-row { display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 12px; align-items: center; }
 .photo-row .thumb { width: 96px; aspect-ratio: 4 / 5; border-radius: 8px; border: 1px solid var(--line); background: var(--chip); object-fit: cover; }
@@ -182,6 +184,8 @@ label.f, .f { display: grid; gap: 5px; font: 600 10.5px/1.2 var(--body); letter-
 .auth h2 { font: 500 24px/1.15 var(--display); margin: 0; }
 .auth p { margin: 0; color: var(--muted); }
 .auth-row { display: flex; gap: 10px; align-items: end; flex-wrap: wrap; }
+.auth-row .f { flex: 1 1 220px; }
+#authCodeRow .f { flex-basis: 160px; }
 .auth-msg { min-height: 1.3em; font-size: 13.5px; }
 .auth-msg.ok { color: var(--accent); } .auth-msg.err { color: var(--danger); }
 .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
@@ -202,11 +206,11 @@ label.f, .f { display: grid; gap: 5px; font: 600 10.5px/1.2 var(--body); letter-
       <h2>Sign in to your deck</h2>
       <p>Enter your email and we’ll send a 6-digit code. No password.</p>
       <div class="auth-row">
-        <label class="f" style="flex:1 1 220px">Email<input id="authEmail" type="email" autocomplete="email" inputmode="email" required placeholder="you@example.com"></label>
+        <label class="f">Email<input id="authEmail" type="email" autocomplete="email" inputmode="email" required placeholder="you@example.com"></label>
         <button class="btn primary" type="submit" id="authSend">Send code</button>
       </div>
       <div class="auth-row" id="authCodeRow" hidden>
-        <label class="f" style="flex:1 1 160px">Code from the email<input id="authCode" inputmode="numeric" pattern="[0-9]*" autocomplete="one-time-code" maxlength="8" placeholder="123456"></label>
+        <label class="f">Code from the email<input id="authCode" inputmode="numeric" pattern="[0-9]*" autocomplete="one-time-code" maxlength="8" placeholder="123456"></label>
         <button class="btn primary" type="button" id="authVerify">Verify</button>
       </div>
       <p class="auth-msg" id="authMsg" aria-live="polite"></p>
@@ -253,7 +257,7 @@ label.f, .f { display: grid; gap: 5px; font: 600 10.5px/1.2 var(--body); letter-
       </div>
       <label class="f">Ingredients<textarea id="e_ingredients" placeholder="One per line&#10;1 whole chicken&#10;2 cups jasmine rice"></textarea><small>One per line. End a line with a colon to make it a heading, like “For the sauce:”.</small></label>
       <label class="f">Steps<textarea id="e_steps" placeholder="One per line&#10;Poach the chicken for 30 minutes.&#10;Cook the rice in the stock."></textarea><small>One per line. They are numbered for you.</small></label>
-      <label class="f">Notes<textarea id="e_notes" style="min-height:90px" placeholder="Tips, swaps, what to change next time."></textarea></label>
+      <label class="f">Notes<textarea id="e_notes" placeholder="Tips, swaps, what to change next time."></textarea></label>
       <p class="err" id="e_err" hidden></p>
     </div>
     <div class="foot">
@@ -288,7 +292,7 @@ label.f, .f { display: grid; gap: 5px; font: 600 10.5px/1.2 var(--body); letter-
 <dialog id="confirm" class="small" aria-labelledby="c_title">
   <div class="frame">
     <div class="head"><h2 id="c_title" tabindex="-1">Delete this recipe?</h2></div>
-    <div class="body"><p id="c_text" style="margin:0;color:var(--muted)"></p></div>
+    <div class="body"><p id="c_text"></p></div>
     <div class="foot"><div class="right"><button class="btn" id="c_no" type="button">Keep</button><button class="btn danger" id="c_yes" type="button">Delete</button></div></div>
   </div>
 </dialog>
@@ -299,7 +303,7 @@ label.f, .f { display: grid; gap: 5px; font: 600 10.5px/1.2 var(--body); letter-
   "use strict";
   const $ = (id) => document.getElementById(id);
   const esc = (v) => String(v ?? "").replace(/[&<>"']/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]));
-  const state = { recipes: [], loaded: false, signedIn: false, canWrite: false, uid: null, email: "", openId: null, editingId: null, picked: null, dropPhoto: false, saving: false, wake: null, open: { ingredients: true, steps: true, notes: true }, closing: false };
+  const state = { recipes: [], loaded: false, signedIn: false, canWrite: false, uid: null, email: "", openId: null, editingId: null, picked: null, dropPhoto: false, saving: false, wake: null, awake: false, open: { ingredients: true, steps: true, notes: true }, closing: false };
   const setStatus = (text, detail) => { $("status").textContent = text || ""; $("status").title = detail || ""; }; // the note is short; any detail is kept as its tooltip
   const friendly = (err, doing) => `Couldn't ${doing}${err && err.message ? ": " + err.message : ""}. Check the connection and try again.`;
 
@@ -347,6 +351,11 @@ label.f, .f { display: grid; gap: 5px; font: 600 10.5px/1.2 var(--body); letter-
   };
   // The list as last seen, kept on the device so the deck paints at once and opens offline. One copy per account.
   const listKey = () => "recipedeck.list." + state.uid;
+  // Which account was last signed in here, so its deck can be painted before the sign-in has been checked (and when it cannot be: offline).
+  const ACCOUNT_KEY = "recipedeck.account", SESSION_KEY = `sb-${new URL(SUPABASE_URL).hostname.split(".")[0]}-auth-token`; // the second is where the sync library keeps the sign-in
+  const keepAccount = (account) => { try { if (account) localStorage.setItem(ACCOUNT_KEY, JSON.stringify(account)); else localStorage.removeItem(ACCOUNT_KEY); } catch {} };
+  const keptAccount = () => { try { return JSON.parse(localStorage.getItem(ACCOUNT_KEY) || "null"); } catch { return null; } };
+  const sessionKept = () => { try { return Boolean(localStorage.getItem(SESSION_KEY)); } catch { return false; } };
   const keepList = (list) => { try { localStorage.setItem(listKey(), JSON.stringify(list)); } catch {} };
   const keptList = () => { try { return JSON.parse(localStorage.getItem(listKey()) || "[]"); } catch { return []; } };
   const showList = (list) => { state.recipes = list; state.loaded = true; renderGrid(); if ($("view").open) { if (byId(state.openId)) renderView(); else $("view").close(); } };
@@ -383,14 +392,14 @@ label.f, .f { display: grid; gap: 5px; font: 600 10.5px/1.2 var(--body); letter-
     fillPhotos($("grid"));
     const none = state.loaded && state.signedIn && !list.length;
     $("empty").hidden = !none;
-    if (none) {
-    }
-    $("addBtn").hidden = $("addFirst").hidden = $("accountBtn").hidden = !state.signedIn;
+    $("addBtn").hidden = $("addFirst").hidden = !state.canWrite; $("accountBtn").hidden = !state.signedIn;
     $("authPanel").hidden = !state.loaded || state.signedIn; $("grid").hidden = none || !state.signedIn;
   };
 
+  // A step typed with its own number ("1. Boil", "2) Stir") loses it, as steps are numbered here. An amount such as "1.5 l" is not a number of that kind.
+  const unnumbered = (line) => line.replace(/^\d+[.)](?!\d)\s*/, "");
   const listHtml = (text, ordered) => {
-    const items = linesOf(text).map((line) => (isHeading(line) ? `<li class="sub">${esc(line.replace(/:$/, ""))}</li>` : `<li>${ordered ? "<span>" + esc(line.replace(/^\d+[.)]\s*/, "")) + "</span>" : esc(line)}</li>`)).join("");
+    const items = linesOf(text).map((line) => (isHeading(line) ? `<li class="sub">${esc(line.replace(/:$/, ""))}</li>` : `<li>${ordered ? "<span>" + esc(unnumbered(line)) + "</span>" : esc(line)}</li>`)).join("");
     return items ? (ordered ? `<ol>${items}</ol>` : `<ul>${items}</ul>`) : "";
   };
   // Each part of a recipe folds away under its heading; the choice is kept while the page is open, across recipes and redraws.
@@ -415,10 +424,18 @@ label.f, .f { display: grid; gap: 5px; font: 600 10.5px/1.2 var(--body); letter-
     fillPhotos($("v_body")); $("v_edit").hidden = !state.canWrite;
   };
   // While a recipe is open the screen is kept awake, where the phone allows it: hands are usually busy.
+  // The phone lets go of the lock whenever the page is hidden, so a lock that has been released counts as none.
   const keepAwake = async (on) => {
-    try { if (on && "wakeLock" in navigator && !state.wake) state.wake = await navigator.wakeLock.request("screen"); else if (!on && state.wake) { await state.wake.release(); state.wake = null; } } catch { state.wake = null; }
+    state.awake = on;
+    try {
+      if (on && "wakeLock" in navigator && (!state.wake || state.wake.released)) {
+        const lock = await navigator.wakeLock.request("screen");
+        if (!state.awake || (state.wake && !state.wake.released)) { await lock.release(); return; } // the recipe was closed, or another request got there first, while this one was on its way
+        state.wake = lock;
+      } else if (!on && state.wake) { const lock = state.wake; state.wake = null; await lock.release(); }
+    } catch {}
   };
-  document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible" && $("view").open) { state.wake = null; keepAwake(true); } });
+  document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible" && state.awake) keepAwake(true); });
   // ---------- Opening and closing a recipe. The photo travels between the card and the recipe, changing size and crop on the way,
   // so each ends as exactly the picture that was already there; the rest of the recipe forms around it, or fades from around it. ----------
   const calm = window.matchMedia("(prefers-reduced-motion: reduce)"); // someone who has asked their device for less motion gets none
@@ -511,7 +528,7 @@ label.f, .f { display: grid; gap: 5px; font: 600 10.5px/1.2 var(--body); letter-
     const part = (title, text, numbered) => {
       const lines = linesOf(text); if (!lines.length) return;
       out.push("", title); let n = 0;
-      lines.forEach((line) => { if (isHeading(line)) out.push("", line); else out.push(numbered ? `${++n}. ${line.replace(/^\d+[.)]\s*/, "")}` : `- ${line}`); });
+      lines.forEach((line) => { if (isHeading(line)) out.push("", line); else out.push(numbered ? `${++n}. ${unnumbered(line)}` : `- ${line}`); });
     };
     part("Ingredients", r.ingredients, false); part("Steps", r.steps, true);
     return out.join("\n");
@@ -626,11 +643,20 @@ label.f, .f { display: grid; gap: 5px; font: 600 10.5px/1.2 var(--body); letter-
   $("accountBtn").addEventListener("click", () => { $("a_who").textContent = state.email || ""; note(""); $("account").showModal(); $("a_title").focus({ preventScroll: true }); });
   $("a_close").addEventListener("click", () => $("account").close());
   $("account").addEventListener("click", (e) => { if (e.target === $("account")) $("account").close(); });
+  // Signing out always ends the sign-in on this device. The sync library keeps it when it cannot reach the server (no connection),
+  // so in that case it is removed here by hand and the page is told there is no one signed in.
+  const endSession = async () => {
+    let ended = false;
+    try { ended = !(await requireClient().auth.signOut()).error; } catch {}
+    if (ended) return;
+    try { localStorage.removeItem(SESSION_KEY); } catch {}
+    handleSession(null);
+  };
   $("signOut").addEventListener("click", async () => {
     // Signing out leaves nothing of this account on the device: its saved list and its kept photos go too.
     try { localStorage.removeItem(listKey()); } catch {}
     if ("caches" in window) caches.delete(PHOTO_CACHE).catch(() => {});
-    try { await requireClient().auth.signOut(); } catch {}
+    await endSession();
     $("account").close(); pendingEmail = ""; $("authCodeRow").hidden = true; $("authCode").value = ""; authMsg("");
   });
 
@@ -678,18 +704,28 @@ label.f, .f { display: grid; gap: 5px; font: 600 10.5px/1.2 var(--body); letter-
   // ---------- Start ----------
   const handleSession = (session) => {
     const user = session?.user || null;
-    if (user && user.id === state.uid) return; // the same account again (a refreshed sign-in): nothing to redo
-    photoUrls.forEach((url) => URL.revokeObjectURL(url)); photoUrls.clear();
-    ["view", "edit", "confirm", "account"].forEach((id) => { if ($(id).open) $(id).close(); });
+    if (user && user.id === state.uid && state.canWrite) return; // the same account again (a refreshed sign-in): nothing to redo
+    // No sign-in came back, yet one is still kept on this device: it could not be renewed, which is what no connection looks like.
+    // The deck stays as last seen, to read; a sign-in that is truly over is removed from the device before this is reached.
+    if (!user && state.uid && sessionKept()) { state.canWrite = false; $("v_edit").hidden = true; renderGrid(); setStatus("Offline", "Showing the recipes as last seen."); return; }
+    if (!user || user.id !== state.uid) { // a different account, or none: nothing of the one before stays on screen
+      photoUrls.forEach((url) => URL.revokeObjectURL(url)); photoUrls.clear();
+      ["view", "edit", "confirm", "account"].forEach((id) => { if ($(id).open) $(id).close(); });
+    }
     state.uid = user ? user.id : null; state.email = user?.email || ""; state.signedIn = Boolean(user); state.canWrite = Boolean(user); state.loaded = true;
+    keepAccount(user ? { uid: user.id, email: state.email } : null);
     if (!user) { state.recipes = []; setStatus(""); renderGrid(); return; }
     $("authCodeRow").hidden = true; $("authCode").value = ""; authMsg("");
     showList(keptList()); refresh();
   };
-  renderGrid();
+  // The deck of the account last signed in here is painted at once, to read, while its sign-in is checked. Checking can take a while
+  // with a poor connection, and fails with none; either way the recipes are already on screen.
+  const lastAccount = sessionKept() ? keptAccount() : null;
+  if (lastAccount?.uid) { state.uid = lastAccount.uid; state.email = lastAccount.email || ""; state.signedIn = true; showList(keptList()); }
+  else renderGrid();
   if (!sb) { state.loaded = true; renderGrid(); authMsg("The sync library didn't load. Check your connection and reload.", "err"); }
   else sb.auth.onAuthStateChange((event, session) => {
-    if (event === "TOKEN_REFRESHED") return;
+    if (event === "TOKEN_REFRESHED" && state.canWrite) return; // a routine renewal; one that arrives while the deck is read-only is the sign-in coming back
     handleSession(session);
     if (event === "SIGNED_IN" && (location.hash || location.search.includes("code="))) history.replaceState(null, "", APP_URL);
   });

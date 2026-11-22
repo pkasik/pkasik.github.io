@@ -1,5 +1,5 @@
 // Recipe Deck service worker: network-first for the page (so updates land on the next open), cache-first for everything else, and the cached page as an offline fallback.
-const CACHE = "recipe-deck-v15";
+const CACHE = "recipe-deck-v16";
 // The icon files carry a version in their names: an iPhone keeps an icon it has already fetched for as long as the address stays the same.
 const PRECACHE = ["./", "./index.html", "./manifest.webmanifest", "./icon-192-v2.png", "./icon-512-v2.png", "./apple-touch-icon-v2.png"];
 // The sync library the page loads. Without it the app opens signed out, so it is kept at install as well as on first use.
@@ -7,6 +7,11 @@ const PRECACHE = ["./", "./index.html", "./manifest.webmanifest", "./icon-192-v2
 const LIBRARY = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.js";
 // Other sites whose files are kept for offline use: the library's CDN and Google Fonts.
 const KEPT_HOSTS = /^(cdn\.jsdelivr\.net|fonts\.googleapis\.com|fonts\.gstatic\.com)$/;
+
+// The app's own page: the folder this worker sits in, or its index.html. Nothing else is ever kept as the page (a file such as
+// the manifest opened in its own tab is a navigation too, and must not replace the offline copy of the app).
+const HOME = new URL("./", self.location).pathname;
+const isPage = (url) => url.origin === self.location.origin && (url.pathname === HOME || url.pathname === HOME + "index.html");
 
 // A <script> or stylesheet from another site is requested in a mode that hides whether it loaded, and such a response cannot be
 // checked or safely kept. Asking again in CORS mode gives a response that can; if the site refuses that, fall back to the plain request.
@@ -33,7 +38,7 @@ self.addEventListener("fetch", (event) => {
     event.respondWith(
       fetch(req).then((res) => {
         // Copies are taken before the response is handed to the page; once the page starts reading it, it can no longer be copied.
-        if (res.ok) { const page = res.clone(), root = res.clone(); caches.open(CACHE).then((c) => { c.put("./index.html", page); c.put("./", root); }); }
+        if (res.ok && isPage(url)) { const page = res.clone(), root = res.clone(); caches.open(CACHE).then((c) => { c.put("./index.html", page); c.put("./", root); }); }
         return res;
       }).catch(() => caches.match("./index.html"))
     );
