@@ -33,7 +33,7 @@ body { margin: 0; overflow: hidden; background: var(--bg); color: var(--fg); fon
 img { max-width: 100%; display: block; }
 button, input, textarea { font: inherit; color: inherit; }
 button { cursor: pointer; -webkit-tap-highlight-color: transparent; }
-button:focus-visible, input:focus-visible, textarea:focus-visible, a:focus-visible, label.btn:focus-visible, label.row:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+button:focus-visible, input:focus-visible, textarea:focus-visible, a:focus-visible, label.btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 html:has(dialog[open]), body:has(dialog[open]) { overflow: hidden; }
 .wrap { max-width: 760px; height: 100%; margin: 0 auto; padding: 16px 16px 0; display: flex; flex-direction: column; }
 main { flex: 1 1 auto; min-height: 0; overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; margin-inline: -16px; padding: 4px 16px 40px; }
@@ -105,6 +105,7 @@ dialog#account .auth-msg:empty { min-height: 0; margin-block: -7px; } /* no gap 
 .row { display: flex; align-items: center; gap: 14px; width: 100%; padding: 15px 16px; border: 0; background: var(--paper); color: var(--fg); text-align: left; font: 500 16px/1.3 var(--body); cursor: pointer; }
 .row .hint { margin-left: auto; color: var(--muted); font: 400 14px/1.3 var(--body); }
 .row:focus-visible { outline-offset: -2px; }
+.row:disabled { color: var(--muted); cursor: default; }
 .explain { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.5; }
 .signed { display: flex; align-items: center; justify-content: space-between; gap: 12px; border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
 .signed > div { min-width: 0; }
@@ -276,7 +277,7 @@ label.f, .f { display: grid; gap: 5px; font: 600 10.5px/1.2 var(--body); letter-
     <div class="body">
       <div class="rows">
         <button class="row" id="exportBtn" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg><span>Export deck</span><span class="hint">JSON</span></button>
-        <label class="row" id="importBtn" for="importFile" role="button" tabindex="0"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M17 8l-5-5-5 5"/><path d="M12 3v12"/></svg><span>Import deck</span><span class="hint">merge a file</span></label>
+        <button class="row" id="importBtn" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M17 8l-5-5-5 5"/><path d="M12 3v12"/></svg><span>Import deck</span><span class="hint">merge a file</span></button>
       </div>
       <input class="visually-hidden" id="importFile" type="file" accept="application/json,.json" tabindex="-1">
       <p class="auth-msg" id="a_msg" aria-live="polite"></p>
@@ -350,7 +351,7 @@ label.f, .f { display: grid; gap: 5px; font: 600 10.5px/1.2 var(--body); letter-
     saveFile: async (filename, text) => { const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([text], { type: "application/json" })); a.download = filename; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 2000); },
   };
   // The list as last seen, kept on the device so the deck paints at once and opens offline. One copy per account.
-  const listKey = () => "recipedeck.list." + state.uid;
+  const listKey = (uid = state.uid) => "recipedeck.list." + uid;
   // Which account was last signed in here, so its deck can be painted before the sign-in has been checked (and when it cannot be: offline).
   const ACCOUNT_KEY = "recipedeck.account", SESSION_KEY = `sb-${new URL(SUPABASE_URL).hostname.split(".")[0]}-auth-token`; // the second is where the sync library keeps the sign-in
   const keepAccount = (account) => { try { if (account) localStorage.setItem(ACCOUNT_KEY, JSON.stringify(account)); else localStorage.removeItem(ACCOUNT_KEY); } catch {} };
@@ -359,13 +360,20 @@ label.f, .f { display: grid; gap: 5px; font: 600 10.5px/1.2 var(--body); letter-
   const keptSessionUid = () => { try { return JSON.parse(localStorage.getItem(SESSION_KEY) || "null")?.user?.id || null; } catch { return null; } };
   const keepList = (list) => { try { localStorage.setItem(listKey(), JSON.stringify(list)); } catch {} };
   const keptList = () => { try { return JSON.parse(localStorage.getItem(listKey()) || "[]"); } catch { return []; } };
+  // Nothing of an account stays on the device once it is no longer the one signed in: its saved list and the kept photos go.
+  const forgetDeck = (uid) => { try { localStorage.removeItem(listKey(uid)); } catch {} if ("caches" in window) caches.delete(PHOTO_CACHE).catch(() => {}); };
   const showList = (list) => { state.recipes = list; state.loaded = true; renderGrid(); if ($("view").open) { if (byId(state.openId)) renderView(); else $("view").close(); } };
   // Only with a checked sign-in: without one the server answers with an empty list, not an error, and that must never replace the kept deck.
+  // The sign-in is asked for again right before reading, since a renewal can fail quietly long after the page opened.
   const refresh = async () => {
     const uid = state.uid; if (!uid || !state.canWrite) return;
     const stale = () => state.uid !== uid || !state.canWrite; // signed out, or another account, while the answer was on its way
     if (!$("status").textContent) setStatus("Syncing…");
-    try { const list = await store.list(); if (stale()) return; keepList(list); showList(list); if (/^(Offline|Not synced|Syncing…|Couldn't load)/.test($("status").textContent)) setStatus(""); }
+    try {
+      const session = (await requireClient().auth.getSession()).data?.session || null; if (stale()) return;
+      if (session?.user?.id !== uid) { handleSession(session); return; }
+      const list = await store.list(); if (stale()) return; keepList(list); showList(list); if (/^(Offline|Not synced|Syncing…|Couldn't load)/.test($("status").textContent)) setStatus("");
+    }
     catch (err) { if (stale()) return; if (navigator.onLine === false) setStatus("Offline", "Showing the recipes as last seen."); else setStatus("Couldn't load", friendly(err, "load the recipes")); }
   };
   /* STORE:END */
@@ -396,7 +404,7 @@ label.f, .f { display: grid; gap: 5px; font: 600 10.5px/1.2 var(--body); letter-
     const none = state.loaded && state.signedIn && !list.length;
     $("empty").hidden = !none;
     if (none) $("emptyText").textContent = state.canWrite ? "Add your first recipe: a name, a photo of the finished dish, the ingredients and the steps." : "Your recipes will show here once the deck can sync.";
-    $("addBtn").hidden = $("addFirst").hidden = !state.canWrite; $("accountBtn").hidden = !state.signedIn;
+    $("addBtn").hidden = $("addFirst").hidden = !state.canWrite; $("importBtn").disabled = !state.canWrite; $("accountBtn").hidden = !state.signedIn;
     $("authPanel").hidden = !state.loaded || state.signedIn; $("grid").hidden = none || !state.signedIn;
   };
 
@@ -573,7 +581,7 @@ label.f, .f { display: grid; gap: 5px; font: 600 10.5px/1.2 var(--body); letter-
     $("e_save").disabled = false;
   });
   $("e_nophoto").addEventListener("click", () => { if (state.picked) URL.revokeObjectURL(state.picked.url); state.picked = null; state.dropPhoto = true; showThumb(""); });
-  [["e_pick", "e_file"], ["importBtn", "importFile"]].forEach(([label, input]) => $(label).addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); $(input).click(); } }));
+  $("e_pick").addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); $("e_file").click(); } });
 
   // ---------- Add and edit ----------
   const FIELDS = ["name", "ingredients", "steps", "notes"];
@@ -625,8 +633,10 @@ label.f, .f { display: grid; gap: 5px; font: 600 10.5px/1.2 var(--body); letter-
     try { await store.saveFile(`recipe-deck-${new Date().toISOString().slice(0, 10)}.json`, JSON.stringify(dump, null, 2)); note(`Exported ${dump.recipes.length} ${dump.recipes.length === 1 ? "recipe" : "recipes"}.`, "ok"); }
     catch (err) { note(friendly(err, "export the deck"), "err"); }
   });
+  $("importBtn").addEventListener("click", () => $("importFile").click());
   $("importFile").addEventListener("change", async () => {
     const file = $("importFile").files[0]; $("importFile").value = ""; if (!file) return;
+    if (!state.canWrite) { note("Importing needs the deck to be in sync. Try again once it is.", "err"); return; }
     try {
       const dump = JSON.parse(await file.text()), rows = (Array.isArray(dump?.recipes) ? dump.recipes : []).filter((row) => row && row.id && row.data && typeof row.data === "object" && String(row.data.name || "").trim());
       if (!rows.length) { note("That file has no recipes in it, so nothing was imported.", "err"); return; }
@@ -648,19 +658,19 @@ label.f, .f { display: grid; gap: 5px; font: 600 10.5px/1.2 var(--body); letter-
   $("a_close").addEventListener("click", () => $("account").close());
   $("account").addEventListener("click", (e) => { if (e.target === $("account")) $("account").close(); });
   // Signing out always ends the sign-in on this device. The sync library keeps it when it cannot reach the server (no connection),
-  // so in that case it is removed here by hand and the page is told there is no one signed in.
+  // so in that case it is removed here by hand and the page is told there is no one signed in. The library is not even asked when
+  // there is plainly no way through, and is given only a few seconds otherwise: with a lapsed sign-in it retries for much longer.
+  const SIGN_OUT_WAIT_MS = 4000;
   const endSession = async () => {
     let ended = false;
-    try { ended = !(await requireClient().auth.signOut()).error; } catch {}
+    const gaveUp = new Promise((resolve) => setTimeout(() => resolve(false), SIGN_OUT_WAIT_MS));
+    if (navigator.onLine !== false && state.canWrite) try { ended = await Promise.race([requireClient().auth.signOut().then(({ error }) => !error), gaveUp]); } catch {}
     if (ended) return;
     try { localStorage.removeItem(SESSION_KEY); } catch {}
     handleSession(null);
   };
   $("signOut").addEventListener("click", async () => {
-    // Signing out leaves nothing of this account on the device: its saved list and its kept photos go too.
-    try { localStorage.removeItem(listKey()); } catch {}
-    if ("caches" in window) caches.delete(PHOTO_CACHE).catch(() => {});
-    await endSession();
+    await endSession(); // the page then hears there is no one signed in, and clears this account's saved list and photos
     $("account").close(); pendingEmail = ""; $("authCodeRow").hidden = true; $("authCode").value = ""; authMsg("");
   });
 
@@ -713,7 +723,8 @@ label.f, .f { display: grid; gap: 5px; font: 600 10.5px/1.2 var(--body); letter-
     // No sign-in came back, yet one is still kept on this device: it could not be renewed, which is what no connection looks like.
     // The deck stays as last seen, to read; a sign-in that is truly over is removed from the device before this is reached.
     if (!user && state.uid && keptSessionUid() === state.uid) { state.canWrite = false; $("v_edit").hidden = true; renderGrid(); showUnchecked(); return; }
-    if (!user || user.id !== state.uid) { // a different account, or none: nothing of the one before stays on screen
+    if (!user || user.id !== state.uid) { // a different account, or none: nothing of the one before stays on screen or on the device
+      const before = state.uid || keptAccount()?.uid; if (before && before !== user?.id) forgetDeck(before);
       photoUrls.forEach((url) => URL.revokeObjectURL(url)); photoUrls.clear();
       ["view", "edit", "confirm", "account"].forEach((id) => { if ($(id).open) $(id).close(); });
     }
@@ -727,7 +738,7 @@ label.f, .f { display: grid; gap: 5px; font: 600 10.5px/1.2 var(--body); letter-
   // with a poor connection, and fails with none; either way the recipes are already on screen.
   // Only when the sign-in kept here is that same account's: never one person's recipes for another.
   const lastAccount = keptAccount();
-  if (lastAccount?.uid && keptSessionUid() === lastAccount.uid) { state.uid = lastAccount.uid; state.email = lastAccount.email || ""; state.signedIn = true; showList(keptList()); }
+  if (lastAccount?.uid && keptSessionUid() === lastAccount.uid) { state.uid = lastAccount.uid; state.email = lastAccount.email || ""; state.signedIn = true; showList(keptList()); if (navigator.onLine === false) showUnchecked(); else setStatus("Syncing…"); }
   else renderGrid();
   if (!sb) { state.loaded = true; renderGrid(); authMsg("The sync library didn't load. Check your connection and reload.", "err"); if (state.signedIn) setStatus("Not synced", "The sync library didn't load. Check your connection and reload."); }
   else sb.auth.onAuthStateChange((event, session) => {
@@ -735,8 +746,8 @@ label.f, .f { display: grid; gap: 5px; font: 600 10.5px/1.2 var(--body); letter-
     handleSession(session);
     if (event === "SIGNED_IN" && (location.hash || location.search.includes("code="))) history.replaceState(null, "", APP_URL);
   });
-  // Back online: a deck that is live is read again; one that is read-only asks for its sign-in to be renewed, which arrives above when it works.
-  window.addEventListener("online", () => { if (state.canWrite) refresh(); else if (state.uid && sb) sb.auth.getSession().catch(() => {}); });
+  // Back online: a deck that is live is read again; one that is read-only asks for its sign-in to be renewed, which arrives above when it works. When it does not, the note says so instead of "Offline".
+  window.addEventListener("online", () => { if (state.canWrite) refresh(); else if (state.uid && sb) sb.auth.getSession().then(({ data }) => !data?.session, () => true).then((failed) => { if (failed && state.uid && !state.canWrite) showUnchecked(); }); });
   // Another tab (this app's or Brew Deck's) removed the sign-in by hand, which the sync library does not announce: it is over here too.
   window.addEventListener("storage", (e) => { if ((e.key === SESSION_KEY || e.key === null) && state.uid && !keptSessionUid()) handleSession(null); });
   window.addEventListener("offline", () => { if (state.signedIn) setStatus("Offline", "Showing the recipes as last seen."); });
