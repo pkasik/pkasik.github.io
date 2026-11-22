@@ -355,15 +355,18 @@ label.f, .f { display: grid; gap: 5px; font: 600 10.5px/1.2 var(--body); letter-
   const ACCOUNT_KEY = "recipedeck.account", SESSION_KEY = `sb-${new URL(SUPABASE_URL).hostname.split(".")[0]}-auth-token`; // the second is where the sync library keeps the sign-in
   const keepAccount = (account) => { try { if (account) localStorage.setItem(ACCOUNT_KEY, JSON.stringify(account)); else localStorage.removeItem(ACCOUNT_KEY); } catch {} };
   const keptAccount = () => { try { return JSON.parse(localStorage.getItem(ACCOUNT_KEY) || "null"); } catch { return null; } };
-  const sessionKept = () => { try { return Boolean(localStorage.getItem(SESSION_KEY)); } catch { return false; } };
+  // Whose sign-in is kept on this device, if any. Brew Deck shares it, so it may belong to someone who signed in there since.
+  const keptSessionUid = () => { try { return JSON.parse(localStorage.getItem(SESSION_KEY) || "null")?.user?.id || null; } catch { return null; } };
   const keepList = (list) => { try { localStorage.setItem(listKey(), JSON.stringify(list)); } catch {} };
   const keptList = () => { try { return JSON.parse(localStorage.getItem(listKey()) || "[]"); } catch { return []; } };
   const showList = (list) => { state.recipes = list; state.loaded = true; renderGrid(); if ($("view").open) { if (byId(state.openId)) renderView(); else $("view").close(); } };
+  // Only with a checked sign-in: without one the server answers with an empty list, not an error, and that must never replace the kept deck.
   const refresh = async () => {
-    if (!state.uid) return;
+    const uid = state.uid; if (!uid || !state.canWrite) return;
+    const stale = () => state.uid !== uid || !state.canWrite; // signed out, or another account, while the answer was on its way
     if (!$("status").textContent) setStatus("Syncing…");
-    try { const list = await store.list(); keepList(list); showList(list); if (/^(Offline|Syncing…|Couldn't load)/.test($("status").textContent)) setStatus(""); }
-    catch (err) { if (navigator.onLine === false) setStatus("Offline", "Showing the recipes as last seen."); else setStatus("Couldn't load", friendly(err, "load the recipes")); }
+    try { const list = await store.list(); if (stale()) return; keepList(list); showList(list); if (/^(Offline|Not synced|Syncing…|Couldn't load)/.test($("status").textContent)) setStatus(""); }
+    catch (err) { if (stale()) return; if (navigator.onLine === false) setStatus("Offline", "Showing the recipes as last seen."); else setStatus("Couldn't load", friendly(err, "load the recipes")); }
   };
   /* STORE:END */
 
@@ -392,6 +395,7 @@ label.f, .f { display: grid; gap: 5px; font: 600 10.5px/1.2 var(--body); letter-
     fillPhotos($("grid"));
     const none = state.loaded && state.signedIn && !list.length;
     $("empty").hidden = !none;
+    if (none) $("emptyText").textContent = state.canWrite ? "Add your first recipe: a name, a photo of the finished dish, the ingredients and the steps." : "Your recipes will show here once the deck can sync.";
     $("addBtn").hidden = $("addFirst").hidden = !state.canWrite; $("accountBtn").hidden = !state.signedIn;
     $("authPanel").hidden = !state.loaded || state.signedIn; $("grid").hidden = none || !state.signedIn;
   };
@@ -702,12 +706,13 @@ label.f, .f { display: grid; gap: 5px; font: 600 10.5px/1.2 var(--body); letter-
   if (portrait.addEventListener) portrait.addEventListener("change", resetZoom); else if (portrait.addListener) portrait.addListener(resetZoom);
 
   // ---------- Start ----------
+  const showUnchecked = () => { if (navigator.onLine === false) setStatus("Offline", "Showing the recipes as last seen."); else setStatus("Not synced", "Your sign-in couldn't be checked. Showing the recipes as last seen."); };
   const handleSession = (session) => {
     const user = session?.user || null;
     if (user && user.id === state.uid && state.canWrite) return; // the same account again (a refreshed sign-in): nothing to redo
     // No sign-in came back, yet one is still kept on this device: it could not be renewed, which is what no connection looks like.
     // The deck stays as last seen, to read; a sign-in that is truly over is removed from the device before this is reached.
-    if (!user && state.uid && sessionKept()) { state.canWrite = false; $("v_edit").hidden = true; renderGrid(); setStatus("Offline", "Showing the recipes as last seen."); return; }
+    if (!user && state.uid && keptSessionUid() === state.uid) { state.canWrite = false; $("v_edit").hidden = true; renderGrid(); showUnchecked(); return; }
     if (!user || user.id !== state.uid) { // a different account, or none: nothing of the one before stays on screen
       photoUrls.forEach((url) => URL.revokeObjectURL(url)); photoUrls.clear();
       ["view", "edit", "confirm", "account"].forEach((id) => { if ($(id).open) $(id).close(); });
@@ -720,16 +725,20 @@ label.f, .f { display: grid; gap: 5px; font: 600 10.5px/1.2 var(--body); letter-
   };
   // The deck of the account last signed in here is painted at once, to read, while its sign-in is checked. Checking can take a while
   // with a poor connection, and fails with none; either way the recipes are already on screen.
-  const lastAccount = sessionKept() ? keptAccount() : null;
-  if (lastAccount?.uid) { state.uid = lastAccount.uid; state.email = lastAccount.email || ""; state.signedIn = true; showList(keptList()); }
+  // Only when the sign-in kept here is that same account's: never one person's recipes for another.
+  const lastAccount = keptAccount();
+  if (lastAccount?.uid && keptSessionUid() === lastAccount.uid) { state.uid = lastAccount.uid; state.email = lastAccount.email || ""; state.signedIn = true; showList(keptList()); }
   else renderGrid();
-  if (!sb) { state.loaded = true; renderGrid(); authMsg("The sync library didn't load. Check your connection and reload.", "err"); }
+  if (!sb) { state.loaded = true; renderGrid(); authMsg("The sync library didn't load. Check your connection and reload.", "err"); if (state.signedIn) setStatus("Not synced", "The sync library didn't load. Check your connection and reload."); }
   else sb.auth.onAuthStateChange((event, session) => {
     if (event === "TOKEN_REFRESHED" && state.canWrite) return; // a routine renewal; one that arrives while the deck is read-only is the sign-in coming back
     handleSession(session);
     if (event === "SIGNED_IN" && (location.hash || location.search.includes("code="))) history.replaceState(null, "", APP_URL);
   });
-  window.addEventListener("online", () => refresh());
+  // Back online: a deck that is live is read again; one that is read-only asks for its sign-in to be renewed, which arrives above when it works.
+  window.addEventListener("online", () => { if (state.canWrite) refresh(); else if (state.uid && sb) sb.auth.getSession().catch(() => {}); });
+  // Another tab (this app's or Brew Deck's) removed the sign-in by hand, which the sync library does not announce: it is over here too.
+  window.addEventListener("storage", (e) => { if ((e.key === SESSION_KEY || e.key === null) && state.uid && !keptSessionUid()) handleSession(null); });
   window.addEventListener("offline", () => { if (state.signedIn) setStatus("Offline", "Showing the recipes as last seen."); });
   if ("serviceWorker" in navigator) window.addEventListener("load", () => { navigator.serviceWorker.register("./sw.js").catch(() => {}); });
 })();
