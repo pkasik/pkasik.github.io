@@ -812,6 +812,17 @@ body.split .tile[aria-current="true"] + .tile, body.split .tile[aria-current="tr
 .cardbar .nav { margin: 0; justify-content: flex-start; } .cardbar .dots { flex-wrap: nowrap; gap: 7px; }
 .cardbar .dots button { width: 8px; height: 8px; min-height: 0; padding: 0; border-radius: 50%; background: var(--line); flex: none; } .cardbar .dots button[aria-current="true"] { width: 20px; border-radius: 4px; background: var(--amber); }
 
+/* Date fields: iOS draws the value at the top of a restyled date input. A fixed height with a matching line height centres it like the fields beside it. */
+label.f input[type="date"] { display: block; box-sizing: border-box; height: 44px; min-height: 44px; padding: 0 12px; line-height: 44px; }
+label.f input[type="date"]::-webkit-date-and-time-value { text-align: left; line-height: 44px; min-height: 0; margin: 0; padding: 0; }
+/* Log form: the title is the coffee; which recipe it was goes on a line of its own. */
+.sheet-sub { margin: 8px 0 0; font: 400 15.5px/1.35 var(--body); color: var(--muted); } .sheet-sub:empty { display: none; }
+/* Beside a recipe (iPad), the deck list is for picking a coffee: no rating dots. */
+body.split .tile .rdots { display: none; }
+/* Pours: how fast and how hard, under the words. */
+.steps span.rate { margin-top: 3px; font-size: 14px; font-variant-numeric: tabular-nums; }
+.steps span.rate i { font-style: normal; font-size: 9px; letter-spacing: 1px; vertical-align: 1.5px; color: var(--accent-text); }
+
 </style>
 </head>
 <body>
@@ -991,7 +1002,7 @@ body.split .tile[aria-current="true"] + .tile, body.split .tile[aria-current="tr
 <!-- Brew editor -->
 <dialog id="brewDialog" class="sheet" aria-labelledby="brewDialogTitle">
   <form id="brewForm" method="dialog" novalidate>
-    <div class="sheet-head"><h2 id="brewDialogTitle" tabindex="-1" autofocus>Log a brew</h2></div>
+    <div class="sheet-head"><h2 id="brewDialogTitle" tabindex="-1" autofocus>Log a brew</h2><p class="sheet-sub" id="brewDialogSub"></p></div>
     <div class="sheet-body">
     <div class="fgroup">
       <span class="flabel" id="starsLabel">Rating</span>
@@ -1620,10 +1631,12 @@ body.split .tile[aria-current="true"] + .tile, body.split .tile[aria-current="tr
     const scaledNote = !r.scaled ? "" : esp
       ? `<p class="scaled">Adjusted from the ${r.scaledFrom} g recipe: yield follows the ${ratioLabel(r.ratio)} ratio; keep the grind and expect the shot time to move a few seconds with the dose.</p>`
       : `<p class="scaled">Scaled from the ${r.scaledFrom} g recipe: water and pours adjusted, timings kept. Grind: ${grindHint}.</p>`;
-    // Each pour as plain words: what the scale should read, then how to pour. The flow rate and agitation stay in the recipe (the timer uses them) but are not shown here.
-    const pours = (r.pours || []).map((p, i) => {
+    // Each pour as plain words: what the scale should read, then how to pour, then the flow rate and agitation for brewing straight from the card.
+    const pours = (r.pours || []).map((p, i, all) => {
       const [title, more] = pourWords(p.action, p.to, i, esp);
-      return `<li><time>${esc(p.time)}</time><div><b>${esc(title)}</b>${more ? `<span>${esc(more)}</span>` : ""}</div></li>`;
+      const flow = esp ? "" : flowOf(p, all[i - 1]).replace(/^≈ /, ""), level = esp ? 0 : agitationOf(p);
+      const rate = flow || level ? `<span class="rate">${esc(flow)}${flow && level ? " · " : ""}${level ? `<i aria-hidden="true">${agitationDots(level)}</i> ${AGITATION[level].word} agitation` : ""}</span>` : "";
+      return `<li><time>${esc(p.time)}</time><div><b>${esc(title)}</b>${more ? `<span>${esc(more)}</span>` : ""}${rate}</div></li>`;
     }).join("");
     const win = /(\d+:\d{2})\s*[–-]\s*(\d+:\d{2})/.exec(r.finish || "");
     const finish = !r.finish ? "" : esp ? `<li><time></time><div><b>Shot time ${esc(shotWindow(r.finish))}</b></div></li>`
@@ -2967,7 +2980,7 @@ body.split .tile[aria-current="true"] + .tile, body.split .tile[aria-current="tr
     if (!state.canWrite) { setStatus("Sign in to log brews."); return; }
     const r = activeRecipe(c);
     state.editingBrew = null; $("brewForm").querySelector('button[type="submit"]').textContent = "Save brew";
-    $("brewDialogTitle").textContent = "Log a brew · " + c.name + (r.label ? " · " + r.label : "");
+    $("brewDialogTitle").textContent = "Log a brew · " + c.name; $("brewDialogSub").textContent = r.label || "";
     $("b_date").value = todayISO(); $("b_grind").value = casaText(r.grind); $("b_temp").value = r.water || ""; $("b_filter").value = r.filter || "";
     $("b_dose").value = r.dose || ""; $("b_finish").value = ""; $("b_notes").value = ""; $("brewErr").hidden = true;
     state.brewRating = 0; [...stars.children].forEach((s) => s.setAttribute("aria-pressed", "false"));
@@ -2996,7 +3009,7 @@ body.split .tile[aria-current="true"] + .tile, body.split .tile[aria-current="tr
     if (ed) {
       const c = state.coffees[state.active], br = state.brews.find((x) => x.id === ed.dataset.id); if (!c || !br) return;
       state.editingBrew = br;
-      $("brewDialogTitle").textContent = "Edit brew · " + c.name + (br.recipe ? " · " + br.recipe : "");
+      $("brewDialogTitle").textContent = "Edit brew · " + c.name; $("brewDialogSub").textContent = br.recipe || "";
       $("brewForm").querySelector('button[type="submit"]').textContent = "Save changes";
       $("b_date").value = br.date || todayISO(); $("b_grind").value = br.grind || ""; $("b_temp").value = br.temp || ""; $("b_filter").value = br.filter || "";
       $("b_dose").value = br.dose || ""; $("b_finish").value = br.finish || ""; $("b_notes").value = br.notes || ""; $("brewErr").hidden = true;
