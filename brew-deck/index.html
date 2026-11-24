@@ -823,6 +823,11 @@ body.split .tile .rdots { display: none; }
 .steps span.rate { margin-top: 3px; font-size: 14px; font-variant-numeric: tabular-nums; }
 .steps span.rate i { font-style: normal; font-size: 9px; letter-spacing: 1px; vertical-align: 1.5px; color: var(--accent-text); }
 
+/* Swiping while scrolled down: the recipes either side are held level with the top of the screen (shifted down by as far as the page is
+   scrolled), so the one coming in shows its heading, not its middle. When it lands the page goes back to the top and the shift is dropped,
+   which leaves it exactly where it was on screen. */
+.rail .card:not(.current) { transform: translateY(var(--lift, 0px)); }
+
 </style>
 </head>
 <body>
@@ -1690,7 +1695,7 @@ body.split .tile .rdots { display: none; }
   // A row in the deck: the name and what it tastes of, then how the last cup was rated and how far off roast the bag is.
   const tileBody = (c) => {
     const seen = find.seen.get(c.id), age = c.archived ? null : ageOf(c);
-    const rated = !seen ? "" : seen.last ? dotsHtml(seen.last, "Last rated") : seen.count || c.archived ? "" : `<span class="t-new">New</span>`;
+    const rated = seen && seen.last ? dotsHtml(seen.last, "Last rated") : "";
     return `<span class="t-main"><span class="t-name">${roastDot(c)}${esc(c.name)}</span><span class="t-notes">${esc(c.tasting || "")}</span></span>
       <span class="t-side">${rated}${age === null ? "" : `<span class="t-age">Day ${age}</span>`}</span>`;
   };
@@ -1888,7 +1893,11 @@ body.split .tile .rdots { display: none; }
   const railIndexOf = (i) => { const id = state.coffees[i]?.id; return deckList().findIndex((c) => c.id === id); };
   // Recipes differ in length (more pours, details open, a scaling note). The row is sized to the one in view, and re-sized when that
   // recipe changes, another comes into view, or the cards are redrawn; the next recipe is clipped to that height while it slides in.
-  const fitRail = () => { const card = rail.children[railIndexOf(state.active)], h = card ? card.offsetHeight : 0; rail.style.height = h ? `${h}px` : ""; };
+  const pageY = () => window.scrollY || document.documentElement.scrollTop || document.body.scrollTop || 0;
+  const liftRail = () => { rail.style.setProperty("--lift", `${Math.max(0, Math.round(pageY()))}px`); };
+  document.addEventListener("scroll", liftRail, { passive: true, capture: true }); // whichever of the window or the body is doing the scrolling
+  const markCurrent = () => { const now = rail.children[railIndexOf(state.active)]; [...rail.children].forEach((card) => card.classList.toggle("current", card === now)); };
+  const fitRail = () => { markCurrent(); const card = rail.children[railIndexOf(state.active)], h = card ? card.offsetHeight : 0; rail.style.height = h ? `${h}px` : ""; };
   const cardSizes = new ResizeObserver(fitRail);
   new MutationObserver(() => { cardSizes.disconnect(); [...rail.children].forEach((card) => cardSizes.observe(card)); fitRail(); }).observe(rail, { childList: true });
   const globalIndex = (railIdx) => { const c = deckList()[railIdx]; return c ? state.coffees.indexOf(c) : -1; };
@@ -2398,7 +2407,10 @@ body.split .tile .rdots { display: none; }
     if (Math.abs(rail.scrollLeft - at) > 3 && !railNudged) { railNudged = true; rail.scrollTo({ left: at, behavior: "smooth" }); railRest(); return; }
     railNudged = false;
     const i = globalIndex(n);
-    if (i >= 0 && i !== state.active) { state.active = i; updateNav(); subscribeBrews(); }
+    if (i >= 0 && i !== state.active) {
+      state.active = i; updateNav(); subscribeBrews();
+      window.scrollTo({ top: 0, behavior: "instant" }); document.documentElement.scrollTop = 0; document.body.scrollTop = 0; liftRail(); // the recipe that came in is now simply at the top
+    }
   };
   rail.addEventListener("touchstart", () => { railTouch = true; railNudged = false; clearTimeout(scrollT); }, { passive: true });
   ["touchend", "touchcancel"].forEach((ev) => rail.addEventListener(ev, () => { railTouch = false; railRest(); }, { passive: true }));
