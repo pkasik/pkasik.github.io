@@ -805,6 +805,13 @@ body.split .tile[aria-current="true"] + .tile, body.split .tile[aria-current="tr
 .top .iconbtn.add { background: var(--fg); color: var(--bg); } .iconbtn[hidden] { display: none; }
 .timer-head .iconbtn, .guide-head .iconbtn { width: 44px; height: 44px; flex: none; margin: -4px -6px -4px 0; }
 
+/* Swiping recipes: the row changes height only once a swipe has come to rest, and then at once, with no easing. One recipe per swipe. */
+.rail { transition: none; } .card { scroll-snap-stop: always; }
+/* The position dots sit in the top bar, opposite the x, so they stay put while recipes of different lengths go by. */
+.cardbar { justify-content: space-between; } .cardbar #backToDeck { margin-left: auto; }
+.cardbar .nav { margin: 0; justify-content: flex-start; } .cardbar .dots { flex-wrap: nowrap; gap: 7px; }
+.cardbar .dots button { width: 8px; height: 8px; min-height: 0; padding: 0; border-radius: 50%; background: var(--line); flex: none; } .cardbar .dots button[aria-current="true"] { width: 20px; border-radius: 4px; background: var(--amber); }
+
 </style>
 </head>
 <body>
@@ -867,14 +874,12 @@ body.split .tile[aria-current="true"] + .tile, body.split .tile[aria-current="tr
   </div>
 
   <div class="cardbar" id="cardBar">
+    <div class="nav" id="nav" hidden><div class="dots" id="dots" role="tablist" aria-label="Cards"></div></div>
     <button class="iconbtn" id="backToDeck" type="button" aria-label="Close and go back to the deck"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"></path></svg></button>
   </div>
   <section class="deck" id="deck" aria-label="Recipe cards" hidden>
     <p class="status card-status" id="cardStatus" role="status" aria-live="polite"></p>
     <div class="rail" id="rail" aria-roledescription="carousel"></div>
-    <div class="nav" id="nav" hidden>
-      <div class="dots" id="dots" role="tablist" aria-label="Cards"></div>
-    </div>
   </section>
 
   <dialog id="guideDialog" aria-labelledby="guideTitle">
@@ -2369,14 +2374,22 @@ body.split .tile[aria-current="true"] + .tile, body.split .tile[aria-current="tr
   // When a sheet closes, don't leave focus parked on whatever the browser falls back to.
   document.querySelectorAll("dialog").forEach((d) => d.addEventListener("close", () => { const a = document.activeElement; if (a && a !== document.body && !a.closest("dialog[open]")) a.blur(); }));
   let scrollT;
-  rail.addEventListener("scroll", () => {
-    clearTimeout(scrollT);
-    scrollT = setTimeout(() => {
-      const w = rail.children[0]?.getBoundingClientRect().width || 1;
-      const i = globalIndex(Math.round(rail.scrollLeft / (w + 32)));
-      if (i >= 0 && i !== state.active) { state.active = i; updateNav(); subscribeBrews(); }
-    }, 80);
-  });
+  // A swipe is over when the finger is up and the row has stopped moving. Only then is the recipe in view taken as the current one
+  // (which resizes the row and loads its log): doing that mid-swipe moved the page under the finger and could leave a recipe half across.
+  // If the row does come to rest between two recipes, it is pulled to the nearer one, once.
+  let railTouch = false, railNudged = false;
+  const railRest = () => { clearTimeout(scrollT); scrollT = setTimeout(settleRail, 120); };
+  const settleRail = () => {
+    if (railTouch) return;
+    const w = rail.children[0]?.getBoundingClientRect().width || 1, n = Math.round(rail.scrollLeft / (w + 32)), at = n * (w + 32);
+    if (Math.abs(rail.scrollLeft - at) > 3 && !railNudged) { railNudged = true; rail.scrollTo({ left: at, behavior: "smooth" }); railRest(); return; }
+    railNudged = false;
+    const i = globalIndex(n);
+    if (i >= 0 && i !== state.active) { state.active = i; updateNav(); subscribeBrews(); }
+  };
+  rail.addEventListener("touchstart", () => { railTouch = true; railNudged = false; clearTimeout(scrollT); }, { passive: true });
+  ["touchend", "touchcancel"].forEach((ev) => rail.addEventListener(ev, () => { railTouch = false; railRest(); }, { passive: true }));
+  rail.addEventListener("scroll", railRest, { passive: true });
   const settingsCoffee = () => state.coffees.find((x) => x.id === state.settingsFor);
   const renderDoseSeg = () => {
     const coffee = settingsCoffee(), esp = isEsp(coffee);
