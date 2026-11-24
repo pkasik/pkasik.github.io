@@ -802,6 +802,7 @@ body.split .tile[aria-current="true"] + .tile, body.split .tile[aria-current="tr
 /* One way to close: the same round x, top right, on the recipe, the brew timer and Settings. */
 .cardbar { justify-content: flex-end; padding-right: max(16px, calc((100vw - 720px) / 2)); padding-left: 16px; }
 .cardbar .iconbtn { width: 44px; height: 44px; margin: 2px 0; border: 0; border-radius: 50%; background: var(--chip); color: var(--fg); display: grid; place-items: center; padding: 0; }
+.top .iconbtn.add { background: var(--fg); color: var(--bg); } .iconbtn[hidden] { display: none; }
 .timer-head .iconbtn, .guide-head .iconbtn { width: 44px; height: 44px; flex: none; margin: -4px -6px -4px 0; }
 
 </style>
@@ -818,7 +819,7 @@ body.split .tile[aria-current="true"] + .tile, body.split .tile[aria-current="tr
       <button class="gearbtn" id="account" type="button" aria-haspopup="dialog" aria-label="Settings">
         <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3h.1a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8v.1a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"></path></svg>
       </button>
-      <button class="btn primary" id="addCard" type="button" aria-label="Add a card" hidden>+ Add</button>
+      <button class="iconbtn add" id="addCard" type="button" aria-label="Add a card" hidden><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg></button>
     </div>
   </header>
 
