@@ -787,6 +787,24 @@ body.split .tile[aria-current="true"] + .tile, body.split .tile[aria-current="tr
   .timer-head { grid-area: head; } .timer-clock { grid-area: clock; } .timer-stage { grid-area: stage; } .timer-steps { grid-area: steps; align-self: start; } .timer-ctl { grid-area: ctl; } .timer-note { grid-area: note; }
 }
 
+/* Timer: the hint under the buttons changes length and disappears while running. Its row keeps one height, so the buttons (and on a wide
+   screen the whole dialog) stay where they are from Ready through to Stopped. Short phones never show the hint, so they keep no room for it. */
+.timer-wrap, .timer-wrap:has(.timer-steps li:nth-child(4)) { grid-template-rows: auto auto auto auto 1fr 63px; }
+@media (max-height: 740px) and (max-width: 759px) { .timer-wrap, .timer-wrap:has(.timer-steps li:nth-child(4)) { grid-template-rows: auto auto auto auto 1fr auto; } }
+@media (min-width: 760px) { .timer-wrap, .timer-wrap:has(.timer-steps li:nth-child(4)) { grid-template-rows: auto auto auto 1fr 42px; } }
+.timer-clock .phase { min-height: 1.3em; }
+/* Installed on a phone: the bar with Deck sat too low under the status bar. */
+@media (display-mode: standalone) { :root { --status: 6px; } }
+/* Header: the title never wraps, and a status ("Syncing…", an error) is a pill at the foot of the screen, not a word squeezed in beside it. */
+.top h1 { white-space: nowrap; }
+.top .tools .status { position: fixed; left: 50%; bottom: calc(18px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); z-index: 6; order: 0; flex-basis: auto; max-width: calc(100% - 32px); padding: 9px 15px; border-radius: 999px; background: var(--fg); color: var(--bg); font: 500 13.5px/1.3 var(--body); text-align: center; pointer-events: none; }
+
+/* One way to close: the same round x, top right, on the recipe, the brew timer and Settings. */
+.cardbar { justify-content: flex-end; padding-right: max(16px, calc((100vw - 720px) / 2)); padding-left: 16px; }
+.cardbar .iconbtn { width: 44px; height: 44px; margin: 2px 0; border: 0; border-radius: 50%; background: var(--chip); color: var(--fg); display: grid; place-items: center; padding: 0; }
+.top .iconbtn.add { background: var(--fg); color: var(--bg); } .iconbtn[hidden] { display: none; }
+.timer-head .iconbtn, .guide-head .iconbtn { width: 44px; height: 44px; flex: none; margin: -4px -6px -4px 0; }
+
 </style>
 </head>
 <body>
@@ -801,7 +819,7 @@ body.split .tile[aria-current="true"] + .tile, body.split .tile[aria-current="tr
       <button class="gearbtn" id="account" type="button" aria-haspopup="dialog" aria-label="Settings">
         <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3h.1a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8v.1a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"></path></svg>
       </button>
-      <button class="btn primary" id="addCard" type="button" aria-label="Add a card" hidden>+ Add</button>
+      <button class="iconbtn add" id="addCard" type="button" aria-label="Add a card" hidden><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg></button>
     </div>
   </header>
 
@@ -849,7 +867,7 @@ body.split .tile[aria-current="true"] + .tile, body.split .tile[aria-current="tr
   </div>
 
   <div class="cardbar" id="cardBar">
-    <button class="close" id="backToDeck" type="button" aria-label="Back to the deck"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"></path></svg>Deck</button>
+    <button class="iconbtn" id="backToDeck" type="button" aria-label="Close and go back to the deck"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"></path></svg></button>
   </div>
   <section class="deck" id="deck" aria-label="Recipe cards" hidden>
     <p class="status card-status" id="cardStatus" role="status" aria-live="polite"></p>
@@ -1130,7 +1148,7 @@ body.split .tile[aria-current="true"] + .tile, body.split .tile[aria-current="tr
 <dialog id="accountDialog" class="menu" aria-labelledby="accountTitle">
   <div class="settings">
     <div class="grabber" aria-hidden="true"></div>
-    <div class="guide-head"><h2 id="accountTitle">Settings</h2><button class="btn quiet" id="closeAccount" type="button" aria-label="Close">Done</button></div>
+    <div class="guide-head"><h2 id="accountTitle">Settings</h2><button class="iconbtn" id="closeAccount" type="button" aria-label="Close"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"></path></svg></button></div>
     <div class="menu-list">
       <button class="row" id="openGuide" type="button">
         <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
@@ -1161,7 +1179,7 @@ body.split .tile[aria-current="true"] + .tile, body.split .tile[aria-current="tr
   <div class="timer-wrap">
     <div class="timer-head">
       <div><p class="roaster" id="t_method"></p><h2 id="t_name"></h2></div>
-      <button class="btn" id="t_close" type="button" aria-label="Close the brew timer">Close</button>
+      <button class="iconbtn" id="t_close" type="button" aria-label="Close the brew timer"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"></path></svg></button>
     </div>
     <div class="timer-clock"><span class="time" id="t_time">0:00</span><span class="phase" id="t_phase">Ready</span><span class="nxt" id="t_next"></span><span class="agiline" id="t_agi"></span></div>
     <div class="timer-stage">
@@ -1613,7 +1631,7 @@ body.split .tile[aria-current="true"] + .tile, body.split .tile[aria-current="tr
     const more = `<div><dt>Roast</dt><dd>${esc(capFirst(roastOf(c)))}</dd></div>${roasted ? `<div><dt>Roasted</dt><dd>${esc(new Date(+roasted[1], +roasted[2] - 1, +roasted[3]).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" }))}${age === null ? "" : ` · ${age} ${age === 1 ? "day" : "days"} ago`}</dd></div>` : ""}`;
     return `<article class="card${c.archived ? " archived" : ""}${esp ? " espresso" : ""}" data-id="${esc(c.id)}" aria-label="${esc(c.name)} recipe${c.archived ? " (archived)" : ""}">
       <div class="main">
-        <div class="ttl"><p class="roaster">${esc([c.roaster, c.process, age === null || c.archived ? "" : `day ${age}`].filter(Boolean).join(" · "))}</p>
+        <div class="ttl">${c.roaster ? `<p class="roaster">${esc(c.roaster)}</p>` : ""}
           <h2 class="name">${roastDot(c)}${esc(c.name)}</h2>
           <div class="notes-row">${c.tasting ? `<p class="tasting">${esc(c.tasting)}</p>` : ""}<button class="info" type="button" data-id="${esc(c.id)}" aria-expanded="${infoOpen}"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 11v6M12 7.5v.5"></path></svg>${infoOpen ? "Hide details" : "Details"}</button></div></div>
         <div class="specs" ${infoOpen ? "" : "hidden"}><dl>${specs}${more}</dl>
@@ -1655,7 +1673,7 @@ body.split .tile[aria-current="true"] + .tile, body.split .tile[aria-current="tr
   const tileBody = (c) => {
     const seen = find.seen.get(c.id), age = c.archived ? null : ageOf(c);
     const rated = !seen ? "" : seen.last ? dotsHtml(seen.last, "Last rated") : seen.count || c.archived ? "" : `<span class="t-new">New</span>`;
-    return `<span class="t-main"><span class="t-name">${roastDot(c)}${esc(c.name)}</span>${c.roaster ? `<span class="t-roaster">${esc(c.roaster)}</span>` : ""}<span class="t-notes">${esc(c.tasting || "")}</span></span>
+    return `<span class="t-main"><span class="t-name">${roastDot(c)}${esc(c.name)}</span><span class="t-notes">${esc(c.tasting || "")}</span></span>
       <span class="t-side">${rated}${age === null ? "" : `<span class="t-age">Day ${age}</span>`}</span>`;
   };
   // ---------- Coffee Filter: narrow the dashboard by search, roaster, origin, process and your rating ----------
@@ -2646,6 +2664,13 @@ body.split .tile[aria-current="true"] + .tile, body.split .tile[aria-current="tr
     paintTimer(t);
     timer.raf = requestAnimationFrame(tick);
   };
+  const stillArt = () => {
+    $("t_art").classList.remove("pouring"); $("t_splash").setAttribute("opacity", "0"); $("t_drip").setAttribute("opacity", "0");
+    $("t_dripper").removeAttribute("transform"); $("t_stream").setAttribute("transform", "translate(0 0)");
+    const level = $("t_level"); level.removeAttribute("transform"); level.setAttribute("y", "104"); level.setAttribute("height", "0");
+    const cup = $("t_cupfill"); cup.setAttribute("y", "146"); cup.setAttribute("height", "0");
+    $("t_water").textContent = "0 g"; $("t_bar").style.width = "0%"; // the poured amount goes back with the drawing
+  };
   const finishTimer = (note) => {
     timer.running = false; cancelAnimationFrame(timer.raf); keepAwake(false);
     $("t_go").hidden = false; $("t_go").textContent = "Start again"; $("t_stop").hidden = true; $("t_log").hidden = !state.canWrite;
@@ -2699,7 +2724,7 @@ body.split .tile[aria-current="true"] + .tile, body.split .tile[aria-current="tr
     if (!timer.running) { resetTimer(); return; }
     const secs = Math.round(timer.elapsed || 0), at = timer.esp ? `${secs} s` : mmss(secs), logName = timer.esp ? "Log this shot" : "Log this brew";
     finishTimer(state.canWrite ? `Stopped at ${at}. Tap ${logName} to keep the time, or start again.` : `Stopped at ${at}.`);
-    timer.elapsed = secs; paintTimer(secs); // the clock, this note and the log entry all show the same second
+    timer.elapsed = secs; paintTimer(secs); stillArt(); // the clock, this note and the log entry all show the same second
   });
   // Log straight from the timer: the elapsed time becomes the shot time (seconds) or the finish time (m:ss).
   $("t_log").addEventListener("click", () => {
