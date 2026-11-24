@@ -1695,7 +1695,7 @@ body.split .tile .rdots { display: none; }
   // A row in the deck: the name and what it tastes of, then how the last cup was rated and how far off roast the bag is.
   const tileBody = (c) => {
     const seen = find.seen.get(c.id), age = c.archived ? null : ageOf(c);
-    const rated = !seen ? "" : seen.last ? dotsHtml(seen.last, "Last rated") : seen.count || c.archived ? "" : `<span class="t-new">New</span>`;
+    const rated = seen && seen.last ? dotsHtml(seen.last, "Last rated") : "";
     return `<span class="t-main"><span class="t-name">${roastDot(c)}${esc(c.name)}</span><span class="t-notes">${esc(c.tasting || "")}</span></span>
       <span class="t-side">${rated}${age === null ? "" : `<span class="t-age">Day ${age}</span>`}</span>`;
   };
