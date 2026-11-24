@@ -787,6 +787,18 @@ body.split .tile[aria-current="true"] + .tile, body.split .tile[aria-current="tr
   .timer-head { grid-area: head; } .timer-clock { grid-area: clock; } .timer-stage { grid-area: stage; } .timer-steps { grid-area: steps; align-self: start; } .timer-ctl { grid-area: ctl; } .timer-note { grid-area: note; }
 }
 
+/* Timer: the hint under the buttons changes length and disappears while running. Its row keeps one height, so the buttons (and on a wide
+   screen the whole dialog) stay where they are from Ready through to Stopped. Short phones never show the hint, so they keep no room for it. */
+.timer-wrap, .timer-wrap:has(.timer-steps li:nth-child(4)) { grid-template-rows: auto auto auto auto 1fr 63px; }
+@media (max-height: 740px) and (max-width: 759px) { .timer-wrap, .timer-wrap:has(.timer-steps li:nth-child(4)) { grid-template-rows: auto auto auto auto 1fr auto; } }
+@media (min-width: 760px) { .timer-wrap, .timer-wrap:has(.timer-steps li:nth-child(4)) { grid-template-rows: auto auto auto 1fr 42px; } }
+.timer-clock .phase { min-height: 1.3em; }
+/* Installed on a phone: the bar with Deck sat too low under the status bar. */
+@media (display-mode: standalone) { :root { --status: 6px; } }
+/* Header: the title never wraps, and a status ("Syncing…", an error) is a pill at the foot of the screen, not a word squeezed in beside it. */
+.top h1 { white-space: nowrap; }
+.top .tools .status { position: fixed; left: 50%; bottom: calc(18px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); z-index: 6; order: 0; flex-basis: auto; max-width: calc(100% - 32px); padding: 9px 15px; border-radius: 999px; background: var(--fg); color: var(--bg); font: 500 13.5px/1.3 var(--body); text-align: center; pointer-events: none; }
+
 </style>
 </head>
 <body>
@@ -1613,7 +1625,7 @@ body.split .tile[aria-current="true"] + .tile, body.split .tile[aria-current="tr
     const more = `<div><dt>Roast</dt><dd>${esc(capFirst(roastOf(c)))}</dd></div>${roasted ? `<div><dt>Roasted</dt><dd>${esc(new Date(+roasted[1], +roasted[2] - 1, +roasted[3]).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" }))}${age === null ? "" : ` · ${age} ${age === 1 ? "day" : "days"} ago`}</dd></div>` : ""}`;
     return `<article class="card${c.archived ? " archived" : ""}${esp ? " espresso" : ""}" data-id="${esc(c.id)}" aria-label="${esc(c.name)} recipe${c.archived ? " (archived)" : ""}">
       <div class="main">
-        <div class="ttl"><p class="roaster">${esc([c.roaster, c.process, age === null || c.archived ? "" : `day ${age}`].filter(Boolean).join(" · "))}</p>
+        <div class="ttl">${c.roaster ? `<p class="roaster">${esc(c.roaster)}</p>` : ""}
           <h2 class="name">${roastDot(c)}${esc(c.name)}</h2>
           <div class="notes-row">${c.tasting ? `<p class="tasting">${esc(c.tasting)}</p>` : ""}<button class="info" type="button" data-id="${esc(c.id)}" aria-expanded="${infoOpen}"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 11v6M12 7.5v.5"></path></svg>${infoOpen ? "Hide details" : "Details"}</button></div></div>
         <div class="specs" ${infoOpen ? "" : "hidden"}><dl>${specs}${more}</dl>
@@ -1655,7 +1667,7 @@ body.split .tile[aria-current="true"] + .tile, body.split .tile[aria-current="tr
   const tileBody = (c) => {
     const seen = find.seen.get(c.id), age = c.archived ? null : ageOf(c);
     const rated = !seen ? "" : seen.last ? dotsHtml(seen.last, "Last rated") : seen.count || c.archived ? "" : `<span class="t-new">New</span>`;
-    return `<span class="t-main"><span class="t-name">${roastDot(c)}${esc(c.name)}</span>${c.roaster ? `<span class="t-roaster">${esc(c.roaster)}</span>` : ""}<span class="t-notes">${esc(c.tasting || "")}</span></span>
+    return `<span class="t-main"><span class="t-name">${roastDot(c)}${esc(c.name)}</span><span class="t-notes">${esc(c.tasting || "")}</span></span>
       <span class="t-side">${rated}${age === null ? "" : `<span class="t-age">Day ${age}</span>`}</span>`;
   };
   // ---------- Coffee Filter: narrow the dashboard by search, roaster, origin, process and your rating ----------
