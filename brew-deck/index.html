@@ -799,6 +799,11 @@ body.split .tile[aria-current="true"] + .tile, body.split .tile[aria-current="tr
 .top h1 { white-space: nowrap; }
 .top .tools .status { position: fixed; left: 50%; bottom: calc(18px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); z-index: 6; order: 0; flex-basis: auto; max-width: calc(100% - 32px); padding: 9px 15px; border-radius: 999px; background: var(--fg); color: var(--bg); font: 500 13.5px/1.3 var(--body); text-align: center; pointer-events: none; }
 
+/* One way to close: the same round x, top right, on the recipe, the brew timer and Settings. */
+.cardbar { justify-content: flex-end; padding-right: max(16px, calc((100vw - 720px) / 2)); padding-left: 16px; }
+.cardbar .iconbtn { width: 44px; height: 44px; margin: 2px 0; border: 0; border-radius: 50%; background: var(--chip); color: var(--fg); display: grid; place-items: center; padding: 0; }
+.timer-head .iconbtn, .guide-head .iconbtn { width: 44px; height: 44px; flex: none; margin: -4px -6px -4px 0; }
+
 </style>
 </head>
 <body>
@@ -861,7 +866,7 @@ body.split .tile[aria-current="true"] + .tile, body.split .tile[aria-current="tr
   </div>
 
   <div class="cardbar" id="cardBar">
-    <button class="close" id="backToDeck" type="button" aria-label="Back to the deck"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"></path></svg>Deck</button>
+    <button class="iconbtn" id="backToDeck" type="button" aria-label="Close and go back to the deck"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"></path></svg></button>
   </div>
   <section class="deck" id="deck" aria-label="Recipe cards" hidden>
     <p class="status card-status" id="cardStatus" role="status" aria-live="polite"></p>
@@ -1142,7 +1147,7 @@ body.split .tile[aria-current="true"] + .tile, body.split .tile[aria-current="tr
 <dialog id="accountDialog" class="menu" aria-labelledby="accountTitle">
   <div class="settings">
     <div class="grabber" aria-hidden="true"></div>
-    <div class="guide-head"><h2 id="accountTitle">Settings</h2><button class="btn quiet" id="closeAccount" type="button" aria-label="Close">Done</button></div>
+    <div class="guide-head"><h2 id="accountTitle">Settings</h2><button class="iconbtn" id="closeAccount" type="button" aria-label="Close"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"></path></svg></button></div>
     <div class="menu-list">
       <button class="row" id="openGuide" type="button">
         <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
@@ -1173,7 +1178,7 @@ body.split .tile[aria-current="true"] + .tile, body.split .tile[aria-current="tr
   <div class="timer-wrap">
     <div class="timer-head">
       <div><p class="roaster" id="t_method"></p><h2 id="t_name"></h2></div>
-      <button class="btn" id="t_close" type="button" aria-label="Close the brew timer">Close</button>
+      <button class="iconbtn" id="t_close" type="button" aria-label="Close the brew timer"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"></path></svg></button>
     </div>
     <div class="timer-clock"><span class="time" id="t_time">0:00</span><span class="phase" id="t_phase">Ready</span><span class="nxt" id="t_next"></span><span class="agiline" id="t_agi"></span></div>
     <div class="timer-stage">
@@ -2658,6 +2663,13 @@ body.split .tile[aria-current="true"] + .tile, body.split .tile[aria-current="tr
     paintTimer(t);
     timer.raf = requestAnimationFrame(tick);
   };
+  const stillArt = () => {
+    $("t_art").classList.remove("pouring"); $("t_splash").setAttribute("opacity", "0"); $("t_drip").setAttribute("opacity", "0");
+    $("t_dripper").removeAttribute("transform"); $("t_stream").setAttribute("transform", "translate(0 0)");
+    const level = $("t_level"); level.removeAttribute("transform"); level.setAttribute("y", "104"); level.setAttribute("height", "0");
+    const cup = $("t_cupfill"); cup.setAttribute("y", "146"); cup.setAttribute("height", "0");
+    $("t_water").textContent = "0 g"; $("t_bar").style.width = "0%"; // the poured amount goes back with the drawing
+  };
   const finishTimer = (note) => {
     timer.running = false; cancelAnimationFrame(timer.raf); keepAwake(false);
     $("t_go").hidden = false; $("t_go").textContent = "Start again"; $("t_stop").hidden = true; $("t_log").hidden = !state.canWrite;
@@ -2711,7 +2723,7 @@ body.split .tile[aria-current="true"] + .tile, body.split .tile[aria-current="tr
     if (!timer.running) { resetTimer(); return; }
     const secs = Math.round(timer.elapsed || 0), at = timer.esp ? `${secs} s` : mmss(secs), logName = timer.esp ? "Log this shot" : "Log this brew";
     finishTimer(state.canWrite ? `Stopped at ${at}. Tap ${logName} to keep the time, or start again.` : `Stopped at ${at}.`);
-    timer.elapsed = secs; paintTimer(secs); // the clock, this note and the log entry all show the same second
+    timer.elapsed = secs; paintTimer(secs); stillArt(); // the clock, this note and the log entry all show the same second
   });
   // Log straight from the timer: the elapsed time becomes the shot time (seconds) or the finish time (m:ss).
   $("t_log").addEventListener("click", () => {
