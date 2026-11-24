@@ -3,9 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="color-scheme" content="light dark">
-<meta name="theme-color" content="#efeee9" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#171512" media="(prefers-color-scheme: dark)">
+<meta name="color-scheme" content="light">
+<meta name="theme-color" content="#f7f5ef">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -28,25 +27,17 @@ img { max-width: 100%; }
 <style>
 /* Layout: one swipeable deck of label-orange recipe cards, brew log for the active card underneath, edit sheets as dialogs */
 :root {
-  --bg: #efeee9; --fg: #1f1c18; --muted: #6b655c; --line: #d6d2c8; --paper: #fbfaf6; --chip: #e6e2d8;
-  --amber: #e2711d; --amber-ink: #2a1607; --amber-soft: #f3dcc6;
+  /* Paper: a warm off-white ground with near-black text. Orange is an accent (buttons, the selected thing, a rating), never a background to read on.
+     --amber is the solid accent and --amber-ink the text that sits on it; --accent-text is orange dark enough to read as text; --amber-soft / --tint-ink are the selected-chip pair. */
+  --bg: #f7f5ef; --fg: #1f1c18; --muted: #5d574e; --line: #dedad0; --paper: #fffefb; --chip: #ebe8df;
+  --amber: #c2560f; --amber-ink: #ffffff; --amber-soft: #fbe7d6; --accent-text: #a84a0c; --tint-ink: #7a3608;
   --danger: #a8341c; --ok: #3f6b3a;
-  --amber-light: color-mix(in srgb, var(--amber) 94%, #ffcf8f); --amber-dark: color-mix(in srgb, var(--amber) 95%, #4a1f05);
+  --amber-light: var(--amber); --amber-dark: var(--amber); /* roast no longer tints a surface; it is a dot beside the name */
+  --roast-light: #e3a857; --roast-medium: #c46a22; --roast-dark: #6e3d1e;
   --display: "Newsreader", Georgia, "Times New Roman", serif;
   --body: "Figtree", system-ui, -apple-system, "Segoe UI", sans-serif;
-  --mono: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
-}
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --bg: #171512; --fg: #ece8e0; --muted: #a39b8f; --line: #36312a; --paper: #221f1b; --chip: #2e2a24;
-    --amber: #c8641c; --amber-ink: #1c0e04; --amber-soft: #3a2616; --danger: #e0735a; --ok: #8fc287;
-    color-scheme: dark;
-  }
-}
-:root[data-theme="dark"] {
-  --bg: #171512; --fg: #ece8e0; --muted: #a39b8f; --line: #36312a; --paper: #221f1b; --chip: #2e2a24;
-  --amber: #c8641c; --amber-ink: #1c0e04; --amber-soft: #3a2616; --danger: #e0735a; --ok: #8fc287;
-  color-scheme: dark;
+  color-scheme: light; /* one look: the app does not follow the device's dark setting */
+  --mono: var(--body); /* one text face: numbers are set in it with tabular figures, not in a monospace */
 }
 * { box-sizing: border-box; }
 html, body { height: 100%; }
@@ -470,6 +461,332 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
 @media (prefers-reduced-motion: no-preference) { .rail { scroll-behavior: smooth; } }
 /* Installed on an iPhone the status bar sits over the page and blurs what's under it: push the first row down out of that band. */
 @media (display-mode: standalone) { body { padding-block-start: calc(10px + 26px); } }
+/* ===== Paper, stage 1: deck and recipe ===== */
+body { font-size: 16px; }
+.btn { min-height: 44px; padding: 0 16px; font-weight: 600; font-size: 15px; border-color: color-mix(in srgb, var(--muted) 45%, var(--line)); background: transparent; }
+.btn.primary { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+.btn.quiet { border-color: transparent; }
+.lbl-s, .card h3, .grid-divider { font: 600 12.5px/1.2 var(--body); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+/* selected chips and options: an orange outline on a tint, with text dark enough to read */
+.seg button[aria-checked="true"], .chips button[aria-pressed="true"], .stars button[aria-pressed="true"] { background: var(--amber-soft); color: var(--tint-ink); box-shadow: inset 0 0 0 1.5px var(--amber); border-color: transparent; }
+.rdots { display: inline-flex; gap: 4px; align-items: center; color: var(--amber); }
+.rdots i { width: 8px; height: 8px; border-radius: 50%; background: currentColor; display: block; }
+.rdots i.off { background: transparent; box-shadow: inset 0 0 0 1.3px currentColor; }
+.rdot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 8px; vertical-align: .12em; flex: none; }
+.rdot[data-r="light"] { background: var(--roast-light); } .rdot[data-r="medium"] { background: var(--roast-medium); } .rdot[data-r="dark"] { background: var(--roast-dark); }
+/* header */
+.top h1 { font: 500 30px/1 var(--display); }
+.top .tools { gap: 8px; }
+.iconbtn, .gearbtn { width: 44px; height: 44px; border: 0; background: var(--chip); }
+#addCard { min-height: 44px; }
+/* Filter / Espresso: two tabs with an underline that slides (and follows a swipe) where the pill used to */
+.seg.mode { display: flex; border: 0; border-radius: 0; background: transparent; padding: 0; box-shadow: inset 0 -1px 0 var(--line); }
+.seg.mode button, .seg.mode button[aria-checked="true"] { flex: 0 0 132px; padding: 4px 0 13px; font: 600 16px/1 var(--body); border-radius: 0; background: transparent; box-shadow: none; color: var(--muted); transition: color .2s; }
+.seg.mode button[aria-checked="true"] { color: var(--fg); }
+.seg.mode .thumb { top: auto; bottom: 0; left: 0; width: 132px; height: 3px; border-radius: 2px 2px 0 0; background: var(--amber); }
+.seg.mode .thumb .over { display: none; }
+/* the deck: one coffee per row */
+.grid { display: flex; flex-direction: column; gap: 0; }
+.tile, .tile.archived, .tile.espresso:not([data-roast]) { aspect-ratio: auto; background: transparent; color: var(--fg); border: 0; border-bottom: 1px solid var(--line); border-radius: 0; padding: 15px 0; display: flex; align-items: center; justify-content: space-between; gap: 12px; overflow: visible; text-align: left; }
+.tile:hover, .tile:focus-visible { filter: none; }
+.tile .t-main { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.tile .t-name { font: 500 21px/1.2 var(--display); text-wrap: pretty; align-self: auto; }
+.tile .t-notes { font: 400 15px/1.35 var(--body); color: var(--muted); display: block; overflow: visible; -webkit-line-clamp: none; }
+.tile .t-side { display: flex; flex-direction: column; align-items: flex-end; gap: 7px; flex: none; }
+.tile .t-new { font: 600 12.5px/1 var(--body); color: var(--accent-text); }
+.tile .t-age { font: 500 13px/1 var(--body); font-variant-numeric: tabular-nums; color: var(--muted); background: none; padding: 0; }
+.tile.archived .t-name { color: var(--muted); }
+.tile.more { border: 0; border-bottom: 1px solid var(--line); background: transparent; display: flex; justify-content: flex-start; padding: 16px 0; font: 600 15px/1 var(--body); color: var(--accent-text); }
+.tile.more b { font: inherit; color: inherit; } .tile.more br { display: none; } .tile.more span { display: inline-flex; gap: 6px; }
+.tile.chosen { outline: 0; background: var(--paper); box-shadow: 0 6px 22px rgb(0 0 0 / .14); border-radius: 12px; padding-inline: 12px; margin-inline: -12px; }
+.grid-divider { border-top: 0; margin-top: 22px; padding-top: 0; padding-bottom: 6px; border-bottom: 1px solid var(--line); }
+.grid .empty { padding: 18px 0; }
+/* the recipe: the page itself, not a coloured card */
+.card, .card.archived, .card.espresso:not([data-roast]) { --c-bg: var(--bg); --c-fg: var(--fg); --c-muted: var(--muted); --c-line: var(--line); --c-soft: var(--chip); background: transparent; border: 0; border-radius: 0; overflow: visible; }
+.main { padding: 4px 0 8px; gap: 20px; }
+.main > div:first-child { padding-right: 0; }
+.backrow { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-left: -8px; }
+.card .close, .card .info { position: static; width: auto; height: 44px; border: 0; border-radius: 10px; background: transparent; color: var(--muted); font: 600 15px/1 var(--body); display: inline-flex; align-items: center; gap: 4px; padding: 0 8px; margin: 0; }
+.card .info { gap: 6px; } .card .info[aria-expanded="true"] { background: transparent; color: var(--fg); }
+.card .close svg { width: 20px; height: 20px; } .card .info svg { width: 18px; height: 18px; }
+.card .close:hover { background: transparent; }
+.ttl { display: grid; gap: 6px; }
+.roaster { font: 600 12.5px/1.3 var(--body); letter-spacing: .06em; margin: 0; }
+.name { font: 500 clamp(30px, 8vw, 38px)/1.08 var(--display); }
+.tasting { margin: 0; font: 400 17px/1.35 var(--body); }
+.specs { padding: 0; border: 0; border-radius: 0; background: transparent; display: grid; gap: 14px; }
+.specs dl { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0; }
+.specs dl > div { display: grid; grid-template-columns: 104px minmax(0, 1fr); gap: 12px; padding: 11px 0; border-bottom: 1px solid var(--line); }
+.specs dl > div:first-child { grid-column: auto; }
+.specs dt { font: 400 15.5px/1.35 var(--body); letter-spacing: 0; text-transform: none; color: var(--muted); }
+.specs dd, .specs dl > div:first-child dd { margin: 0; font: 500 15.5px/1.35 var(--body); min-height: 0; display: block; -webkit-line-clamp: none; overflow: visible; }
+.card-actions { justify-content: flex-start; }
+.card-actions .btn { font-size: 15px; padding: 0 16px; color: var(--fg); }
+.stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 22px 16px; }
+.stats > div { display: grid; gap: 4px; min-width: 0; }
+.stats b { font: 600 30px/1 var(--body); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.stats span { font: 500 13px/1.2 var(--body); color: var(--muted); }
+.setline { display: flex; width: 100%; justify-content: space-between; align-items: center; gap: 12px; border: 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); border-radius: 0; background: transparent; color: var(--fg); padding: 14px 0; font: 500 15px/1.3 var(--body); text-align: left; }
+.setline .chg { font-weight: 600; color: var(--accent-text); flex: none; }
+.steps ol { list-style: none; margin: 4px 0 0; padding: 0; }
+.steps li { display: grid; grid-template-columns: 58px minmax(0, 1fr); gap: 12px; padding: 13px 0; border-bottom: 1px solid var(--line); align-items: baseline; }
+.steps li:last-child { border-bottom: 0; }
+.steps time { font: 600 16px/1.3 var(--body); font-variant-numeric: tabular-nums; color: var(--muted); }
+.steps b { display: block; font: 600 18px/1.25 var(--body); }
+.steps span { display: block; font: 400 15px/1.35 var(--body); color: var(--muted); }
+.tip { font-size: 15px; line-height: 1.5; color: var(--muted); }
+.scaled { font-size: 14px; }
+.dots button[aria-current="true"] { background: var(--amber); }
+/* Start and Log stay under the thumb on every card */
+.actionbar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 5; background: var(--bg); border-top: 1px solid var(--line); padding: 12px 16px calc(12px + env(safe-area-inset-bottom, 0px)); }
+.actionbar .in { max-width: 720px; margin-inline: auto; display: flex; gap: 10px; align-items: center; }
+.actionbar .btn { min-height: 54px; justify-content: center; font-size: 16px; padding: 0 20px; white-space: nowrap; }
+.actionbar .btn.go { flex: 1; background: var(--amber); border-color: var(--amber); color: var(--amber-ink); font-size: 18px; gap: 10px; }
+.actionbar .btn.go svg { width: 16px; height: 16px; }
+.actionbar .btn.go[hidden] + .btn { flex: 1; }
+body.has-bar { padding-bottom: calc(104px + env(safe-area-inset-bottom, 0px)); }
+/* neighbouring recipes sit fully off-screen now that a card has no edge of its own */
+.rail { gap: 32px; }
+/* the timer on paper until its own stage: dark outline, orange water */
+dialog.timer { background: var(--paper); color: var(--fg); --c-bg: var(--paper); --c-fg: var(--fg); --c-muted: var(--muted); --c-line: var(--line); --c-soft: var(--chip); }
+#t_level, #t_cupfill { fill: var(--amber); opacity: 1; }
+.timer-art .stream { stroke: var(--amber); } .timer-art .splash circle { fill: var(--amber); }
+.timer-ctl .btn.go, .timer-ctl .btn.log { background: var(--amber); border-color: var(--amber); color: var(--amber-ink); }
+.timer-ctl .btn { border-color: color-mix(in srgb, var(--muted) 45%, var(--line)); }
+/* ===== Paper, stage 2: timer and brew settings ===== */
+/* The timer is a full page on a phone: the clock is the largest thing, then what to do now, then what comes next. */
+dialog.timer { width: min(560px, 100vw); max-width: 100vw; max-height: 100dvh; background: var(--bg); --c-bg: var(--bg); }
+@media (max-width: 620px) { dialog.timer { width: 100vw; height: 100dvh; margin: 0; border-radius: 0; } dialog.timer .timer-wrap { min-height: 100dvh; padding-top: calc(20px + env(safe-area-inset-top, 0px)); padding-bottom: calc(22px + env(safe-area-inset-bottom, 0px)); } }
+.timer-wrap, .timer-wrap:has(.timer-steps li:nth-child(4)) { gap: 20px; padding: 22px; grid-template-rows: auto auto auto auto 1fr auto; align-content: start; }
+.timer-head h2 { font: 500 20px/1.2 var(--display); }
+.timer-head .roaster { margin-bottom: 5px; }
+.timer-head .btn { border-color: color-mix(in srgb, var(--muted) 45%, var(--line)); color: var(--fg); }
+.timer-clock { justify-items: center; gap: 6px; }
+.timer-clock .time { font: 600 min(104px, 27vw)/.95 var(--body); letter-spacing: -.03em; }
+.timer-clock .phase { font: 600 19px/1.25 var(--body); color: var(--fg); }
+.timer-clock .nxt { font: 500 15px/1.3 var(--body); color: var(--accent-text); min-height: 1.3em; font-variant-numeric: tabular-nums; }
+.timer-clock .agiline { font: 400 14px/1.3 var(--body); color: var(--muted); }
+.timer-clock .agiline .agi { color: inherit; } .timer-clock .agiline .agi > span { font-size: 9px; }
+.timer-stage, .timer-wrap:has(.timer-steps li:nth-child(4)) .timer-stage { grid-template-columns: 118px minmax(0, 1fr); gap: 20px; }
+.timer-art, .timer-wrap:has(.timer-steps li:nth-child(4)) .timer-art { width: 118px; }
+.timer-water { gap: 5px; }
+.timer-water .now { font: 600 40px/1 var(--body); }
+.timer-water .goal { font: 400 15px/1.3 var(--body); color: var(--muted); }
+.timer-water .bar { height: 8px; border: 0; border-radius: 4px; background: var(--chip); margin-top: 6px; }
+.timer-water .bar i { background: var(--amber); }
+.timer-press .goal { font: 600 12.5px/1.2 var(--body); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.timer-press .pbox { height: 130px; border: 0; border-radius: 12px; background: var(--chip); }
+.timer-press .band { background: color-mix(in srgb, var(--amber) 22%, transparent); }
+.timer-press .band span { font: 600 12px/1 var(--body); color: var(--tint-ink); right: 10px; }
+.timer-press .bars i { background: var(--fg); border-radius: 2px 2px 0 0; }
+.timer-steps li, .timer-steps:has(li:nth-child(4)) li { display: grid; grid-template-columns: 14px 50px minmax(0, 1fr); gap: 12px; padding: 11px 0; border-top: 1px solid var(--line); border-bottom: 0; align-items: baseline; font-size: 16px; color: var(--muted); opacity: 1; }
+.timer-steps .pt { width: 10px; height: 10px; border-radius: 50%; box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--muted) 60%, transparent); align-self: center; }
+.timer-steps time { font: 600 16px/1.3 var(--body); font-variant-numeric: tabular-nums; }
+.timer-steps b { display: block; font: 500 16.5px/1.25 var(--body); }
+.timer-steps span { display: block; font: 400 15px/1.35 var(--body); }
+.timer-steps li.active { color: var(--fg); font-weight: 400; } .timer-steps li.active b { font-weight: 600; font-size: 18px; } .timer-steps li.active span { color: var(--muted); }
+.timer-steps li.active .pt { background: var(--amber); box-shadow: 0 0 0 4px var(--amber-soft); }
+.timer-steps li.done { opacity: .5; } .timer-steps li.done .pt { background: var(--muted); box-shadow: none; } .timer-steps li.done span { display: none; }
+.timer-steps:has(li:nth-child(6)) li { padding: 8px 0; } .timer-steps:has(li:nth-child(6)) li:not(.active) span { display: none; }
+.timer-ctl { gap: 10px; align-self: end; }
+.timer-ctl .btn { min-height: 56px; font-size: 17px; font-weight: 600; padding: 0 16px; border-radius: 999px; }
+.timer-ctl .btn.go, .timer-ctl .btn.log { font-size: 18px; }
+.timer-note, .timer-wrap:has(.timer-steps li:nth-child(4)) .timer-note { display: block; font-size: 14px; color: var(--muted); }
+.timer-wrap.running .timer-note { display: none !important; }
+@media (max-height: 740px) {
+  .timer-wrap { gap: 14px; padding-block: 16px; }
+  .timer-clock .time { font-size: 72px; }
+  .timer-stage { grid-template-columns: 96px minmax(0, 1fr); } .timer-art { width: 96px; }
+  .timer-water .now { font-size: 32px; }
+  .timer-steps li { padding: 8px 0; } .timer-steps li:not(.active) span { display: none; }
+  .timer-ctl .btn { min-height: 50px; }
+  .timer-clock .agiline { display: none; }
+  .timer-head h2 { font-size: 18px; }
+  .timer-note { display: none !important; }
+}
+/* Brew settings: a sheet that rises from the bottom, each group an even row of full-height buttons */
+#settingsDialog { background: var(--paper); }
+@media (max-width: 620px) { #settingsDialog { position: fixed; inset: auto 0 0 0; width: 100%; max-width: 100%; margin: 0; border-radius: 24px 24px 0 0; max-height: calc(100dvh - 24px); } #settingsDialog .settings { padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px)); } }
+.settings { gap: 16px; padding: 22px; }
+.settings h2 { font: 500 27px/1.1 var(--display); }
+.settings-for { font-size: 15px; margin-top: -10px; }
+.setting { gap: 9px; }
+.dose-label { font: 600 12.5px/1.2 var(--body); letter-spacing: .06em; }
+.settings .seg { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 7px; border: 0; border-radius: 0; background: transparent; padding: 0; }
+.settings #filterSeg { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+.settings #ratioSeg { grid-template-columns: repeat(auto-fit, minmax(56px, 1fr)); }
+.settings .seg button { min-height: 44px; border: 0; border-radius: 10px; background: var(--bg); color: var(--fg); box-shadow: inset 0 0 0 1px var(--line); padding: 4px 2px; font: 500 14.5px/1 var(--body); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.settings .seg button[aria-checked="true"] { background: var(--amber-soft); color: var(--tint-ink); box-shadow: inset 0 0 0 1.5px var(--amber); font-weight: 600; }
+.settings .seg button[hidden] { display: none; }
+.settings .seg .fixed { grid-column: 1 / -1; min-height: 44px; display: flex; align-items: center; border-radius: 10px; background: var(--amber-soft); color: var(--tint-ink); box-shadow: inset 0 0 0 1.5px var(--amber); font: 600 14.5px/1 var(--body); }
+.settings .actions { align-items: center; }
+.settings .actions .right { gap: 8px; }
+#settingsHow { padding-inline: 4px; color: var(--muted); gap: 6px; }
+#settingsHow svg { width: 17px; height: 17px; }
+#closeSettings { background: var(--amber); border-color: var(--amber); color: var(--amber-ink); }
+.guide-note { font-size: 14px; line-height: 1.5; }
+/* ===== Paper, stage 3: sheets, the log form, the flavour wheel, the brew log ===== */
+/* A sheet is a full page on a phone: a title, the form, and its buttons held at the bottom. */
+dialog { background: var(--paper); }
+dialog.sheet { background: var(--bg); }
+@media (max-width: 620px) { dialog.sheet { width: 100vw; max-width: 100vw; height: 100dvh; max-height: 100dvh; margin: 0; border-radius: 0; } dialog.sheet form { height: 100%; max-height: 100dvh; } .sheet-head { padding-top: calc(22px + env(safe-area-inset-top, 0px)); } .sheet-foot { padding-bottom: calc(14px + env(safe-area-inset-bottom, 0px)); } }
+.sheet-head { padding: 22px 22px 16px; }
+.sheet-head h2, dialog h2 { font: 500 27px/1.1 var(--display); }
+.sheet-body { padding: 18px 22px; gap: 20px; }
+.sheet-foot { padding: 14px 22px; background: var(--bg); }
+.sheet-foot .right { width: 100%; gap: 10px; }
+.sheet-foot .btn { min-height: 56px; font-size: 16px; padding: 0 22px; justify-content: center; }
+.sheet-foot .btn.primary { flex: 1; background: var(--amber); border-color: var(--amber); color: var(--amber-ink); font-size: 18px; }
+.flabel, label.f, div.f { font: 600 12.5px/1.2 var(--body); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+label.f { gap: 6px; font: 500 12.5px/1.2 var(--body); letter-spacing: 0; text-transform: none; }
+label.f input, label.f textarea, label.f select { font: 500 15px/1.4 var(--body); background: var(--chip); border: 0; border-radius: 10px; padding: 0 12px; min-height: 44px; }
+label.f textarea { padding: 12px 14px; min-height: 64px; font-weight: 400; font-size: 15.5px; }
+.fgroup { gap: 9px; }
+.chips { gap: 8px; }
+.chips button, .brew .taste span { border: 0; background: var(--chip); color: var(--fg); min-height: 40px; padding: 0 15px; font: 500 15px/1 var(--body); border-radius: 999px; }
+.stars { gap: 10px; }
+.stars button { width: 50px; height: 50px; border-radius: 50%; border: 0; background: transparent; color: var(--muted); box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--muted) 55%, transparent); font: 600 17px/1 var(--body); padding: 0; }
+.stars button[aria-pressed="true"] { background: var(--amber); color: var(--amber-ink); box-shadow: none; }
+.checks, .wheel { border: 0; border-radius: 0; overflow: visible; }
+.checks .wrow, .wheel > .wrow { border-top: 0; border-bottom: 1px solid var(--line); background: transparent; }
+.checks input[type="checkbox"], .wheel input[type="checkbox"] { width: 22px; height: 22px; }
+.wrow { padding: 12px 0; font-size: 16px; } .wrow .where { font: 400 13px/1.3 var(--body); }
+.rowbtn { border: 0; border-radius: 0; background: transparent; padding: 10px 0 0; font: 600 15px/1.3 var(--body); color: var(--accent-text); }
+.picks button { border: 0; background: var(--amber-soft); color: var(--tint-ink); min-height: 36px; padding: 0 13px; font: 500 14px/1 var(--body); }
+.brew-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+/* flavour wheel */
+.cwheel .seg { max-width: none; width: auto; display: flex; justify-content: center; gap: 24px; border: 0; border-radius: 0; background: transparent; padding: 0; box-shadow: inset 0 -1px 0 var(--line); align-self: stretch; justify-self: stretch; }
+.cwheel .seg button, .cwheel .seg button[aria-checked="true"] { flex: 0 0 auto; padding: 4px 0 13px; font: 600 16px/1 var(--body); border-radius: 0; background: transparent; color: var(--muted); box-shadow: none; }
+.cwheel .seg button[aria-checked="true"] { color: var(--fg); box-shadow: inset 0 -3px 0 var(--amber); }
+.cwheel-hint { font-size: 14px; }
+.chips.near button { min-height: 40px; padding: 0 15px; font-size: 15px; }
+.chips.near button[aria-pressed="true"], #brewForm .chips button[aria-pressed="true"] { background: var(--amber-soft); color: var(--tint-ink); box-shadow: inset 0 0 0 1.5px var(--amber); }
+/* brew log: no box; each entry leads with the day, the rating and what you wrote */
+.log { background: transparent; border: 0; border-radius: 0; padding: 8px 0 0; gap: 0; }
+.log header { align-items: center; padding-bottom: 16px; }
+.log h2 { font: 500 27px/1.1 var(--display); display: grid; gap: 5px; }
+.log h2 small { font: 400 15px/1.3 var(--body); margin: 0; }
+#addBrew { display: inline-flex; }
+.brews { gap: 0; }
+.brew { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; padding: 16px 0; border: 0; border-top: 1px solid var(--line); border-radius: 0; }
+.brew .head { display: flex; align-items: center; gap: 12px; min-height: 28px; }
+.brew .head .when { font: 600 16px/1 var(--body); color: var(--fg); }
+.brew-more { margin: -10px -10px -10px auto; width: 44px; height: 44px; border: 0; border-radius: 50%; background: transparent; color: var(--muted); display: grid; place-items: center; padding: 0; }
+.brew-more svg { width: 20px; height: 20px; }
+.brew .text { margin: 0; font: 400 17px/1.4 var(--body); }
+.brew .taste { gap: 6px; }
+.brew .taste span { min-height: 30px; padding: 0 11px; font-size: 13.5px; display: inline-flex; align-items: center; }
+.brew .taste span.bag, .brew .taste span.own { background: var(--amber-soft); color: var(--tint-ink); border: 0; }
+.brew .taste span.defect { background: transparent; box-shadow: inset 0 0 0 1px var(--danger); color: var(--danger); }
+.brew .bagline { font-size: 14px; }
+.brew .set { margin: 0; font: 400 13.5px/1.45 var(--body); font-variant-numeric: tabular-nums; color: var(--muted); }
+.brew .acts { display: flex; gap: 8px; justify-content: flex-end; grid-column: auto; justify-self: auto; }
+.brew .acts .btn.rm { color: var(--danger); }
+/* ===== Paper, stage 4: Coffee Filter, Settings, grind guide, card editor ===== */
+/* Coffee Filter */
+.find-head { padding: 20px 22px 14px; border-bottom: 0; }
+.find-body { padding: 4px 22px 16px; gap: 18px; }
+.find-foot { padding: 14px 22px calc(14px + env(safe-area-inset-bottom, 0px)); border-top: 1px solid var(--line); flex-direction: column; align-items: stretch; gap: 8px; }
+.find-foot .said { font: 400 14px/1.3 var(--body); text-align: center; }
+.find-foot .said:empty { display: none; }
+.find-foot .btn { min-height: 54px; justify-content: center; font-size: 17px; background: var(--amber); border-color: var(--amber); color: var(--amber-ink); }
+.find-head .btn { border: 0; padding: 0 4px; color: var(--accent-text); }
+label.f input[type="search"] { background: var(--chip); min-height: 48px; border-radius: 12px; font-weight: 400; font-size: 15.5px; }
+.chips button .n { font: 500 13px/1 var(--body); color: var(--muted); }
+#findRating { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 7px; border: 0; border-radius: 0; background: transparent; padding: 0; }
+#findRating button { min-height: 44px; border-radius: 10px; background: var(--bg); color: var(--fg); box-shadow: inset 0 0 0 1px var(--line); padding: 4px 2px; font: 500 14px/1 var(--body); white-space: nowrap; }
+#findRating button[aria-checked="true"] { background: var(--amber-soft); color: var(--tint-ink); box-shadow: inset 0 0 0 1.5px var(--amber); font-weight: 600; }
+/* Settings sheet */
+.menu-list { border: 0; border-radius: 14px; background: var(--bg); padding: 0 16px; overflow: visible; }
+.menu-list .row { background: transparent; padding: 15px 0; font-size: 16px; }
+.menu-list .row .hint { font-size: 14px; }
+.who { border: 0; border-radius: 14px; background: var(--bg); padding: 14px 16px; }
+.who .k { font: 600 12.5px/1.2 var(--body); letter-spacing: .06em; } .who .v { font: 500 15.5px/1.3 var(--body); }
+/* Grind guide: one grinder at a time, its two anchor numbers first */
+#guideDialog { background: var(--bg); }
+@media (max-width: 620px) { #guideDialog { width: 100vw; max-width: 100vw; height: 100dvh; max-height: 100dvh; margin: 0; border-radius: 0; } .guide { padding-top: calc(22px + env(safe-area-inset-top, 0px)); } }
+.guide { background: transparent; border-radius: 0; padding: 22px; gap: 16px; }
+.guide h2 { font: 500 27px/1.1 var(--display); }
+.guide-head .btn { border: 0; padding: 0 4px; color: var(--accent-text); }
+.guide-tabs { display: flex; gap: 22px; box-shadow: inset 0 -1px 0 var(--line); overflow-x: auto; scrollbar-width: none; }
+.guide-tabs button { flex: none; border: 0; background: transparent; padding: 4px 0 13px; font: 600 16px/1 var(--body); color: var(--muted); border-radius: 0; }
+.guide-tabs button[aria-selected="true"] { color: var(--fg); box-shadow: inset 0 -3px 0 var(--amber); }
+.guide-sub { margin: 0; font: 600 12.5px/1.2 var(--body); letter-spacing: .06em; }
+.guide-grid { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+.guide-grid > div { border-top: 0; background: var(--paper); border-radius: 14px; padding: 16px; }
+.guide-grid b { font: 600 22px/1.15 var(--body); display: block; }
+.guide-grid p { margin: 6px 0 0; font-size: 15px; line-height: 1.45; }
+.guide[data-tab="casa"] [data-g]:not([data-g="casa"]), .guide[data-tab="c40"] [data-g]:not([data-g="c40"]), .guide[data-tab="ode"] [data-g]:not([data-g="ode"]), .guide[data-tab="pour"] [data-g]:not([data-g="pour"]) { display: none; }
+/* Card editor */
+.pour-row input, .pour-row select, .variant-bar select { font: 500 14px/1.3 var(--body); background: var(--chip); border: 0; border-radius: 9px; min-height: 42px; padding: 0 9px; }
+.variant-bar select { min-height: 44px; padding: 0 12px; }
+/* The recipes sit side by side in one row, which used to be as tall as the longest of them. The row now takes the height of the recipe in view. */
+.rail { align-items: flex-start; overflow-y: hidden; transition: height .22s ease; }
+@media (prefers-reduced-motion: reduce) { .rail { transition: none; } }
+
+/* Recipe bar: the way back to the deck is fixed to the top of the screen, so it is there however far down the recipe or its
+   brew log you are. The page leaves room for it. --status is the extra room the installed app needs under the phone's status bar. */
+:root { --status: 0px; }
+@media (display-mode: standalone) { :root { --status: 26px; } }
+.cardbar { display: none; position: fixed; inset: 0 0 auto 0; z-index: 4; align-items: center; justify-content: space-between; gap: 12px;
+  padding: calc(env(safe-area-inset-top, 0px) + var(--status)) max(8px, calc((100vw - 720px) / 2 - 8px)) 0; background: var(--bg); }
+body:has(#deck:not([hidden])) .cardbar { display: flex; }
+body:has(#deck:not([hidden])) { padding-top: calc(52px + var(--status)); }
+.cardbar button { height: 48px; border: 0; border-radius: 10px; background: transparent; color: var(--muted); font: 600 15px/1 var(--body); display: inline-flex; align-items: center; gap: 4px; padding: 0 8px; }
+/* Details sits in the recipe itself, on the tasting-notes line. */
+.notes-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; } .notes-row .tasting { min-width: 0; }
+.card .notes-row .info { flex: none; margin: -10px -8px -10px auto; white-space: nowrap; }
+.cardbar .close svg { width: 20px; height: 20px; }
+
+/* Deck rows: roaster under the name. */
+.tile .t-roaster, .tile.archived .t-roaster { font: 500 13.5px/1.3 var(--body); letter-spacing: 0; text-transform: none; color: var(--muted); white-space: normal; }
+/* Archived is a heading you tap to open; closed until you do. It is drawn like the Filter / Espresso tabs above: the same type on the same
+   hairline, with the orange underline under its label while it is open. */
+.grid-divider { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; width: 100%; margin-top: 26px; padding: 0; background: transparent; border: 0; border-radius: 0; box-shadow: inset 0 -1px 0 var(--line); font: 600 16px/1 var(--body); letter-spacing: 0; text-transform: none; color: var(--muted); text-align: left; transition: color .2s; }
+.grid-divider span { min-width: 132px; padding: 14px 0 13px; box-shadow: inset 0 -3px 0 transparent; transition: box-shadow .2s; }
+.grid-divider[aria-expanded="true"], .grid-divider.open { color: var(--fg); margin-bottom: 4px; } .grid-divider[aria-expanded="true"] span, .grid-divider.open span { box-shadow: inset 0 -3px 0 var(--amber); }
+.grid-divider .chev { margin-bottom: 11px; }
+.chev { width: 20px; height: 20px; flex: none; transition: transform .18s ease; } [aria-expanded="true"] > .chev { transform: rotate(180deg); }
+/* Brew log: a sheet opened from the foot of the recipe, where the buttons to open it and to log a brew sit. */
+.card-log { display: flex; gap: 10px; margin-top: 6px; } .card-log .btn { flex: 1; min-height: 52px; justify-content: center; font-size: 16px; white-space: nowrap; }
+dialog.sheet .sheet-in { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; max-height: calc(100dvh - 32px); }
+@media (max-width: 620px) { dialog.sheet .sheet-in { height: 100%; max-height: 100dvh; } }
+.log-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.log-head .log-name { margin: 6px 0 0; font: 400 15px/1.3 var(--body); color: var(--muted); }
+.log-head .iconbtn { width: 44px; height: 44px; margin: -6px -8px -6px 0; }
+#logDialog .sheet-body { padding-top: 8px; } #logDialog .sheet-foot .right { display: flex; } #logDialog .empty { margin: 8px 0 0; font-size: 16px; } #logDialog .log { padding: 0; } #logDialog .brew:first-child { border-top: 0; padding-top: 4px; }
+#logDialog .sheet-foot:not(:has(.btn:not([hidden]))) { display: none; }
+/* Coffee Filter: a close button in the corner; Clear and Show side by side at the bottom. */
+.find-head .iconbtn { width: 44px; height: 44px; margin: -6px -8px -6px 0; }
+.find-acts { display: flex; gap: 10px; } .find-acts .btn { flex: 1; }
+.find-foot .btn.clear { background: transparent; border-color: var(--line); color: var(--fg); }
+@media (prefers-reduced-motion: reduce) { .chev { transition: none; } }
+
+/* ---- Wide screens (iPad, desktop): the deck stays on the left and the recipe in view fills the right. ----
+   body.split is set by the script when the screen is wide enough and there is a card to show. The deck (header and list) is pinned
+   to the left edge and scrolls on its own; the page itself is the recipe and its brew log. */
+body.split { --pane: clamp(340px, 34vw, 400px); padding-left: calc(var(--pane) + 36px); padding-right: 36px; }
+body.split:has(#deck:not([hidden])) { padding-top: calc(26px + var(--status)); }
+body.split::before { content: ""; position: fixed; top: 0; bottom: 0; left: var(--pane); width: 1px; background: var(--line); z-index: 3; }
+body.split .top, body.split .top.compact { display: flex; position: fixed; z-index: 3; left: 22px; width: calc(var(--pane) - 44px); top: calc(18px + var(--status) + env(safe-area-inset-top, 0px)); }
+body.split #dash { display: flex !important; position: fixed; left: 0; width: var(--pane); top: calc(76px + var(--status) + env(safe-area-inset-top, 0px)); bottom: 0; padding-inline: 22px; }
+body.split .top h1, body.split .top .btn { white-space: nowrap; }
+@media (max-width: 1040px) { body.split .top h1 { font-size: 25px; } body.split .top .tools { gap: 6px; } body.split .top .iconbtn, body.split .top .gearbtn { width: 40px; height: 40px; } body.split .top .btn.primary { padding-inline: 13px; } body.split { padding-left: calc(var(--pane) + 28px); padding-right: 28px; } body.split .actionbar { padding-inline: 28px; } }
+body.split .deck-scroll { margin-inline: -22px; padding-inline: 22px; }
+body.split:has(#deck:not([hidden])) .cardbar { display: none; }
+body.split .actionbar { left: calc(var(--pane) + 1px); padding-inline: 36px; }
+/* The recipe in view is marked in the list. */
+body.split .tile[aria-current="true"] { background: var(--chip); box-shadow: -12px 0 0 var(--chip), 12px 0 0 var(--chip); border-radius: 4px; }
+body.split .tile[aria-current="true"] + .tile, body.split .tile[aria-current="true"] { border-top-color: transparent; }
+
+/* Timer: steps on the left, clock and controls on the right. */
+@media (min-width: 760px) {
+  dialog.timer { width: min(920px, calc(100vw - 48px)); }
+  .timer-wrap, .timer-wrap:has(.timer-steps li:nth-child(4)) { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-rows: auto auto auto 1fr auto; column-gap: 44px; padding: 28px 32px;
+    grid-template-areas: "head head" "steps clock" "steps stage" "steps ctl" "note note"; }
+  .timer-head { grid-area: head; } .timer-clock { grid-area: clock; } .timer-stage { grid-area: stage; } .timer-steps { grid-area: steps; align-self: start; } .timer-ctl { grid-area: ctl; } .timer-note { grid-area: note; }
+}
+
 </style>
 </head>
 <body>
@@ -484,6 +801,7 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
       <button class="gearbtn" id="account" type="button" aria-haspopup="dialog" aria-label="Settings">
         <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3h.1a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8v.1a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"></path></svg>
       </button>
+      <button class="btn primary" id="addCard" type="button" aria-label="Add a card" hidden>+ Add</button>
     </div>
   </header>
 
@@ -524,6 +842,15 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
     </div>
   </section>
 
+  <div class="actionbar" id="actionBar" hidden>
+    <div class="in">
+      <button class="btn go" id="abStart" type="button"><svg aria-hidden="true" viewBox="0 0 24 24" fill="currentColor"><path d="M7 4l13 8-13 8z"></path></svg><span id="abStartText">Start brew</span></button>
+    </div>
+  </div>
+
+  <div class="cardbar" id="cardBar">
+    <button class="close" id="backToDeck" type="button" aria-label="Back to the deck"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"></path></svg>Deck</button>
+  </div>
   <section class="deck" id="deck" aria-label="Recipe cards" hidden>
     <p class="status card-status" id="cardStatus" role="status" aria-live="polite"></p>
     <div class="rail" id="rail" aria-roledescription="carousel"></div>
@@ -533,31 +860,34 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
   </section>
 
   <dialog id="guideDialog" aria-labelledby="guideTitle">
-  <section class="guide" id="guide">
+  <section class="guide" id="guide" data-tab="casa">
     <div class="guide-head"><h2 id="guideTitle">Grind guide</h2><button class="btn quiet" id="closeGuide" type="button" aria-label="Close">Close</button></div>
-    <h3 class="guide-sub">Comandante C40 MK4 · Red Clix</h3>
-    <div class="guide-grid" id="guideC40">
+    <div class="guide-tabs" id="guideTabs" role="tablist" aria-label="Guide sections">
+      <button type="button" role="tab" data-tab="casa" aria-selected="true">Casa</button><button type="button" role="tab" data-tab="c40" aria-selected="false">C40 · Red Clix</button><button type="button" role="tab" data-tab="ode" aria-selected="false">Ode</button><button type="button" role="tab" data-tab="pour" aria-selected="false">Pouring</button>
+    </div>
+    <h3 class="guide-sub" data-g="c40">Comandante C40 MK4 · Red Clix</h3>
+    <div class="guide-grid" id="guideC40" data-g="c40">
       <div><b>≈ 15 µm per click</b><p>Comandante C40 MK4 with Red Clix. Two clicks (30 µm) is the smallest change worth tasting; three clicks is a real step, about one Casa number.</p></div>
       <div><b>Casa 1.5.0 ≈ 50 clicks</b><p>The deck converts each Casa setting through its micron estimate. Expect to land 2–4 clicks finer than the number shown: the C40 makes fewer fines, so it needs a little less gap for the same extraction.</p></div>
       <div><b>Fast, thin or sour</b><p>2 clicks finer, then 3 more if the cup doesn't move. Change temperature only once the drawdown lands in the window.</p></div>
       <div><b>Slow, drying or bitter</b><p>2 clicks coarser, or drop 1°C. On naturals that read winey after a fast brew, go finer first, not cooler.</p></div>
     </div>
-    <h3 class="guide-sub">Lagom Casa</h3>
-    <div class="guide-grid" id="guideCasa">
+    <h3 class="guide-sub" data-g="casa">Lagom Casa</h3>
+    <div class="guide-grid" id="guideCasa" data-g="casa">
       <div><b>≈ 10 µm per mark</b><p>Settings read rotation.number.tenth, the way Honest Coffee Guide writes them: 1.4.4 is one full turn, past the 4, four tenths of the way to the 5. The dial has four marks between numbers, so each mark is 2 in the last digit and 1.4.4 is the 2nd mark after the 4. A number is about 50 µm. One mark is the smallest change worth tasting; two is a real step.</p></div>
       <div><b>1.5.0 ≈ 750 µm</b><p>Your anchor. Honest Coffee Guide's V60 band for the Casa runs 0.8.5 to 1.4.7 (about 425–735 µm) and its wider pour-over band reaches 1.9.5, so most of these recipes sit at the top of V60 and inside pour over. For most of these coffees the working range is 1.4.0 to 1.5.8.</p></div>
       <div><b>Fast, thin or sour</b><p>2 marks finer, then a full number if the cup doesn't move. Change temperature only once the drawdown lands in the window.</p></div>
       <div><b>Slow, drying or bitter</b><p>2 marks coarser, or drop 1°C. On naturals that read winey after a fast brew, go finer first, not cooler.</p></div>
     </div>
-    <h3 class="guide-sub">Fellow Ode Gen 2 · stock Gen 2 burrs</h3>
-    <div class="guide-grid" id="guideOde">
+    <h3 class="guide-sub" data-g="ode">Fellow Ode Gen 2 · stock Gen 2 burrs</h3>
+    <div class="guide-grid" id="guideOde" data-g="ode">
       <div><b>≈ 30 µm per click</b><p>Dial 1–11 with two clicks between numbers, so "6.1" is one click past 6. A click is the smallest change worth tasting; a full number (≈ 90 µm) is a big step, nearly two Casa numbers.</p></div>
       <div><b>Casa 1.5.0 ≈ 6.1</b><p>The deck converts each Casa setting through its micron estimate (Ode range ≈ 275–1160 µm). The Gen 2 flat burrs make a similar, clean particle spread to the Casa, so expect to land within a click of the number shown.</p></div>
       <div><b>Fast, thin or sour</b><p>1 click finer, then 2 more if the cup doesn't move. Change temperature only once the drawdown lands in the window.</p></div>
       <div><b>Slow, drying or bitter</b><p>1 click coarser, or drop 1°C. On naturals that read winey after a fast brew, go finer first, not cooler.</p></div>
     </div>
-    <h3 class="guide-sub">Agitation · how hard to pour</h3>
-    <div class="guide-grid">
+    <h3 class="guide-sub" data-g="pour">Agitation · how hard to pour</h3>
+    <div class="guide-grid" data-g="pour">
       <div><b>●○○ Gentle</b><p>Spout low, 2–3 cm above the water, thin stream. The bed barely moves and nothing digs in.</p></div>
       <div><b>●●○ Medium</b><p>About 5 cm up, steady stream. The bed turns over slowly.</p></div>
       <div><b>●●● Strong</b><p>8–10 cm up, or the kettle fully open. The stream digs in and the grounds churn.</p></div>
@@ -567,14 +897,14 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
   </section>
   </dialog>
 
-  <section class="log" id="log" hidden aria-labelledby="logTitle">
-    <header>
-      <h2 id="logTitle">Brew log <small id="logName"></small></h2>
-      <button class="btn" id="addBrew" type="button">+ Log a brew</button>
-    </header>
-    <ul class="brews" id="brews"></ul>
-    <p class="empty" id="brewsEmpty" hidden>No brews logged for this coffee yet. Log one after your next cup: grind, temperature, finish time and how it tasted.</p>
-  </section>
+  <dialog id="logDialog" class="sheet" aria-labelledby="logTitle">
+    <div class="sheet-in">
+      <div class="sheet-head log-head"><div><h2 id="logTitle" tabindex="-1"><span id="logHead">Brew log</span></h2><p class="log-name" id="logName"></p></div>
+        <button class="iconbtn" type="button" id="closeLog" aria-label="Close"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"></path></svg></button></div>
+      <div class="sheet-body"><section class="log" id="log" hidden><ul class="brews" id="brews"></ul><p class="empty" id="brewsEmpty" hidden>No brews logged for this coffee yet. Log one after your next cup: grind, temperature, finish time and how it tasted.</p></section></div>
+      <div class="sheet-foot"><div class="right"><button class="btn primary" id="addBrew" type="button">+ Log a brew</button></div></div>
+    </div>
+  </dialog>
 </div>
 
 <!-- Card editor -->
@@ -640,26 +970,18 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
   <form id="brewForm" method="dialog" novalidate>
     <div class="sheet-head"><h2 id="brewDialogTitle" tabindex="-1" autofocus>Log a brew</h2></div>
     <div class="sheet-body">
-    <div class="grid3">
-      <label class="f">Date<input id="b_date" name="date" type="date" required></label>
-      <label class="f">Grind<input id="b_grind" name="grind" autocomplete="off" placeholder="1.5.0"></label>
-      <label class="f">Water<input id="b_temp" name="temp" autocomplete="off" placeholder="96°C"></label>
-      <label class="f">Filter<input id="b_filter" name="filter" autocomplete="off" placeholder="TH-2"></label>
-      <label class="f">Dose<input id="b_dose" name="dose" autocomplete="off" placeholder="30 g / 500 g"></label>
-      <label class="f">Finish time<input id="b_finish" name="finish" autocomplete="off" placeholder="3:58"></label>
-    </div>
-    <div class="f">
-      Rating
-      <div class="stars" id="stars" role="radiogroup" aria-label="Rating out of 5">
-        <button type="button" data-v="1" aria-pressed="false">1</button>
-        <button type="button" data-v="2" aria-pressed="false">2</button>
-        <button type="button" data-v="3" aria-pressed="false">3</button>
-        <button type="button" data-v="4" aria-pressed="false">4</button>
-        <button type="button" data-v="5" aria-pressed="false">5</button>
+    <div class="fgroup">
+      <span class="flabel" id="starsLabel">Rating</span>
+      <div class="stars" id="stars" role="radiogroup" aria-labelledby="starsLabel">
+        <button type="button" data-v="1" aria-pressed="false" aria-label="1 of 5">1</button>
+        <button type="button" data-v="2" aria-pressed="false" aria-label="2 of 5">2</button>
+        <button type="button" data-v="3" aria-pressed="false" aria-label="3 of 5">3</button>
+        <button type="button" data-v="4" aria-pressed="false" aria-label="4 of 5">4</button>
+        <button type="button" data-v="5" aria-pressed="false" aria-label="5 of 5">5</button>
       </div>
     </div>
     <div class="fgroup">
-      <span class="flabel" id="tasteLabel">Structure · tap all that apply</span>
+      <span class="flabel" id="tasteLabel">Taste · tap all that apply</span>
       <div class="chips" id="tasteChips" role="group" aria-labelledby="tasteLabel">
         <button type="button" data-t="sour" aria-pressed="false">Sour</button>
         <button type="button" data-t="sweet" aria-pressed="false">Sweet</button>
@@ -680,7 +1002,18 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
       <div class="picks" id="flavourPicks" role="group" aria-labelledby="picksLabel"></div>
       <button class="rowbtn" type="button" id="openWheel"><span>Add from the flavour wheel</span><span aria-hidden="true">›</span></button>
     </div>
-    <label class="f">Notes<textarea id="b_notes" name="notes" placeholder="Anything else: body, what to change next time."></textarea></label>
+    <label class="f">Notes<textarea id="b_notes" name="notes" placeholder="Body, what to change next time"></textarea></label>
+    <div class="fgroup">
+      <span class="flabel">This brew</span>
+      <div class="brew-grid">
+        <label class="f">Finish<input id="b_finish" name="finish" autocomplete="off" inputmode="numeric" placeholder="3:58"></label>
+        <label class="f">Grind<input id="b_grind" name="grind" autocomplete="off" placeholder="1.5.0"></label>
+        <label class="f">Water<input id="b_temp" name="temp" autocomplete="off" placeholder="96°C"></label>
+        <label class="f">Paper<input id="b_filter" name="filter" autocomplete="off" placeholder="TH-2"></label>
+        <label class="f">Dose<input id="b_dose" name="dose" autocomplete="off" placeholder="30 g / 500 g"></label>
+        <label class="f">Date<input id="b_date" name="date" type="date" required></label>
+      </div>
+    </div>
     <p class="err" id="brewErr" hidden></p>
     </div>
     <div class="actions sheet-foot">
@@ -729,7 +1062,7 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
     <div class="find-grab" aria-hidden="true"></div>
     <div class="find-head">
       <h2 id="findTitle" tabindex="-1" autofocus>Coffee Filter</h2>
-      <button class="btn quiet" type="button" id="findClear">Clear all</button>
+      <button class="iconbtn" type="button" id="findX" aria-label="Close"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"></path></svg></button>
     </div>
     <div class="find-body">
       <label class="f">Search<input id="findSearch" type="search" autocomplete="off" placeholder="Name, roaster, notes, region"></label>
@@ -747,7 +1080,7 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
     </div>
     <div class="find-foot">
       <span class="said" id="findSaid" aria-live="polite"></span>
-      <button class="btn primary" type="button" id="findShow">Show coffees</button>
+      <div class="find-acts"><button class="btn clear" type="button" id="findClear">Clear filters</button><button class="btn primary" type="button" id="findShow">Show results</button></div>
     </div>
   </div>
 </dialog>
@@ -788,8 +1121,8 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
         <button type="button" data-g="ode" role="radio" aria-checked="false">Ode</button>
       </div>
     </div>
-    <div class="actions"><button class="btn" id="resetSettings" type="button">Reset</button><button class="btn" id="closeSettings" type="button" aria-label="Close">Done</button></div>
-    <p class="guide-note" id="settingsNote">Choosing a different paper from the one the recipe was written for moves the grind by its offset from TH-2 (TH-1 1 mark coarser; TH-3 and Abaca 1 mark finer; PURE.F 2 marks finer) and adjusts the finish window. The TH-1 and TH-3 offsets are first estimates. With 4:6, the balance sets the first pour: smaller is sweeter, bigger is brighter; the dot marks how the recipe was written. Every choice here is remembered for this coffee only, and the paper for each method separately. Reset returns this coffee to its written recipe: Casa, its base dose, first brewer, method and paper.</p>
+    <div class="actions"><button class="btn quiet" id="settingsHow" type="button" aria-expanded="false" aria-controls="settingsNote"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 11v6M12 7.5v.5"></path></svg>How this works</button><div class="right"><button class="btn" id="resetSettings" type="button">Reset</button><button class="btn" id="closeSettings" type="button" aria-label="Close">Done</button></div></div>
+    <p class="guide-note" id="settingsNote" hidden>Choosing a different paper from the one the recipe was written for moves the grind by its offset from TH-2 (TH-1 1 mark coarser; TH-3 and Abaca 1 mark finer; PURE.F 2 marks finer) and adjusts the finish window. The TH-1 and TH-3 offsets are first estimates. With 4:6, the balance sets the first pour: smaller is sweeter, bigger is brighter; the dot marks how the recipe was written. Every choice here is remembered for this coffee only, and the paper for each method separately. Reset returns this coffee to its written recipe: Casa, its base dose, first brewer, method and paper.</p>
   </div>
 </dialog>
 
@@ -830,7 +1163,7 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
       <div><p class="roaster" id="t_method"></p><h2 id="t_name"></h2></div>
       <button class="btn" id="t_close" type="button" aria-label="Close the brew timer">Close</button>
     </div>
-    <div class="timer-clock"><span class="time" id="t_time">0:00</span><span class="phase" id="t_phase">Ready</span><span class="agiline" id="t_agi"></span></div>
+    <div class="timer-clock"><span class="time" id="t_time">0:00</span><span class="phase" id="t_phase">Ready</span><span class="nxt" id="t_next"></span><span class="agiline" id="t_agi"></span></div>
     <div class="timer-stage">
       <svg class="timer-art" id="t_art" viewBox="0 0 120 150" aria-hidden="true">
         <defs><clipPath id="t_cone"><polygon points="12,34 108,34 72,104 48,104"/></clipPath><clipPath id="t_cup"><rect x="30" y="116" width="60" height="30" rx="5"/></clipPath></defs>
@@ -1233,6 +1566,14 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
   const RATIOS = [2, 2.2, 2.4, 2.6];
   const writtenRatio = (c) => { const base = baseOf(baseRecipe(c)); return base ? Math.round(base.water / base.dose * 10) / 10 : null; };
 
+  // A pour in plain words: what the scale should read, then how to pour ("Bloom to 90 g" / "Swirl, wait 45 s").
+  // A step with no weight to reach is just its own words; an espresso stage leads with what to do and follows with its target.
+  const pourWords = (action, to, i, esp) => {
+    const words = String(action || ""), target = grams(to);
+    if (esp) return [words, target ? `to ${to}` : to && to !== "—" ? String(to) : ""];
+    if (!target) return [words, ""];
+    return [`${i === 0 && /bloom/i.test(words) ? "Bloom" : "Pour"} to ${to}`, capFirst(words.replace(/^bloom,\s*/i, ""))];
+  };
   const renderCard = (c) => {
     // Always render all five rows so the block is the same height on every card.
     const specs = [["Origin", c.origin], ["Producer", c.producer], ["Variety", c.variety], ["Altitude", c.altitude], ["Process", c.process]]
@@ -1242,7 +1583,7 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
     const grinder = grinderFor(c), gName = GRINDERS[grinder] || "Casa";
     const summary = esp ? [setup, `${doseFor(c)} g`, ratioLabel(r.ratio), gName].join(" · ") : [setup, `${doseFor(c)} g`, r.filter || "—", gName].join(" · ");
     const brewerNote = brewerNoteOf(r) ? `<p class="scaled">${esc(brewerNoteOf(r))}</p>` : "";
-    const tabs = `<div><button class="setline" type="button" data-id="${esc(c.id)}" aria-haspopup="dialog" aria-label="Brew settings: ${esc(summary)}"><span class="gear" aria-hidden="true">⚙</span><span class="txt">${esc(summary)}</span></button></div>`;
+    const tabs = `<button class="setline" type="button" data-id="${esc(c.id)}" aria-haspopup="dialog" aria-label="Brew settings: ${esc(summary)}"><span class="txt">${esc(esp ? [setup, ratioLabel(r.ratio), r.pressure].filter(Boolean).join(" · ") : [setup, r.filter ? r.filter + " paper" : ""].filter(Boolean).join(" · "))}</span><span class="chg">Change</span></button>`;
     const filterNote = r.filterChanged ? `<p class="scaled">Paper changed from ${esc(PAPER_SHOWN[r.filterChanged.from] || r.filterChanged.from)} to ${esc(PAPER_SHOWN[r.filterChanged.to] || r.filterChanged.to)}: ${r.filterChanged.same ? "same grind and finish window" : "grind and finish window adjusted"}. ${esc(paperSwapNote(c, r.filterChanged.from, r.filterChanged.to))}</p>` : "";
     const grindHint = (() => {
       const d = doseFor(c) - r.scaledFrom;
@@ -1256,45 +1597,36 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
     const scaledNote = !r.scaled ? "" : esp
       ? `<p class="scaled">Adjusted from the ${r.scaledFrom} g recipe: yield follows the ${ratioLabel(r.ratio)} ratio; keep the grind and expect the shot time to move a few seconds with the dose.</p>`
       : `<p class="scaled">Scaled from the ${r.scaledFrom} g recipe: water and pours adjusted, timings kept. Grind: ${grindHint}.</p>`;
-    const pours = (r.pours || []).map((p, i, arr) => {
-      const flow = esp ? "" : flowOf(p, arr[i - 1]);
-      const to = esp ? (grams(p.to) ? `→ ${esc(p.to)}` : esc(p.to || "—")) : `→ ${esc(p.to)}`;
-      const level = esp ? 0 : agitationOf(p), agi = level ? `<span class="agi" title="${esc(AGITATION[level].cue + "; " + AGITATION[level].bed)}"><span aria-hidden="true">${agitationDots(level)}</span> ${AGITATION[level].word}</span>` : "";
-      return `<tr><td class="t">${esc(p.time)}</td><td class="w">${to}</td><td>${esc(p.action)}${flow || agi ? `<div class="flow">${[agi, flow].filter(Boolean).join(" · ")}</div>` : ""}</td></tr>`;
+    // Each pour as plain words: what the scale should read, then how to pour. The flow rate and agitation stay in the recipe (the timer uses them) but are not shown here.
+    const pours = (r.pours || []).map((p, i) => {
+      const [title, more] = pourWords(p.action, p.to, i, esp);
+      return `<li><time>${esc(p.time)}</time><div><b>${esc(title)}</b>${more ? `<span>${esc(more)}</span>` : ""}</div></li>`;
     }).join("");
+    const win = /(\d+:\d{2})\s*[–-]\s*(\d+:\d{2})/.exec(r.finish || "");
+    const finish = !r.finish ? "" : esp ? `<li><time></time><div><b>Shot time ${esc(shotWindow(r.finish))}</b></div></li>`
+      : win ? `<li><time>${win[1]}</time><div><b>Finish by ${win[2]}</b><span>Drawdown done between ${win[1]} and ${win[2]}</span></div></li>` : `<li><time></time><div><b>Finish ${esc(r.finish)}</b></div></li>`;
     const gd = grindDisplay(c, r.grind, r.grindNote);
-    const keyRows = esp ? `<div class="key">
-          <div><span>Dose</span><strong>${esc(String(baseOf(r)?.dose ?? "—"))} g</strong><small>in</small></div>
-          <div><span>Yield</span><strong>${esc(String(baseOf(r)?.water ?? "—"))} g</strong><small>${esc(ratioLabel(r.ratio))}${r.finish ? " · " + esc(shotWindow(r.finish)) : ""}</small></div>
-          <div><span>Grind${grinder === "c40" ? " · Red Clix" : ""}</span><strong>${esc(gd.main)}</strong><small>${esc(gd.small)}</small></div>
-        </div>
-        <div class="key pair">
-          <div><span>Water</span><strong>${esc(r.water || "—")}</strong><small>kettle, into a cold basket</small></div>
-          <div><span>Pressure</span><strong>${esc(r.pressure || "—")}</strong><small>after a gentle preinfusion</small></div>
-        </div>` : `<div class="key">
-          <div><span>Water</span><strong>${esc(r.water || "—")}</strong>${r.dose ? `<small>${esc(r.dose)}</small>` : ""}</div>
-          <div><span>Filter</span><strong>${esc(r.filter || "—")}</strong></div>
-          <div><span>Grind${{ c40: " · Red Clix", ode: " · Ode" }[grinder] || ""}</span><strong>${esc(gd.main)}</strong><small>${esc(gd.small)}</small></div>
-        </div>`;
-    const infoOpen = !!state.info[c.id];
-    return `<article class="card${c.archived ? " archived" : ""}${esp ? " espresso" : ""}"${roastAttr(c)} data-id="${esc(c.id)}" aria-label="${esc(c.name)} recipe${c.archived ? " (archived)" : ""}">
-      <button class="close" type="button" aria-label="Close and return to the dashboard">×</button>
+    const amounts = baseOf(r), cell = (value, label) => `<div><b>${esc(String(value || "—"))}</b><span>${esc(label)}</span></div>`;
+    const keyRows = `<div class="stats">${amounts ? cell(`${amounts.dose} g`, esp ? "Coffee in" : "Coffee") + cell(`${amounts.water} g`, esp ? "Espresso out" : "Water") : cell(r.dose, "Dose")}${cell(r.water, esp ? "Kettle" : "Temperature")}${cell(gd.main, `Grind · ${gName}${grinder === "c40" ? " Red Clix" : ""}`)}</div>`;
+    const infoOpen = !!state.info[c.id], age = ageOf(c);
+    const roasted = /^(\d{4})-(\d{2})-(\d{2})$/.exec(c.roasted || "");
+    const more = `<div><dt>Roast</dt><dd>${esc(capFirst(roastOf(c)))}</dd></div>${roasted ? `<div><dt>Roasted</dt><dd>${esc(new Date(+roasted[1], +roasted[2] - 1, +roasted[3]).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" }))}${age === null ? "" : ` · ${age} ${age === 1 ? "day" : "days"} ago`}</dd></div>` : ""}`;
+    return `<article class="card${c.archived ? " archived" : ""}${esp ? " espresso" : ""}" data-id="${esc(c.id)}" aria-label="${esc(c.name)} recipe${c.archived ? " (archived)" : ""}">
       <div class="main">
-        <div>${c.roaster ? `<p class="roaster">${esc(c.roaster)}</p>` : ""}
-          <h2 class="name">${esc(c.name)} <button class="info" type="button" data-id="${esc(c.id)}" aria-expanded="${infoOpen}" aria-label="Bag details">i</button></h2>
-          ${c.tasting ? `<p class="tasting">${esc(c.tasting)}</p>` : ""}</div>
-        <div class="specs" ${infoOpen ? "" : "hidden"}><dl>${specs}</dl></div>
-        ${tabs}
+        <div class="ttl"><p class="roaster">${esc([c.roaster, c.process, age === null || c.archived ? "" : `day ${age}`].filter(Boolean).join(" · "))}</p>
+          <h2 class="name">${roastDot(c)}${esc(c.name)}</h2>
+          <div class="notes-row">${c.tasting ? `<p class="tasting">${esc(c.tasting)}</p>` : ""}<button class="info" type="button" data-id="${esc(c.id)}" aria-expanded="${infoOpen}"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 11v6M12 7.5v.5"></path></svg>${infoOpen ? "Hide details" : "Details"}</button></div></div>
+        <div class="specs" ${infoOpen ? "" : "hidden"}><dl>${specs}${more}</dl>
+          ${state.canWrite ? `<div class="card-actions"><button class="btn edit" type="button" data-id="${esc(c.id)}">Edit card</button><button class="btn archive" type="button" data-id="${esc(c.id)}">${c.archived ? "Unarchive" : "Archive"}</button></div>` : ""}</div>
         ${keyRows}
-        ${pours ? `<div><h3>${esp ? "Shot" : "Pours"}${r.pourTitle ? " · " + esc(r.pourTitle) : ""}</h3><table>${pours}</table></div>` : ""}
-        ${r.finish ? `<div class="finish"><span>${esp ? "Target shot time" : "Target finish"}</span><b>${esc(esp ? shotWindow(r.finish) : r.finish)}</b></div>` : ""}
-        ${(r.pours || []).length ? `<button class="btn start" type="button" data-start="${esc(c.id)}">▶ ${esp ? "Start shot" : "Start brew"}</button>` : ""}
+        ${tabs}
         ${brewerNote}
         ${balanceNote}
         ${scaledNote}
         ${filterNote}
+        ${pours ? `<div class="steps"><h3>${esp ? "Shot" : "Pours"}${r.pourTitle ? " · " + esc(r.pourTitle) : ""}</h3><ol>${pours}${finish}</ol></div>` : ""}
         ${r.tip ? `<p class="tip">${esc(r.tip)}</p>` : ""}
-        ${state.canWrite ? `<div class="card-actions"><button class="btn archive" type="button" data-id="${esc(c.id)}">${c.archived ? "Unarchive" : "Archive"}</button><button class="btn edit" type="button" data-id="${esc(c.id)}">Edit</button></div>` : ""}
+        <div class="card-log"><button class="btn openlog" type="button">${logLabel(find.seen.get(c.id)?.count)}</button>${state.canWrite ? `<button class="btn addlog" type="button">+ Log a brew</button>` : ""}</div>
       </div></article>`;
   };
 
@@ -1314,18 +1646,21 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
     return "medium";
   };
   const roastAttr = (c) => (c.archived || roastOf(c) === "medium" ? "" : ` data-roast="${roastOf(c)}"`);
+  // Days since the roast date on the card, or null when the card has none (or a date still ahead).
+  const ageOf = (c) => { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(c?.roasted || ""); if (!m) return null; const days = Math.floor((new Date().setHours(0, 0, 0, 0) - new Date(+m[1], +m[2] - 1, +m[3]).getTime()) / 864e5); return days >= 0 ? days : null; };
+  const dotsHtml = (n, words) => `<span class="rdots" role="img" aria-label="${words} ${n} of 5">${[1, 2, 3, 4, 5].map((i) => `<i${i > n ? ' class="off"' : ""}></i>`).join("")}</span>`;
+  // Roast shows as a small dot beside the name; the words are there for anyone who cannot tell the colours apart.
+  const roastDot = (c) => `<i class="rdot" data-r="${roastOf(c)}" role="img" aria-label="${roastOf(c)} roast" title="${capFirst(roastOf(c))} roast"></i>`;
+  // A row in the deck: the name and what it tastes of, then how the last cup was rated and how far off roast the bag is.
   const tileBody = (c) => {
-    const esp = isEsp(c), b = baseOf(c);
-    const key = esp ? `<span>${b ? `${b.dose} → ${b.water} g` : esc(c.dose || "—")}</span><span>${esc(c.water || "—")}</span><span>${esc(grindDisplay(c, c.grind, c.grindNote).main)}</span>`
-      : `<span>${esc(c.water || "—")}</span><span>${esc(c.filter || "—")}</span><span>${esc(grindDisplay(c, c.grind).main)}</span>`;
-    return `<span class="t-roaster">${esc(c.roaster || "")}</span>
-      <span class="t-name">${esc(c.name)}</span>
-      <span class="t-notes">${esc(c.tasting || "")}</span>
-      <span class="t-key">${key}</span>`;
+    const seen = find.seen.get(c.id), age = c.archived ? null : ageOf(c);
+    const rated = !seen ? "" : seen.last ? dotsHtml(seen.last, "Last rated") : seen.count || c.archived ? "" : `<span class="t-new">New</span>`;
+    return `<span class="t-main"><span class="t-name">${roastDot(c)}${esc(c.name)}</span>${c.roaster ? `<span class="t-roaster">${esc(c.roaster)}</span>` : ""}<span class="t-notes">${esc(c.tasting || "")}</span></span>
+      <span class="t-side">${rated}${age === null ? "" : `<span class="t-age">Day ${age}</span>`}</span>`;
   };
   // ---------- Coffee Filter: narrow the dashboard by search, roaster, origin, process and your rating ----------
   // Nothing here is stored: the filter starts empty each time the app opens.
-  const find = { q: "", roaster: new Set(), origin: new Set(), process: new Set(), rating: "", best: new Map(), ratingsLoaded: false };
+  const find = { q: "", roaster: new Set(), origin: new Set(), process: new Set(), rating: "", best: new Map(), seen: new Map(), ratingsLoaded: false, ratingsAsked: false };
   const COUNTRIES = ["Ethiopia", "Kenya", "Rwanda", "Burundi", "Uganda", "Tanzania", "Malawi", "Zambia", "Zimbabwe", "Cameroon", "DR Congo", "Congo", "Yemen",
     "Colombia", "Brazil", "Peru", "Bolivia", "Ecuador", "Venezuela", "Guatemala", "Costa Rica", "Panama", "Honduras", "El Salvador", "Nicaragua", "Mexico",
     "Jamaica", "Dominican Republic", "Cuba", "Haiti", "Indonesia", "Papua New Guinea", "Timor-Leste", "India", "Nepal", "Vietnam", "Thailand", "Myanmar", "Laos",
@@ -1363,6 +1698,12 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
   ];
   const RATING_WORDS = { 3: "3 and up", 4: "4 and up", none: "not rated" };
   const bestRatingOf = (brews) => Math.max(0, ...brews.map((b) => Number(b.rating) || 0));
+  // From one coffee's log: its best rating (for the Coffee Filter) and, for its row in the deck, the latest rating and how many brews there are.
+  const noteBrews = (id, brews) => {
+    const byDate = [...brews].sort((a, b) => String(b.date || "").localeCompare(String(a.date || "")) || String(b.createdAt || "").localeCompare(String(a.createdAt || "")));
+    find.best.set(id, bestRatingOf(brews));
+    find.seen.set(id, { last: Number(byDate.find((b) => Number(b.rating) > 0)?.rating) || 0, count: brews.length });
+  };
   const findCount = () => find.roaster.size + find.origin.size + find.process.size + (find.q.trim() ? 1 : 0) + (find.rating ? 1 : 0);
   // Within a group the ticked options add up (Ethiopia or Kenya); across groups, search and rating they narrow.
   const matchesFind = (c) => {
@@ -1389,7 +1730,7 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
     [...$("findRating").children].forEach((b) => b.setAttribute("aria-checked", String(b.dataset.r === find.rating)));
     const said = [...FIND_GROUPS.map(({ key, labelOf }) => [...find[key]].map(labelOf).join(" or ")), find.rating ? RATING_WORDS[find.rating] : "", find.q.trim() ? `"${find.q.trim()}"` : ""].filter(Boolean).join(" · ");
     const shown = mine.filter(matchesFind).length;
-    $("findSaid").textContent = said; $("findShow").textContent = findCount() ? `Show ${shown} ${shown === 1 ? "coffee" : "coffees"}` : "Show all";
+    $("findSaid").textContent = said;
     paintFindButton();
   };
   const applyFind = () => { state.showAllArchived = false; renderFind(); renderGrid(); };
@@ -1400,9 +1741,9 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
     try {
       const byCoffee = new Map();
       (await store.listRatings()).forEach(({ coffee_id, data }) => byCoffee.set(coffee_id, [...(byCoffee.get(coffee_id) || []), data || {}]));
-      state.coffees.forEach((c) => find.best.set(c.id, bestRatingOf(byCoffee.get(c.id) || [])));
+      state.coffees.forEach((c) => noteBrews(c.id, byCoffee.get(c.id) || []));
     } catch (err) { find.ratingsLoaded = false; setStatus(friendly(err, "load your ratings")); }
-    if (find.rating) applyFind();
+    if (find.rating) applyFind(); else if (find.seen.size && !noDeck()) renderGrid();
   };
 
   // The dashboard's tiles for the current deck, as markup. It writes nothing to the page, so the deck being swiped towards can be drawn too.
@@ -1411,31 +1752,28 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
     const mine = deckCoffees().filter((c) => !finding || matchesFind(c));
     const groups = [mine.filter((c) => !c.archived), mine.filter((c) => c.archived)];
     let html = "";
-    const add = state.canWrite && !finding ? `<button class="tile add" type="button" id="addTile" aria-label="Add a card"><span>+</span>${state.kind === "espresso" ? "Add espresso" : "Add card"}</button>` : "";
+    const add = ""; // Add is in the header
     if (finding && !mine.length) html += `<p class="empty">No coffees match. Change or clear the Coffee Filter.</p>`;
     else if (!mine.length && state.coffees.length) html += `<p class="empty">No ${state.kind} cards yet. ${state.kind === "espresso" ? "Add one for a coffee you pull on the Robot." : "Add a coffee you brew as filter."}</p>`;
     groups.forEach((group, g) => {
-      if (g === 1) { html += add; if (group.length) html += `<div class="grid-divider">Archived</div>`; }
-      // Archived: the first six, then a "more" tile for the rest (and a "less" tile once expanded).
-      const ARCHIVED_SHOWN = 6;
-      // With the Coffee Filter on, every archived match is shown and nothing can be dragged: you would be reordering part of the list.
-      const hidden = g === 1 && !state.showAllArchived && !finding ? Math.max(0, group.length - ARCHIVED_SHOWN) : 0;
-      const shown = hidden ? group.slice(0, ARCHIVED_SHOWN) : group;
+      if (g === 1) { html += add; if (group.length) html += finding ? `<div class="grid-divider open"><span>Archived · ${group.length}</span></div>` : `<button class="grid-divider" type="button" id="moreTile" aria-expanded="${!!state.showAllArchived}"><span>Archived · ${group.length}</span><svg class="chev" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"></path></svg></button>`; }
+      const shown = g === 1 && !state.showAllArchived && !finding ? [] : group;
       html += shown.map((c) => {
         const idx = state.coffees.indexOf(c);
         const draggable = state.canWrite && !c.archived && !finding;
         return `<button class="tile${c.archived ? " archived" : ""}${isEsp(c) ? " espresso" : ""}${draggable ? " draggable" : ""}" type="button"${roastAttr(c)} data-i="${idx}" data-id="${esc(c.id)}" aria-label="Open ${esc(c.name)}${draggable ? " (press and hold to reorder)" : ""}">${tileBody(c)}</button>`;
       }).join("");
-      if (hidden) html += `<button class="tile more" type="button" id="moreTile" aria-label="Show ${hidden} more archived coffees"><span><b>+${hidden}</b><br>Show more</span></button>`;
-      else if (g === 1 && state.showAllArchived && !finding && group.length > ARCHIVED_SHOWN) html += `<button class="tile more" type="button" id="moreTile" aria-label="Show fewer archived coffees"><span>Show less</span></button>`;
     });
     return html;
   };
   const renderGrid = () => {
     const counts = { filter: state.coffees.filter((c) => !isEsp(c) && !c.archived).length, espresso: state.coffees.filter((c) => isEsp(c) && !c.archived).length };
     $("modeSeg").querySelectorAll("button").forEach((b) => { b.setAttribute("aria-checked", String(b.dataset.k === state.kind)); b.textContent = `${b.dataset.k === "espresso" ? "Espresso" : "Filter"} · ${counts[b.dataset.k]}`; $("modeSeg").querySelector(`.over [data-k="${b.dataset.k}"]`).textContent = b.textContent; });
-    $("grid").innerHTML = gridHtml();
+    $("grid").innerHTML = gridHtml(); paintCurrent();
     paintFindButton();
+    $("addCard").hidden = noDeck() || !state.canWrite;
+    // Each row shows the coffee's last rating, so the logs are read once the first time the deck is drawn (the Coffee Filter used to be what asked).
+    if (!find.ratingsAsked && state.coffees.length) { find.ratingsAsked = true; loadBestRatings(); }
     if (state.canWrite) mountSortable();
   };
   // The other deck as it will look once you are on it, for the swipe: same tiles, with any Coffee Filter choices that deck lacks dropped.
@@ -1512,6 +1850,11 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
   const inArchived = () => !!state.coffees[state.active]?.archived;
   const deckList = () => { const a = state.coffees[state.active]; const g = !!a?.archived, k = kindOf(a); const finding = findCount() > 0; return state.coffees.filter((c) => !!c.archived === g && kindOf(c) === k && (!finding || c === a || matchesFind(c))); };
   const railIndexOf = (i) => { const id = state.coffees[i]?.id; return deckList().findIndex((c) => c.id === id); };
+  // Recipes differ in length (more pours, details open, a scaling note). The row is sized to the one in view, and re-sized when that
+  // recipe changes, another comes into view, or the cards are redrawn; the next recipe is clipped to that height while it slides in.
+  const fitRail = () => { const card = rail.children[railIndexOf(state.active)], h = card ? card.offsetHeight : 0; rail.style.height = h ? `${h}px` : ""; };
+  const cardSizes = new ResizeObserver(fitRail);
+  new MutationObserver(() => { cardSizes.disconnect(); [...rail.children].forEach((card) => cardSizes.observe(card)); fitRail(); }).observe(rail, { childList: true });
   const globalIndex = (railIdx) => { const c = deckList()[railIdx]; return c ? state.coffees.indexOf(c) : -1; };
   const renderRail = () => {
     rail.innerHTML = deckList().map(renderCard).join("");
@@ -1526,6 +1869,7 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
   };
 
   const showView = (view) => {
+    if (view === "grid" && split()) { settleActive(); renderRail(); updateNav(); view = "card"; } // nothing to go back to: the deck is beside the recipe
     const wasGrid = state.view === "grid";
     clearCardStatus(); // a note shown over one card is not carried to the next
     if (wasGrid && view !== "grid") state.gridScroll = $("deckScroll").scrollTop; // remember where you were on the dashboard
@@ -1534,7 +1878,9 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
     $("dash").hidden = !isGrid;
     $("deck").hidden = isGrid;
     $("top").classList.toggle("compact", !isGrid);
+    $("addCard").hidden = noDeck() || !state.canWrite;
     $("log").hidden = isGrid || state.coffees.length === 0;
+    paintBar();
     $("emptyDeck").hidden = state.coffees.length > 0 || !isGrid;
     $("nav").hidden = isGrid || state.coffees.length === 0;
     if (!isGrid) { jumpTo(state.active); subscribeBrews(); window.scrollTo({ top: 0, behavior: "auto" }); document.documentElement.scrollTop = 0; document.body.scrollTop = 0; }
@@ -1567,6 +1913,7 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
     state.kind = kind; state.showAllArchived = false;
     try { localStorage.setItem("brewdeck.kind", state.kind); } catch {}
     renderFind(); renderGrid();
+    if (split() && state.view !== "grid" && kindOf(state.coffees[state.active]) !== state.kind) { settleActive(); renderRail(); updateNav(); jumpTo(state.active); subscribeBrews(); }
   };
   // Put both decks where a sideways offset of dx puts them. `animate` glides there; otherwise they jump, which is what following a finger needs.
   const placeDecks = (dx, animate) => {
@@ -1669,6 +2016,7 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
   $("dash").addEventListener("click", (e) => { if (Date.now() < pager.blockClicksUntil && !e.target.closest("#modeSeg")) { e.stopPropagation(); e.preventDefault(); } }, true); // the tabs are never blocked
   const findDialog = $("findDialog");
   // Opens with nothing focused but the heading, so no keyboard appears until the search box is tapped.
+  $("addCard").addEventListener("click", () => openCardEditor(null));
   $("openFind").addEventListener("click", () => { $("findSearch").value = find.q; renderFind(); loadBestRatings(); findDialog.showModal(); $("findTitle").focus({ preventScroll: true }); });
   FIND_GROUPS.forEach(({ key, el }) => $(el).addEventListener("click", (e) => {
     const chip = e.target.closest("button[data-v]"); if (!chip) return;
@@ -1680,6 +2028,7 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
   $("findSearch").addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); e.target.blur(); } }); // Enter puts the keyboard away
   $("findClear").addEventListener("click", () => { find.q = ""; find.rating = ""; FIND_GROUPS.forEach(({ key }) => find[key].clear()); $("findSearch").value = ""; applyFind(); });
   $("findShow").addEventListener("click", () => findDialog.close());
+  $("findX").addEventListener("click", () => findDialog.close());
   // A tap on the dimmed area outside the sheet closes it too; the filter is already applied, so nothing is lost.
   findDialog.addEventListener("click", (e) => { if (e.target === findDialog) findDialog.close(); });
   $("grid").addEventListener("click", (e) => {
@@ -1690,7 +2039,26 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
     state.active = Number(t.dataset.i); renderRail(); updateNav(); showView("card");
   });
 
+  // The bar under a recipe: start the timer or log a brew for whichever card is in view.
+  // Side by side on a wide screen: the deck never leaves, so there is always a recipe showing and no "deck view" to go back to.
+  const WIDE = matchMedia("(min-width: 760px)");
+  const split = () => WIDE.matches && state.coffees.length > 0;
+  const noDeck = () => state.view !== "grid" && !split(); // the deck (and its Add button) is out of sight
+  // The recipe shown beside a deck belongs to that deck: the first card of the Filter or Espresso list if the current one is from the other.
+  const settleActive = () => { if (kindOf(state.coffees[state.active]) === state.kind) return; const live = state.coffees.findIndex((c) => kindOf(c) === state.kind && !c.archived), any = live >= 0 ? live : state.coffees.findIndex((c) => kindOf(c) === state.kind); if (any >= 0) state.active = any; };
+  const paintCurrent = () => { const on = document.body.classList.contains("split"); $("grid").querySelectorAll(".tile[data-i]").forEach((t) => { if (on && Number(t.dataset.i) === state.active) t.setAttribute("aria-current", "true"); else t.removeAttribute("aria-current"); }); };
+  WIDE.addEventListener("change", () => { if (split() && state.view === "grid") { settleActive(); renderRail(); updateNav(); showView("card"); } else { paintBar(); paintCurrent(); renderGrid(); } });
+  const paintBar = () => {
+    document.body.classList.toggle("split", split() && state.view !== "grid"); paintCurrent();
+    const c = state.coffees[state.active], on = state.view !== "grid" && !!c && (activeRecipe(c).pours || []).length > 0;
+    $("actionBar").hidden = !on; document.body.classList.toggle("has-bar", on);
+    if (!on) return;
+    const esp = isEsp(c);
+    $("abStartText").textContent = esp ? "Start shot" : "Start brew";
+  };
+  $("abStart").addEventListener("click", () => { const c = state.coffees[state.active]; if (c) openTimer(c.id); });
   const updateNav = () => {
+    paintBar(); fitRail();
     [...dots.children].forEach((d) => d.setAttribute("aria-current", String(Number(d.dataset.i) === state.active)));
     $("logName").textContent = state.coffees[state.active]?.name || "";
   };
@@ -1938,30 +2306,36 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
     const notes = bagNotesOf(c), found = new Set(picks.filter((f) => f.bag).map((f) => f.n.toLowerCase()));
     const missing = notes.filter((note) => !found.has(note.toLowerCase()));
     const line = !notes.length ? "" : !missing.length ? "All the bag notes found." : `${notes.length - missing.length} of ${notes.length} bag ${notes.length === 1 ? "note" : "notes"} found. Not there yet: ${missing.join(", ").toLowerCase()}.`;
-    return `<div class="taste">${picks.map((f) => `<span class="${f.bag ? "bag" : isDefect(f.w) ? "defect" : "own"}">${esc(f.n.toLowerCase())}</span>`).join("")}</div>${line ? `<p class="bagline">${esc(line)}</p>` : ""}`;
+    return `<div class="taste">${picks.map((f) => `<span class="${f.bag ? "bag" : isDefect(f.w) ? "defect" : "own"}">${esc(capFirst(f.n))}</span>`).join("")}</div>${line ? `<p class="bagline">${esc(line)}</p>` : ""}`;
   };
 
+  const brewDay = (iso) => { const d = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso || ""); if (!d) return iso || ""; const day = new Date(+d[1], +d[2] - 1, +d[3]); return day.toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short", ...(day.getFullYear() === new Date().getFullYear() ? {} : { year: "numeric" }) }); };
+  // Entries logged since brewer and method were split carry both ("NEO · 4:6 · sweeter"); older ones have only the recipe label and show it as it was.
+  const brewSetup = (b) => [b.method && b.brewer ? b.brewer : b.recipe, b.method ? b.method + (BALANCES[b.balance] ? " · " + BALANCES[b.balance].word : "") : ""].filter(Boolean).join(" · ");
+  const logLabel = (n) => (n ? `Brew log · ${n}` : "Brew log");
+  const logDialog = $("logDialog");
+  $("closeLog").addEventListener("click", () => logDialog.close());
+  logDialog.addEventListener("click", (e) => { if (e.target === logDialog) logDialog.close(); });
+  rail.addEventListener("click", (e) => { if (e.target.closest(".openlog")) openSheet(logDialog); else if (e.target.closest(".addlog")) $("addBrew").click(); });
   const renderBrews = () => {
-    const list = $("brews");
-    $("brewsEmpty").hidden = state.brews.length > 0;
+    if (split() && state.view !== "grid") renderGrid(); // the row beside this recipe shows its latest rating
+    const list = $("brews"), c = state.coffees[state.active], esp = c && isEsp(c);
+    $("brewsEmpty").hidden = state.brews.length > 0; $("logHead").textContent = logLabel(state.brews.length);
+    if (c && state.brewsFor === c.id) { const open = rail.querySelector(`article.card[data-id="${CSS.escape(c.id)}"] .openlog`); if (open) open.textContent = logLabel(state.brews.length); } // the recipe's button carries the count
     list.innerHTML = state.brews.map((b) => {
-      // Entries logged since brewer and method were split carry both; the recipe chip then reads "30 g · NEO" and the method has a chip of its own
-      // ("Standard", "Triple Bloom", "4:6 · sweeter"). Older entries have only the recipe label and show it as it was.
-      const setup = b.method && b.brewer ? [(String(b.recipe || "").match(/^\d+(?:\.\d+)?\s*g/) || [""])[0], b.brewer].filter(Boolean).join(" · ") : b.recipe;
-      const how = b.method ? b.method + (BALANCES[b.balance] ? " · " + BALANCES[b.balance].word : "") : "";
-      const params = [["recipe", setup], ["method", how], ["grind", b.grind], ["water", b.temp], ["filter", b.filter], ["dose", b.dose], ["finish", b.finish]]
-        .filter(([, v]) => v).map(([k, v]) => `<span data-k="${k}">${esc(v)}</span>`).join("");
+      const setup = brewSetup(b), line = [setup, b.filter, b.grind, b.temp, /^\d/.test(setup) ? "" : b.dose, b.finish ? (esp ? "" : "finished ") + b.finish : ""].filter(Boolean).map(esc).join(" · ");
       return `<li class="brew" data-id="${esc(b.id)}">
-        <div class="when">${esc(b.date)}</div>
-        <div class="rating" aria-label="${b.rating || 0} out of 5">${b.rating ? "●".repeat(b.rating) + "○".repeat(5 - b.rating) : ""}</div>
-        <div class="params">${params}</div>
-        ${state.canWrite ? `<div class="acts"><button class="btn quiet ed" type="button" data-id="${esc(b.id)}" aria-label="Edit this brew">Edit</button><button class="btn quiet rm" type="button" data-id="${esc(b.id)}" aria-label="Delete this brew">Remove</button></div>` : ""}
-        ${Array.isArray(b.taste) && b.taste.length ? `<div class="taste">${b.taste.map((t) => `<span>${esc(t)}</span>`).join("")}</div>` : ""}
-        ${flavourHtml(b, state.coffees[state.active])}
+        <div class="head"><span class="when">${esc(brewDay(b.date))}</span>${b.rating ? dotsHtml(Number(b.rating), "Rated") : ""}${state.canWrite ? `<button class="brew-more" type="button" aria-label="Edit or remove this brew" aria-expanded="false"><svg aria-hidden="true" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.8"></circle><circle cx="12" cy="12" r="1.8"></circle><circle cx="19" cy="12" r="1.8"></circle></svg></button>` : ""}</div>
+        ${state.canWrite ? `<div class="acts" hidden><button class="btn ed" type="button" data-id="${esc(b.id)}" aria-label="Edit this brew">Edit</button><button class="btn rm" type="button" data-id="${esc(b.id)}" aria-label="Delete this brew">Remove</button></div>` : ""}
         ${b.notes ? `<p class="text">${esc(b.notes)}</p>` : ""}
+        ${Array.isArray(b.taste) && b.taste.length ? `<div class="taste">${b.taste.map((t) => `<span>${esc(capFirst(t))}</span>`).join("")}</div>` : ""}
+        ${flavourHtml(b, c)}
+        ${line ? `<p class="set">${line}</p>` : ""}
       </li>`;
     }).join("");
   };
+  // The dots on an entry open its Edit and Remove buttons.
+  $("brews").addEventListener("click", (e) => { const more = e.target.closest(".brew-more"); if (!more) return; const acts = more.closest(".brew").querySelector(".acts"); acts.hidden = !acts.hidden; more.setAttribute("aria-expanded", String(!acts.hidden)); });
 
   // ---------- Navigation ----------
   const goTo = (i) => {
@@ -1981,7 +2355,7 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
     clearTimeout(scrollT);
     scrollT = setTimeout(() => {
       const w = rail.children[0]?.getBoundingClientRect().width || 1;
-      const i = globalIndex(Math.round(rail.scrollLeft / (w + 12)));
+      const i = globalIndex(Math.round(rail.scrollLeft / (w + 32)));
       if (i >= 0 && i !== state.active) { state.active = i; updateNav(); subscribeBrews(); }
     }, 80);
   });
@@ -2049,7 +2423,9 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
     forgetChoices(c.id);
     renderMethodSeg(); renderFilterSeg(); renderDoseSeg(); renderGrinderSeg(); rerenderCard(c); renderGrid();
   });
-  const openSettings = (id) => { state.settingsFor = id; renderMethodSeg(); renderFilterSeg(); renderDoseSeg(); renderGrinderSeg(); $("settingsDialog").showModal(); $("settingsTitle").focus({ preventScroll: true }); };
+  const openSettings = (id) => { state.settingsFor = id; renderMethodSeg(); renderFilterSeg(); renderDoseSeg(); renderGrinderSeg(); $("settingsNote").hidden = true; $("settingsHow").setAttribute("aria-expanded", "false"); $("settingsDialog").showModal(); $("settingsTitle").focus({ preventScroll: true }); };
+  // The rules for how a choice moves the recipe are a tap away, not a paragraph under the buttons.
+  $("settingsHow").addEventListener("click", () => { const open = $("settingsNote").hidden; $("settingsNote").hidden = !open; $("settingsHow").setAttribute("aria-expanded", String(open)); if (open) $("settingsNote").scrollIntoView({ block: "nearest" }); });
   $("closeSettings").addEventListener("click", () => $("settingsDialog").close());
   $("balanceSeg").addEventListener("click", (e) => {
     const b = e.target.closest("button[data-bal]"); if (!b) return;
@@ -2080,6 +2456,9 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
     renderFilterSeg(); rerenderCard(c);
   });
   $("openGuide").addEventListener("click", () => { $("accountDialog").close(); $("guideDialog").showModal(); });
+  // The guide shows one section at a time; it opens on the grinder the card in view is set to.
+  const showGuideTab = (tab) => { $("guide").dataset.tab = tab; [...$("guideTabs").children].forEach((b) => b.setAttribute("aria-selected", String(b.dataset.tab === tab))); };
+  $("guideTabs").addEventListener("click", (e) => { const b = e.target.closest("button[data-tab]"); if (b) showGuideTab(b.dataset.tab); });
   $("closeGuide").addEventListener("click", () => $("guideDialog").close());
   $("grinderSeg").addEventListener("click", (e) => {
     const b = e.target.closest("button[data-g]"); if (!b || b.hidden) return;
@@ -2154,7 +2533,11 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
   };
   document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible" && timer.awake) keepAwake(true); });
   const renderTimerSteps = (activeIdx, doneBefore) => {
-    $("t_steps").innerHTML = timer.tl.steps.map((s, i) => `<li class="${i === activeIdx ? "active" : i < doneBefore ? "done" : ""}"><span class="t">${mmss(s.t)}</span><span class="w">${s.pour ? `→ ${s.to} g` : "—"}</span><span>${esc(s.action)}${s.pour && s.agitation ? `<span class="agi" aria-label="${AGITATION[s.agitation].word} agitation"><span aria-hidden="true">${agitationDots(s.agitation)}</span></span>` : ""}</span></li>`).join("");
+    const tl = timer.tl, cls = (i) => (i === activeIdx ? "active" : i < doneBefore ? "done" : "");
+    const rows = tl.steps.map((st, i) => { const [title, more] = pourWords(st.action, st.label, i, timer.esp);
+      return `<li class="${cls(i)}"><i class="pt"></i><time>${mmss(st.t)}</time><div><b>${esc(title)}</b>${more ? `<span>${esc(more)}</span>` : ""}</div></li>`; });
+    if (!timer.esp && tl.winStart !== null && tl.winEnd !== null) rows.push(`<li class="${timer.elapsed >= tl.winStart ? "active" : ""}"><i class="pt"></i><time>${mmss(tl.winStart)}</time><div><b>Finish by ${mmss(tl.winEnd)}</b></div></li>`);
+    $("t_steps").innerHTML = rows.join("");
   };
   // How each level looks in the timer: the kettle's height above the dripper (where the stream starts), how thick and fast the stream is,
   // how much the water's surface rocks, and how far drops jump where the stream lands. Gentle is a thin, low, quiet pour; Strong comes
@@ -2203,12 +2586,16 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
     if (!timer.running && t === 0 && s) { phase = `Ready · first: ${s.action}`; goal = s.pour ? `→ ${s.to} g` : ""; }
     const swirl = timer.esp ? null : swirlAt(tl.steps, t);
     if (swirl && !pouring) phase = phase.startsWith("Wait · ") ? "Swirl · " + phase.slice(7) : `Swirl · ${phase.charAt(0).toLowerCase()}${phase.slice(1)}`;
-    $("t_phase").textContent = phase;
+    // What to do now stays short; the countdown to what comes next has a line of its own.
+    $("t_phase").textContent = phase.replace(/\s*·\s*(?:next (?:pour|stage) at|window opens at|ends at)\b.*$/, "").replace(/^In the target window$/, "In the finish window");
+    const until = (to) => mmss(Math.max(0, Math.ceil(to - t)));
+    $("t_next").textContent = !timer.running ? "" : next ? `Next ${timer.esp ? "stage" : "pour"} in ${until(next.t)}` : tl.winStart !== null && t < tl.winStart ? `Finish window opens in ${until(tl.winStart)}` : tl.winEnd !== null && t < tl.winEnd ? `Finish window closes in ${until(tl.winEnd)}` : "";
+    document.querySelector("#timerDialog .timer-wrap").classList.toggle("running", timer.running);
     // The level for the pour in hand, or the one coming next.
     const agiStep = pouring ? s : (!timer.esp && next && next.pour && (!s || t >= (s.pour ? s.end : s.t)) ? next : null), agiLevel = agiStep ? agiStep.agitation : 0;
     $("t_agi").innerHTML = agiLevel ? `${pouring ? "" : "Next: "}<span class="agi"><span aria-hidden="true">${agitationDots(agiLevel)}</span> ${AGITATION[agiLevel].word}</span> · ${esc(AGITATION[agiLevel].cue)}` : "";
     $("t_water").textContent = `${Math.round(w)} g`;
-    $("t_goal").textContent = goal;
+    $("t_goal").textContent = tl.total ? `of ${tl.total} g ${timer.esp ? "in the cup" : "poured"}` : goal;
     $("t_bar").style.width = `${tl.total ? Math.min(100, (w / tl.total) * 100) : 0}%`;
     $("t_art").classList.toggle("pouring", !!pouring);
     const inCone = tl.level(t);
@@ -2328,8 +2715,8 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
   $("timerDialog").addEventListener("cancel", () => resetTimer());
   $("timerDialog").addEventListener("click", (e) => { if (e.target === $("timerDialog")) { resetTimer(); $("timerDialog").close(); } });
 
+  $("backToDeck").addEventListener("click", () => showView("grid"));
   rail.addEventListener("click", (e) => {
-    if (e.target.closest("button.close")) { showView("grid"); return; }
     const info = e.target.closest("button.info");
     if (info) {
       const c = state.coffees.find((x) => x.id === info.dataset.id); if (!c) return;
@@ -2600,7 +2987,7 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
     try {
       const rows = await store.listBrews(c.id);
       if (state.brewsFor !== c.id) return;
-      state.brews = rows; cache.setBrews(c.id, rows); find.best.set(c.id, bestRatingOf(rows)); renderBrews();
+      state.brews = rows; cache.setBrews(c.id, rows); noteBrews(c.id, rows); renderBrews();
     } catch (err) { setStatus(friendly(err, "load the brew log"), { onCard: navigator.onLine !== false }); } // offline the log as last seen is already showing
   };
   const subscribeBrews = () => { loadBrews(false); };
@@ -2746,6 +3133,7 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
     const idx = state.coffees.findIndex((c) => c.id === wanted);
     state.active = idx >= 0 ? idx : Math.min(state.active, Math.max(0, state.coffees.length - 1));
     if (state.pendingFocus && idx >= 0) { state.pendingFocus = null; state.view = "card"; }
+    if (split() && state.view === "grid") { settleActive(); state.view = "card"; }
     renderDeck();
     $("dash").hidden = state.view !== "grid"; $("deck").hidden = state.view === "grid"; $("top").classList.toggle("compact", state.view !== "grid");
     if (state.view === "card") { jumpTo(state.active); if (state.brewsFor !== state.coffees[state.active]?.id) subscribeBrews(); }
@@ -2883,7 +3271,7 @@ legend { font: 600 10.5px/1.2 var(--body); letter-spacing: .06em; text-transform
   // Signing out on purpose leaves nothing of the account on the page or the device.
   const clearDeck = () => {
     document.querySelectorAll("dialog[open]").forEach((dialog) => dialog.close());
-    cache.clear(); state.coffees = []; state.brews = []; state.brewsFor = null; find.best.clear(); find.ratingsLoaded = false; pendingEmail = "";
+    cache.clear(); state.coffees = []; state.brews = []; state.brewsFor = null; find.best.clear(); find.seen.clear(); find.ratingsLoaded = false; find.ratingsAsked = false; pendingEmail = "";
     $("authCodeRow").hidden = true; authMsg("");
     showView("grid");
     renderDeck();
