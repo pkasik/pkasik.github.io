@@ -878,6 +878,9 @@ body.split .tile .rdots { display: none; }
    rule came later in the sheet than the phone rule and was winning.) */
 @media (max-width: 560px) { .pour-row { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr) 40px; } .pour-row .x { grid-column: 4; justify-self: center; } }
 
+/* Card editor, Tip: room for about nine lines; where the browser can, the field grows to fit a longer tip instead of scrolling inside itself. */
+#f_tip { min-height: 240px; line-height: 1.45; field-sizing: content; }
+
 </style>
 </head>
 <body>
@@ -1243,7 +1246,7 @@ body.split .tile .rdots { display: none; }
       <button class="btn primary" id="goSignIn" type="button" hidden>Sign in</button>
     </div>
     <p class="guide-note" id="deckCounts"></p>
-    <p class="guide-note build" id="buildNo">Version 73</p>
+    <p class="guide-note build" id="buildNo">Version 74</p>
   </div>
 </dialog>
 
