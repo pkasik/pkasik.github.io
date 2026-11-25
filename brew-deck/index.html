@@ -1640,7 +1640,7 @@ body.split .tile .rdots { display: none; }
     const pours = (r.pours || []).map((p, i, all) => {
       const [title, more] = pourWords(p.action, p.to, i, esp);
       const flow = esp ? "" : flowOf(p, all[i - 1]).replace(/^≈ /, ""), level = esp ? 0 : agitationOf(p);
-      const rate = flow || level ? `<span class="rate">${esc(flow)}${flow && level ? " · " : ""}${level ? `<i aria-hidden="true">${agitationDots(level)}</i> ${AGITATION[level].word} agitation` : ""}</span>` : "";
+      const rate = flow || level ? `<span class="rate">${esc(flow)}${flow && level ? " · " : ""}${level ? `<i role="img" aria-label="${AGITATION[level].word} agitation">${agitationDots(level)}</i>` : ""}</span>` : "";
       return `<li><time>${esc(p.time)}</time><div><b>${esc(title)}</b>${more ? `<span>${esc(more)}</span>` : ""}${rate}</div></li>`;
     }).join("");
     const win = /(\d+:\d{2})\s*[–-]\s*(\d+:\d{2})/.exec(r.finish || "");
