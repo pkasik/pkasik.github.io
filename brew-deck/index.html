@@ -852,6 +852,10 @@ body.split .tile .rdots { display: none; }
 
 /* Settings: which build this is. */
 .guide-note.build { margin-top: -6px; font-variant-numeric: tabular-nums; }
+/* Log form: x in the header, like the other sheets. */
+#brewDialog .sheet-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; } #brewDialog .sheet-head > div { min-width: 0; }
+#brewDialog .sheet-head .iconbtn { width: 44px; height: 44px; flex: none; margin: -6px -8px -6px 0; }
+
 </style>
 </head>
 <body>
@@ -1030,7 +1034,7 @@ body.split .tile .rdots { display: none; }
 <!-- Brew editor -->
 <dialog id="brewDialog" class="sheet" aria-labelledby="brewDialogTitle">
   <form id="brewForm" method="dialog" novalidate>
-    <div class="sheet-head"><h2 id="brewDialogTitle" tabindex="-1" autofocus>Log a brew</h2><p class="sheet-sub" id="brewDialogSub"></p></div>
+    <div class="sheet-head"><div><h2 id="brewDialogTitle" tabindex="-1" autofocus>Log a brew</h2><p class="sheet-sub" id="brewDialogSub"></p></div><button class="iconbtn" type="button" id="cancelBrew" aria-label="Close without saving"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"></path></svg></button></div>
     <div class="sheet-body">
     <div class="fgroup">
       <span class="flabel" id="starsLabel">Rating</span>
@@ -1080,7 +1084,6 @@ body.split .tile .rdots { display: none; }
     </div>
     <div class="actions sheet-foot">
       <div class="right">
-        <button class="btn" type="button" id="cancelBrew">Cancel</button>
         <button class="btn primary" type="submit">Save brew</button>
       </div>
     </div>
@@ -1215,7 +1218,7 @@ body.split .tile .rdots { display: none; }
       <button class="btn primary" id="goSignIn" type="button" hidden>Sign in</button>
     </div>
     <p class="guide-note" id="deckCounts"></p>
-    <p class="guide-note build" id="buildNo">Version 68</p>
+    <p class="guide-note build" id="buildNo">Version 69</p>
   </div>
 </dialog>
 
