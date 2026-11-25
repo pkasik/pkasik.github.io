@@ -828,6 +828,10 @@ body.split .tile .rdots { display: none; }
    which leaves it exactly where it was on screen. */
 .rail .card:not(.current) { transform: translateY(var(--lift, 0px)); }
 
+/* Card editor: x in the header, like the other sheets. */
+#cardDialog .sheet-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+#cardDialog .sheet-head .iconbtn { width: 44px; height: 44px; flex: none; margin: -6px -8px -6px 0; }
+
 </style>
 </head>
 <body>
@@ -949,7 +953,7 @@ body.split .tile .rdots { display: none; }
 <!-- Card editor -->
 <dialog id="cardDialog" class="sheet" aria-labelledby="cardDialogTitle">
   <form id="cardForm" method="dialog" novalidate>
-    <div class="sheet-head"><h2 id="cardDialogTitle" tabindex="-1" autofocus>New card</h2></div>
+    <div class="sheet-head"><h2 id="cardDialogTitle" tabindex="-1" autofocus>New card</h2><button class="iconbtn" type="button" id="cancelCard" aria-label="Close without saving"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"></path></svg></button></div>
     <div class="sheet-body">
     <div class="grid2">
       <label class="f">Coffee name<input id="f_name" name="name" required autocomplete="off" placeholder="Kenya Maganio"></label>
@@ -997,7 +1001,6 @@ body.split .tile .rdots { display: none; }
     <div class="actions sheet-foot">
       <button class="btn danger" id="deleteCard" type="button" hidden>Delete card</button>
       <div class="right">
-        <button class="btn" type="button" id="cancelCard">Cancel</button>
         <button class="btn primary" type="submit" id="saveCard">Save card</button>
       </div>
     </div>
@@ -1127,7 +1130,7 @@ body.split .tile .rdots { display: none; }
 <!-- Brew settings -->
 <dialog id="settingsDialog" aria-labelledby="settingsTitle">
   <div class="settings">
-    <div class="guide-head"><h2 id="settingsTitle" tabindex="-1">Brew settings</h2></div>
+    <div class="guide-head"><h2 id="settingsTitle" tabindex="-1">Brew settings</h2><button class="iconbtn" type="button" id="closeSettingsX" aria-label="Close"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"></path></svg></button></div>
     <p class="settings-for" id="settingsFor"></p>
     <div class="setting" id="brewerRow"><span class="dose-label">Brewer</span><div class="seg wrap" id="brewerSeg" role="radiogroup" aria-label="Brewer"></div></div>
     <div class="setting" id="methodRow"><span class="dose-label">Method</span><div class="seg wrap" id="methodSeg" role="radiogroup" aria-label="Brew method"></div></div>
@@ -2483,6 +2486,7 @@ body.split .tile .rdots { display: none; }
   // The rules for how a choice moves the recipe are a tap away, not a paragraph under the buttons.
   $("settingsHow").addEventListener("click", () => { const open = $("settingsNote").hidden; $("settingsNote").hidden = !open; $("settingsHow").setAttribute("aria-expanded", String(open)); if (open) $("settingsNote").scrollIntoView({ block: "nearest" }); });
   $("closeSettings").addEventListener("click", () => $("settingsDialog").close());
+  $("closeSettingsX").addEventListener("click", () => $("settingsDialog").close());
   $("balanceSeg").addEventListener("click", (e) => {
     const b = e.target.closest("button[data-bal]"); if (!b) return;
     const c = settingsCoffee(); if (!c) return;
