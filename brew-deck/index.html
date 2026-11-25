@@ -862,6 +862,7 @@ body.split .tile .rdots { display: none; }
 .brew .head .tools svg { width: 20px; height: 20px; } .brew .head .tools .rm { color: var(--danger); }
 
 #accountTitle:focus { outline: none; } #addCard.row { min-height: 0; }
+#t_name:focus, #guideTitle:focus { outline: none; }
 </style>
 </head>
 <body>
@@ -933,7 +934,7 @@ body.split .tile .rdots { display: none; }
 
   <dialog id="guideDialog" aria-labelledby="guideTitle">
   <section class="guide" id="guide" data-tab="casa">
-    <div class="guide-head"><h2 id="guideTitle">Grind guide</h2><button class="btn quiet" id="closeGuide" type="button" aria-label="Close">Close</button></div>
+    <div class="guide-head"><h2 id="guideTitle" tabindex="-1">Grind guide</h2><button class="btn quiet" id="closeGuide" type="button" aria-label="Close">Close</button></div>
     <div class="guide-tabs" id="guideTabs" role="tablist" aria-label="Guide sections">
       <button type="button" role="tab" data-tab="casa" aria-selected="true">Casa</button><button type="button" role="tab" data-tab="c40" aria-selected="false">C40 · Red Clix</button><button type="button" role="tab" data-tab="ode" aria-selected="false">Ode</button><button type="button" role="tab" data-tab="pour" aria-selected="false">Pouring</button>
     </div>
@@ -1227,7 +1228,7 @@ body.split .tile .rdots { display: none; }
       <button class="btn primary" id="goSignIn" type="button" hidden>Sign in</button>
     </div>
     <p class="guide-note" id="deckCounts"></p>
-    <p class="guide-note build" id="buildNo">Version 70</p>
+    <p class="guide-note build" id="buildNo">Version 71</p>
   </div>
 </dialog>
 
@@ -1235,7 +1236,7 @@ body.split .tile .rdots { display: none; }
 <dialog id="timerDialog" class="timer" aria-labelledby="t_name">
   <div class="timer-wrap">
     <div class="timer-head">
-      <div><p class="roaster" id="t_method"></p><h2 id="t_name"></h2></div>
+      <div><p class="roaster" id="t_method"></p><h2 id="t_name" tabindex="-1"></h2></div>
       <button class="iconbtn" id="t_close" type="button" aria-label="Close the brew timer"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"></path></svg></button>
     </div>
     <div class="timer-clock"><span class="time" id="t_time">0:00</span><span class="phase" id="t_phase">Ready</span><span class="nxt" id="t_next"></span><span class="agiline" id="t_agi"></span></div>
@@ -2555,7 +2556,7 @@ body.split .tile .rdots { display: none; }
     try { localStorage.setItem("brewdeck.paper." + c.id, JSON.stringify(state.filterBy[c.id])); } catch {}
     renderFilterSeg(); rerenderCard(c);
   });
-  $("openGuide").addEventListener("click", () => { $("accountDialog").close(); $("guideDialog").showModal(); });
+  $("openGuide").addEventListener("click", () => { $("accountDialog").close(); ($("guideDialog").showModal(), $("guideTitle").focus({ preventScroll: true })); });
   // The guide shows one section at a time; it opens on the grinder the card in view is set to.
   const showGuideTab = (tab) => { $("guide").dataset.tab = tab; [...$("guideTabs").children].forEach((b) => b.setAttribute("aria-selected", String(b.dataset.tab === tab))); };
   $("guideTabs").addEventListener("click", (e) => { const b = e.target.closest("button[data-tab]"); if (b) showGuideTab(b.dataset.tab); });
@@ -2780,7 +2781,7 @@ body.split .tile .rdots { display: none; }
         .map((b) => `<div class="band" style="bottom:${(b.lo / pmax * 100).toFixed(1)}%;height:${((b.hi - b.lo) / pmax * 100).toFixed(1)}%"><span>${b.lo}–${b.hi} bar</span></div>`).join("") + `<div class="bars" id="t_bars"></div>`;
     }
     resetTimer();
-    $("timerDialog").showModal();
+    $("timerDialog").showModal(); $("t_name").focus({ preventScroll: true });
   };
   const beginRun = () => {
     timer.cued = new Set(); timer.start = Date.now(); timer.running = true;
@@ -3036,7 +3037,7 @@ body.split .tile .rdots { display: none; }
     if (!state.canWrite) { setStatus("Sign in to log brews."); return; }
     const r = activeRecipe(c);
     state.editingBrew = null; $("brewForm").querySelector('button[type="submit"]').textContent = "Save brew";
-    $("brewDialogTitle").textContent = "Log a brew · " + c.name; $("brewDialogSub").textContent = r.label || "";
+    $("brewDialogTitle").textContent = c.name; $("brewDialogSub").textContent = r.label || "";
     $("b_date").value = todayISO(); $("b_grind").value = casaText(r.grind); $("b_temp").value = r.water || ""; $("b_filter").value = r.filter || "";
     $("b_dose").value = r.dose || ""; $("b_finish").value = ""; $("b_notes").value = ""; $("brewErr").hidden = true;
     state.brewRating = 0; [...stars.children].forEach((s) => s.setAttribute("aria-pressed", "false"));
@@ -3065,7 +3066,7 @@ body.split .tile .rdots { display: none; }
     if (ed) {
       const c = state.coffees[state.active], br = state.brews.find((x) => x.id === ed.dataset.id); if (!c || !br) return;
       state.editingBrew = br;
-      $("brewDialogTitle").textContent = "Edit brew · " + c.name; $("brewDialogSub").textContent = br.recipe || "";
+      $("brewDialogTitle").textContent = c.name; $("brewDialogSub").textContent = br.recipe || "";
       $("brewForm").querySelector('button[type="submit"]').textContent = "Save changes";
       $("b_date").value = br.date || todayISO(); $("b_grind").value = br.grind || ""; $("b_temp").value = br.temp || ""; $("b_filter").value = br.filter || "";
       $("b_dose").value = br.dose || ""; $("b_finish").value = br.finish || ""; $("b_notes").value = br.notes || ""; $("brewErr").hidden = true;
