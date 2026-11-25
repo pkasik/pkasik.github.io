@@ -912,8 +912,9 @@ body.split .tile .rdots { display: none; }
 .menu-list .row[aria-checked="true"] .switch { background: var(--amber); } .menu-list .row[aria-checked="true"] .switch i { transform: translateX(18px); background: #fffefb; }
 @media (prefers-reduced-motion: reduce) { .menu-list .row .switch, .menu-list .row .switch i { transition: none; } }
 
-/* Installed on a phone: the deck's header starts just under the safe area, level with the bar on a recipe (its x has a 2px margin). */
-@media (display-mode: standalone) { body { padding-block-start: calc(2px + var(--status)); } }
+/* Installed on a phone: the deck's header starts 24px under the safe area. Any higher and iOS's blur at the top of the screen softens the
+   top of the title (tried at 8px); the original 36px left more room than it needs. */
+@media (display-mode: standalone) { body { padding-block-start: calc(18px + var(--status)); } }
 
 </style>
 </head>
@@ -1284,7 +1285,7 @@ body.split .tile .rdots { display: none; }
       <button class="btn primary" id="goSignIn" type="button" hidden>Sign in</button>
     </div>
     <p class="guide-note" id="deckCounts"></p>
-    <p class="guide-note build" id="buildNo">Version 79</p>
+    <p class="guide-note build" id="buildNo">Version 80</p>
   </div>
 </dialog>
 
