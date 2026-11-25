@@ -884,6 +884,11 @@ body.split .tile .rdots { display: none; }
 /* Foot of the recipe: Delete is the last button, in the warning colour. Five across on a phone, so the row is a little tighter. */
 .card-log { gap: 6px; } .card-log .tool { padding-inline: 2px; font-size: 12.5px; } .card-log .tool.del { color: var(--danger); }
 
+/* Timer: with no paragraph to hold, the message row under the buttons is two lines, on phones as on wide screens. */
+.timer-wrap, .timer-wrap:has(.timer-steps li:nth-child(4)) { grid-template-rows: auto auto auto auto 1fr 42px; }
+@media (max-height: 740px) and (max-width: 759px) { .timer-wrap, .timer-wrap:has(.timer-steps li:nth-child(4)) { grid-template-rows: auto auto auto auto 1fr auto; } }
+@media (min-width: 760px) { .timer-wrap, .timer-wrap:has(.timer-steps li:nth-child(4)) { grid-template-rows: auto auto auto 1fr 42px; } }
+
 </style>
 </head>
 <body>
@@ -1248,7 +1253,7 @@ body.split .tile .rdots { display: none; }
       <button class="btn primary" id="goSignIn" type="button" hidden>Sign in</button>
     </div>
     <p class="guide-note" id="deckCounts"></p>
-    <p class="guide-note build" id="buildNo">Version 75</p>
+    <p class="guide-note build" id="buildNo">Version 76</p>
   </div>
 </dialog>
 
@@ -2785,7 +2790,7 @@ body.split .tile .rdots { display: none; }
     timer.running = false; cancelAnimationFrame(timer.raf); timer.cued = new Set(); timer.start = 0; keepAwake(false);
     paintTimer(0);
     $("t_go").hidden = false; $("t_go").textContent = "Start"; $("t_stop").hidden = true; $("t_log").hidden = true; timer.elapsed = 0;
-    $("t_note").textContent = timer.esp ? `One beep when preinfusion should end, two at the target window. The pressure guide is the target band over time; the Robot has no sensor, so you read the gauge and the bars are a reminder, not a measurement.` : timer.tl.winEnd !== null ? `Runs to the end of the target window (${mmss(timer.tl.end)}). Two beeps at each pour, three when the window opens; the screen stays awake while it runs.` : "Runs until 45 s after the last pour.";
+    $("t_note").textContent = "";
   };
   const openTimer = (id) => {
     const c = state.coffees.find((x) => x.id === id); if (!c) return;
