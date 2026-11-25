@@ -1,5 +1,5 @@
-// Brew Deck service worker: network-first for the page (so updates land on the next open), cache-first for everything else, and the cached page as an offline fallback.
-const CACHE = "brew-deck-v67";
+// Brew Deck service worker: network-first for the page, past the browser cache (so updates land on the next open), cache-first for everything else, and the cached page as an offline fallback.
+const CACHE = "brew-deck-v68";
 const PRECACHE = ["./", "./index.html", "./manifest.webmanifest", "./icon.svg", "./icon-192.png", "./icon-512.png", "./apple-touch-icon.png", "./sortable.min.js"];
 // The sync library the page loads. Without it the app opens signed out, so it is kept at install as well as on first use.
 // Keep this the same address as the <script> tag in index.html; if they drift apart the copy is simply made on first use instead.
@@ -19,7 +19,7 @@ const keep = (cache, url) => readable(new Request(url)).then((res) => (res.ok ? 
 
 self.addEventListener("install", (event) => {
   // The library is fetched after the app's own files and never fails the install: an update must not depend on the CDN being reachable.
-  event.waitUntil(caches.open(CACHE).then((c) => c.addAll(PRECACHE).then(() => keep(c, LIBRARY))).then(() => self.skipWaiting()));
+  event.waitUntil(caches.open(CACHE).then((c) => c.addAll(PRECACHE.map((path) => new Request(path, { cache: "no-cache" }))).then(() => keep(c, LIBRARY))).then(() => self.skipWaiting()));
 });
 
 // Only this app's own older copies are cleared: Recipe Deck lives on the same site and keeps its files and photos beside these.
@@ -36,7 +36,9 @@ self.addEventListener("fetch", (event) => {
 
   if (req.mode === "navigate" || url.pathname.endsWith("/index.html")) {
     event.respondWith(
-      fetch(req).then((res) => {
+      // The app's page is asked for past the browser's own cache: the site lets a browser reuse its copy for ten minutes, which made a
+      // fresh release look like nothing had changed. "no-cache" still lets the server answer "not modified", so this costs little.
+      fetch(isPage(url) ? new Request(url.href, { cache: "no-cache", credentials: "same-origin" }) : req).then((res) => {
         // Copies are taken before the response is handed to the page; once the page starts reading it, it can no longer be copied.
         if (res.ok && isPage(url)) { const page = res.clone(), root = res.clone(); caches.open(CACHE).then((c) => { c.put("./index.html", page); c.put("./", root); }); }
         return res;
