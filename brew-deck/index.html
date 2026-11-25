@@ -868,6 +868,16 @@ body.split .tile .rdots { display: none; }
 .card-log .tool { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 7px; min-height: 68px; padding: 10px 4px; border: 0; border-radius: 14px; background: var(--chip); color: var(--fg); font: 500 13px/1.1 var(--body); white-space: nowrap; }
 .card-log .tool svg { width: 22px; height: 22px; flex: none; }
 
+/* Card editor foot: Delete, small, beside Save on one line. */
+#cardDialog .sheet-foot { flex-wrap: nowrap; align-items: center; gap: 10px; }
+#cardDialog .sheet-foot .right { flex: 1; width: auto; min-width: 0; }
+#cardDialog #deleteCard { flex: none; min-height: 44px; padding: 0 16px; font-size: 14.5px; }
+/* Card editor: the recipe box's rows were sized by their widest content and ran past its right edge. One column, no wider than the box. */
+#cardDialog fieldset { grid-template-columns: minmax(0, 1fr); } #cardDialog fieldset > * { min-width: 0; }
+/* Pour rows on a phone: three equal fields, the action on its own line, then agitation and the remove button. (The six-column desktop
+   rule came later in the sheet than the phone rule and was winning.) */
+@media (max-width: 560px) { .pour-row { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr) 40px; } .pour-row .x { grid-column: 4; justify-self: center; } }
+
 </style>
 </head>
 <body>
@@ -1034,7 +1044,7 @@ body.split .tile .rdots { display: none; }
     <p class="err" id="cardErr" hidden></p>
     </div>
     <div class="actions sheet-foot">
-      <button class="btn danger" id="deleteCard" type="button" hidden>Delete card</button>
+      <button class="btn danger" id="deleteCard" type="button" aria-label="Delete this card" hidden>Delete</button>
       <div class="right">
         <button class="btn primary" type="submit" id="saveCard">Save card</button>
       </div>
@@ -1233,7 +1243,7 @@ body.split .tile .rdots { display: none; }
       <button class="btn primary" id="goSignIn" type="button" hidden>Sign in</button>
     </div>
     <p class="guide-note" id="deckCounts"></p>
-    <p class="guide-note build" id="buildNo">Version 72</p>
+    <p class="guide-note build" id="buildNo">Version 73</p>
   </div>
 </dialog>
 
@@ -1737,7 +1747,7 @@ body.split .tile .rdots { display: none; }
   // A row in the deck: the name and what it tastes of, then how the last cup was rated and how far off roast the bag is.
   const tileBody = (c) => {
     const seen = find.seen.get(c.id), age = c.archived ? null : ageOf(c);
-    const rated = seen && seen.last ? dotsHtml(seen.last, "Last rated") : "";
+    const rated = ""; // no rating on the row: it could only be drawn once every log had been read, so it turned up late
     return `<span class="t-main"><span class="t-name">${roastDot(c)}${esc(c.name)}</span><span class="t-notes">${esc(c.tasting || "")}</span></span>
       <span class="t-side">${rated}${age === null ? "" : `<span class="t-age">Day ${age}</span>`}</span>`;
   };
