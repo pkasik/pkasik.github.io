@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="color-scheme" content="light">
+<script>try { if (localStorage.getItem("brewdeck.theme") === "dark") document.documentElement.dataset.theme = "dark"; } catch (e) {}</script>
 <meta name="theme-color" content="#f7f5ef">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -895,6 +896,22 @@ body.split .tile .rdots { display: none; }
 #flavourDialog .sheet-foot .btn, #flavourDialog .sheet-foot .btn.primary { flex: 1 1 0; }
 #flavourTitle:focus { outline: none; }
 
+/* ---- Dark: the same Paper layout on a warm near-black. Chosen in Settings and remembered on this device; never switched on by the
+   phone's own dark setting. Every surface reads its colours from these tokens, so this block is the whole theme. */
+:root[data-theme="dark"] {
+  --bg: #17140f; --fg: #f1ebe1; --muted: #b3a898; --line: #332d25; --paper: #201c16; --chip: #2a251e;
+  --amber: #f08a3c; --amber-ink: #1c1008; --amber-soft: #3a2616; --accent-text: #f5a15f; --tint-ink: #f5b98a;
+  --danger: #e8806a; --ok: #8fc287;
+  --roast-light: #ecc07e; --roast-medium: #d98443; --roast-dark: #a0633c;
+  color-scheme: dark;
+}
+:root[data-theme="dark"] dialog::backdrop { background: rgb(0 0 0 / .62); }
+/* The switch in Settings. */
+.menu-list .row .switch { flex: none; width: 46px; height: 28px; border-radius: 14px; background: var(--line); position: relative; transition: background .18s ease; }
+.menu-list .row .switch i { position: absolute; top: 3px; left: 3px; width: 22px; height: 22px; border-radius: 50%; background: var(--paper); box-shadow: 0 1px 2px rgb(0 0 0 / .25); transition: transform .18s ease; }
+.menu-list .row[aria-checked="true"] .switch { background: var(--amber); } .menu-list .row[aria-checked="true"] .switch i { transform: translateX(18px); background: #fffefb; }
+@media (prefers-reduced-motion: reduce) { .menu-list .row .switch, .menu-list .row .switch i { transition: none; } }
+
 </style>
 </head>
 <body>
@@ -1251,6 +1268,10 @@ body.split .tile .rdots { display: none; }
         <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"></path></svg>
         <span class="grow">Add a coffee</span><span class="hint">by hand</span>
       </button>
+      <button class="row" id="themeSwitch" type="button" role="switch" aria-checked="false">
+        <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.5 14.5A8.5 8.5 0 1 1 9.5 3.5a7 7 0 0 0 11 11z"></path></svg>
+        <span class="grow">Dark mode</span><span class="switch" aria-hidden="true"><i></i></span>
+      </button>
       <input id="importFile" type="file" accept="application/json,.json" hidden>
     </div>
     <p class="guide-note" id="accountNote">Export writes every coffee, recipe variant and brew to a file you can keep or move to another account. Import merges a file into this deck; existing coffees with the same id are replaced.</p>
@@ -1260,7 +1281,7 @@ body.split .tile .rdots { display: none; }
       <button class="btn primary" id="goSignIn" type="button" hidden>Sign in</button>
     </div>
     <p class="guide-note" id="deckCounts"></p>
-    <p class="guide-note build" id="buildNo">Version 77</p>
+    <p class="guide-note build" id="buildNo">Version 78</p>
   </div>
 </dialog>
 
@@ -2172,6 +2193,20 @@ body.split .tile .rdots { display: none; }
   const settleActive = () => { if (kindOf(state.coffees[state.active]) === state.kind) return; const live = state.coffees.findIndex((c) => kindOf(c) === state.kind && !c.archived), any = live >= 0 ? live : state.coffees.findIndex((c) => kindOf(c) === state.kind); if (any >= 0) state.active = any; };
   const paintCurrent = () => { const on = document.body.classList.contains("split"); $("grid").querySelectorAll(".tile[data-i]").forEach((t) => { if (on && Number(t.dataset.i) === state.active) t.setAttribute("aria-current", "true"); else t.removeAttribute("aria-current"); }); };
   WIDE.addEventListener("change", () => { if (split() && state.view === "grid") { settleActive(); renderRail(); updateNav(); showView("card"); } else { paintBar(); paintCurrent(); renderGrid(); } });
+  // Dark mode: on or off, kept on this device. The browser's own chrome (status bar, form controls) is told as well.
+  const paintTheme = () => {
+    const dark = document.documentElement.dataset.theme === "dark";
+    $("themeSwitch").setAttribute("aria-checked", String(dark));
+    document.querySelector('meta[name="color-scheme"]').content = dark ? "dark" : "light";
+    const bar = document.querySelector('meta[name="theme-color"]'); if (bar) bar.content = dark ? "#17140f" : "#f7f5ef";
+  };
+  $("themeSwitch").addEventListener("click", () => {
+    const dark = document.documentElement.dataset.theme !== "dark";
+    if (dark) document.documentElement.dataset.theme = "dark"; else delete document.documentElement.dataset.theme;
+    try { localStorage.setItem("brewdeck.theme", dark ? "dark" : "light"); } catch {}
+    paintTheme();
+  });
+  paintTheme();
   const paintBar = () => {
     document.body.classList.toggle("split", split() && state.view !== "grid"); paintCurrent();
     const c = state.coffees[state.active], on = state.view !== "grid" && !!c && !c.archived && (activeRecipe(c).pours || []).length > 0;
