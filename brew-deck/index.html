@@ -861,6 +861,7 @@ body.split .tile .rdots { display: none; }
 .brew .head .tools button { width: 44px; height: 44px; border: 0; border-radius: 50%; background: transparent; color: var(--muted); display: grid; place-items: center; padding: 0; }
 .brew .head .tools svg { width: 20px; height: 20px; } .brew .head .tools .rm { color: var(--danger); }
 
+#accountTitle:focus { outline: none; } #addCard.row { min-height: 0; }
 </style>
 </head>
 <body>
@@ -875,7 +876,6 @@ body.split .tile .rdots { display: none; }
       <button class="gearbtn" id="account" type="button" aria-haspopup="dialog" aria-label="Settings">
         <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3h.1a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8v.1a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"></path></svg>
       </button>
-      <button class="iconbtn add" id="addCard" type="button" aria-label="Add a card" hidden><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg></button>
     </div>
   </header>
 
@@ -1200,7 +1200,7 @@ body.split .tile .rdots { display: none; }
 <dialog id="accountDialog" class="menu" aria-labelledby="accountTitle">
   <div class="settings">
     <div class="grabber" aria-hidden="true"></div>
-    <div class="guide-head"><h2 id="accountTitle">Settings</h2><button class="iconbtn" id="closeAccount" type="button" aria-label="Close"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"></path></svg></button></div>
+    <div class="guide-head"><h2 id="accountTitle" tabindex="-1">Settings</h2><button class="iconbtn" id="closeAccount" type="button" aria-label="Close"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"></path></svg></button></div>
     <div class="menu-list">
       <button class="row" id="openGuide" type="button">
         <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
@@ -1214,6 +1214,10 @@ body.split .tile .rdots { display: none; }
         <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
         <span class="grow">Import deck</span><span class="hint">merge a file</span>
       </button>
+      <button class="row" id="addCard" type="button" hidden>
+        <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"></path></svg>
+        <span class="grow">Add a coffee</span><span class="hint">by hand</span>
+      </button>
       <input id="importFile" type="file" accept="application/json,.json" hidden>
     </div>
     <p class="guide-note" id="accountNote">Export writes every coffee, recipe variant and brew to a file you can keep or move to another account. Import merges a file into this deck; existing coffees with the same id are replaced.</p>
@@ -1223,7 +1227,7 @@ body.split .tile .rdots { display: none; }
       <button class="btn primary" id="goSignIn" type="button" hidden>Sign in</button>
     </div>
     <p class="guide-note" id="deckCounts"></p>
-    <p class="guide-note build" id="buildNo">Version 69</p>
+    <p class="guide-note build" id="buildNo">Version 70</p>
   </div>
 </dialog>
 
@@ -2093,7 +2097,7 @@ body.split .tile .rdots { display: none; }
   $("dash").addEventListener("click", (e) => { if (Date.now() < pager.blockClicksUntil && !e.target.closest("#modeSeg")) { e.stopPropagation(); e.preventDefault(); } }, true); // the tabs are never blocked
   const findDialog = $("findDialog");
   // Opens with nothing focused but the heading, so no keyboard appears until the search box is tapped.
-  $("addCard").addEventListener("click", () => openCardEditor(null));
+  $("addCard").addEventListener("click", () => { $("accountDialog").close(); openCardEditor(null); });
   $("openFind").addEventListener("click", () => { $("findSearch").value = find.q; renderFind(); loadBestRatings(); findDialog.showModal(); $("findTitle").focus({ preventScroll: true }); });
   FIND_GROUPS.forEach(({ key, el }) => $(el).addEventListener("click", (e) => {
     const chip = e.target.closest("button[data-v]"); if (!chip) return;
@@ -3323,7 +3327,7 @@ body.split .tile .rdots { display: none; }
     $("accountNote").className = "guide-note"; $("accountNote").textContent = "Export writes every coffee, recipe variant and brew to a file you can keep or move to another account. Import merges a file into this deck; existing coffees with the same id are replaced.";
     const f = state.coffees.filter((c) => !isEsp(c) && !c.archived).length, e = state.coffees.filter((c) => isEsp(c) && !c.archived).length, a = state.coffees.filter((c) => c.archived).length;
     $("deckCounts").textContent = state.coffees.length ? `${f} filter · ${e} espresso · ${a} archived` : "";
-    accountDialog.showModal();
+    accountDialog.showModal(); $("accountTitle").focus({ preventScroll: true }); // otherwise the x is focused, and ringed, on open
   });
   $("goSignIn").addEventListener("click", () => { accountDialog.close(); $("authPanel").scrollIntoView({ behavior: "smooth", block: "start" }); $("authEmail").focus(); });
   $("closeAccount").addEventListener("click", () => accountDialog.close());
