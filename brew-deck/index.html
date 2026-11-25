@@ -850,6 +850,8 @@ body.split .tile .rdots { display: none; }
   #findDialog.leaving, #settingsDialog.leaving, #accountDialog.leaving { animation: panel-out .18s ease-in forwards; }
 }
 
+/* Settings: which build this is. */
+.guide-note.build { margin-top: -6px; font-variant-numeric: tabular-nums; }
 </style>
 </head>
 <body>
@@ -1213,6 +1215,7 @@ body.split .tile .rdots { display: none; }
       <button class="btn primary" id="goSignIn" type="button" hidden>Sign in</button>
     </div>
     <p class="guide-note" id="deckCounts"></p>
+    <p class="guide-note build" id="buildNo">Version 68</p>
   </div>
 </dialog>
 
