@@ -832,6 +832,24 @@ body.split .tile .rdots { display: none; }
 #cardDialog .sheet-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
 #cardDialog .sheet-head .iconbtn { width: 44px; height: 44px; flex: none; margin: -6px -8px -6px 0; }
 
+/* Bottom sheets (Coffee Filter, Settings, Brew settings) rise from the bottom edge and drop back when closed; the dimming fades with them.
+   On a wide screen, where they are centred panels, the move is a short rise instead. Not with reduced motion. */
+@keyframes sheet-up { from { transform: translateY(100%); } }
+@keyframes sheet-down { to { transform: translateY(100%); } }
+@keyframes panel-in { from { transform: translateY(28px); opacity: 0; } }
+@keyframes panel-out { to { transform: translateY(28px); opacity: 0; } }
+@keyframes dim-in { from { opacity: 0; } } @keyframes dim-out { to { opacity: 0; } }
+@media (prefers-reduced-motion: no-preference) {
+  #findDialog[open], #settingsDialog[open], #accountDialog[open] { animation: sheet-up .32s cubic-bezier(.22, .8, .24, 1); }
+  #findDialog[open]::backdrop, #settingsDialog[open]::backdrop, #accountDialog[open]::backdrop { animation: dim-in .28s ease; }
+  #findDialog.leaving, #settingsDialog.leaving, #accountDialog.leaving { animation: sheet-down .22s ease-in forwards; }
+  #findDialog.leaving::backdrop, #settingsDialog.leaving::backdrop, #accountDialog.leaving::backdrop { animation: dim-out .22s ease-in forwards; }
+}
+@media (prefers-reduced-motion: no-preference) and (min-width: 621px) {
+  #findDialog[open], #settingsDialog[open], #accountDialog[open] { animation: panel-in .24s ease-out; }
+  #findDialog.leaving, #settingsDialog.leaving, #accountDialog.leaving { animation: panel-out .18s ease-in forwards; }
+}
+
 </style>
 </head>
 <body>
@@ -2077,6 +2095,16 @@ body.split .tile .rdots { display: none; }
   $("findClear").addEventListener("click", () => { find.q = ""; find.rating = ""; FIND_GROUPS.forEach(({ key }) => find[key].clear()); $("findSearch").value = ""; applyFind(); });
   $("findShow").addEventListener("click", () => findDialog.close());
   $("findX").addEventListener("click", () => findDialog.close());
+  // The bottom sheets leave the way they came. Every way of closing one goes through close(), so that is where the drop is played:
+  // the sheet is marked as leaving, and really closed when the animation ends (or straight away with reduced motion).
+  const CALM = matchMedia("(prefers-reduced-motion: reduce)");
+  ["findDialog", "settingsDialog", "accountDialog"].map($).filter(Boolean).forEach((sheet) => {
+    const shut = sheet.close.bind(sheet);
+    const done = () => { if (!sheet.classList.contains("leaving")) return; sheet.classList.remove("leaving"); shut(); };
+    sheet.close = () => { if (!sheet.open || sheet.classList.contains("leaving")) return; if (CALM.matches) { shut(); return; } sheet.classList.add("leaving"); setTimeout(done, 300); };
+    sheet.addEventListener("animationend", (e) => { if (e.target === sheet) done(); });
+    sheet.addEventListener("cancel", (e) => { e.preventDefault(); sheet.close(); });
+  });
   // A tap on the dimmed area outside the sheet closes it too; the filter is already applied, so nothing is lost.
   findDialog.addEventListener("click", (e) => { if (e.target === findDialog) findDialog.close(); });
   $("grid").addEventListener("click", (e) => {
