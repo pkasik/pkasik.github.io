@@ -889,6 +889,12 @@ body.split .tile .rdots { display: none; }
 @media (max-height: 740px) and (max-width: 759px) { .timer-wrap, .timer-wrap:has(.timer-steps li:nth-child(4)) { grid-template-rows: auto auto auto auto 1fr auto; } }
 @media (min-width: 760px) { .timer-wrap, .timer-wrap:has(.timer-steps li:nth-child(4)) { grid-template-rows: auto auto auto 1fr 42px; } }
 
+/* Flavour wheel sheet: x in the header; Clear and Done the same width. */
+#flavourDialog .sheet-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+#flavourDialog .sheet-head .iconbtn { width: 44px; height: 44px; flex: none; margin: -6px -8px -6px 0; }
+#flavourDialog .sheet-foot .btn, #flavourDialog .sheet-foot .btn.primary { flex: 1 1 0; }
+#flavourTitle:focus { outline: none; }
+
 </style>
 </head>
 <body>
@@ -1125,7 +1131,8 @@ body.split .tile .rdots { display: none; }
 <dialog id="flavourDialog" class="sheet" aria-labelledby="flavourTitle">
   <form id="flavourForm" method="dialog" novalidate>
     <div class="sheet-head">
-      <h2 id="flavourTitle">Flavours</h2>
+      <h2 id="flavourTitle" tabindex="-1">Flavours</h2>
+      <button class="iconbtn" type="button" id="closeWheel" aria-label="Close"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"></path></svg></button>
     </div>
     <div class="sheet-body">
       <div class="cwheel">
@@ -1146,7 +1153,7 @@ body.split .tile .rdots { display: none; }
     <div class="actions sheet-foot">
       <div class="right">
         <button class="btn" type="button" id="clearWheel">Clear</button>
-        <button class="btn primary" type="submit" autofocus>Done</button>
+        <button class="btn primary" type="submit">Done</button>
       </div>
     </div>
   </form>
@@ -1253,7 +1260,7 @@ body.split .tile .rdots { display: none; }
       <button class="btn primary" id="goSignIn" type="button" hidden>Sign in</button>
     </div>
     <p class="guide-note" id="deckCounts"></p>
-    <p class="guide-note build" id="buildNo">Version 76</p>
+    <p class="guide-note build" id="buildNo">Version 77</p>
   </div>
 </dialog>
 
@@ -3029,7 +3036,7 @@ body.split .tile .rdots { display: none; }
     if (box.checked) flavour.bag.add(key); else flavour.bag.delete(key);
   });
   $("flavourPicks").addEventListener("click", (e) => { const chip = e.target.closest("button[data-p]"); if (!chip) return; flavour.wheel.delete(chip.dataset.p); renderFlavour(); });
-  $("openWheel").addEventListener("click", () => { flavour.query = ""; $("wheelSearch").value = ""; flavour.open = new Set(); renderWheel(); flavourDialog.showModal(); setWheelMode("tasting"); });
+  $("openWheel").addEventListener("click", () => { flavour.query = ""; $("wheelSearch").value = ""; flavour.open = new Set(); renderWheel(); flavourDialog.showModal(); $("flavourTitle").focus({ preventScroll: true }); setWheelMode("tasting"); });
   // The wheel: a touch or a drag offers the nearest notes; the chips tick them. The list below stays in step.
   { const canvas = $("cwheel"); let held = false;
     canvas.addEventListener("pointerdown", (e) => { held = true; try { canvas.setPointerCapture(e.pointerId); } catch {} touchWheel(e); e.preventDefault(); });
@@ -3054,6 +3061,7 @@ body.split .tile .rdots { display: none; }
   $("wheelSearch").addEventListener("keydown", (e) => { if (e.key === "Enter") e.preventDefault(); }); // Enter in the search box must not press Done
   $("clearWheel").addEventListener("click", () => { flavour.wheel.clear(); renderWheel(); renderNear(); drawColourWheel(); });
   flavourDialog.addEventListener("close", () => renderFlavour());
+  $("closeWheel").addEventListener("click", () => flavourDialog.close());
   stars.addEventListener("click", (e) => {
     const b = e.target.closest("button[data-v]"); if (!b) return;
     state.brewRating = Number(b.dataset.v) === state.brewRating ? 0 : Number(b.dataset.v);
