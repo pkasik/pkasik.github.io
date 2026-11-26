@@ -916,6 +916,12 @@ body.split .tile .rdots { display: none; }
    top of the title (tried at 8px); the original 36px left more room than it needs. */
 @media (display-mode: standalone) { body { padding-block-start: calc(18px + var(--status)); } }
 
+/* Signed out: only the sign-in form under the header. */
+body.signed-out .tabsbar, body.signed-out #deckScroll, body.signed-out #emptyDeck, body.signed-out #openFind { display: none !important; }
+body.signed-out .auth { margin-top: 8px; }
+/* The form's buttons use the app's accent, like every other main button. */
+.auth .btn.primary { background: var(--amber); border-color: var(--amber); color: var(--amber-ink); min-height: 48px; padding-inline: 22px; }
+
 </style>
 </head>
 <body>
@@ -1285,7 +1291,7 @@ body.split .tile .rdots { display: none; }
       <button class="btn primary" id="goSignIn" type="button" hidden>Sign in</button>
     </div>
     <p class="guide-note" id="deckCounts"></p>
-    <p class="guide-note build" id="buildNo">Version 81</p>
+    <p class="guide-note build" id="buildNo">Version 82</p>
   </div>
 </dialog>
 
@@ -3347,7 +3353,7 @@ body.split .tile .rdots { display: none; }
   const applyAuthUI = () => {
     const signedIn = !!state.user;
     state.canWrite = signedIn;
-    $("authPanel").hidden = signedIn;
+    $("authPanel").hidden = signedIn; document.body.classList.toggle("signed-out", !signedIn);
     $("addFirst").hidden = !signedIn; $("addBrew").hidden = !signedIn; $("importStarter").hidden = !signedIn;
     $("exportDeck").disabled = !signedIn; $("importRow").disabled = !signedIn; $("importFile").disabled = !signedIn;
     $("signOut").hidden = !signedIn; $("goSignIn").hidden = signedIn; $("whoLabel").textContent = signedIn ? "Signed in as" : "Not signed in";
