@@ -923,6 +923,8 @@ body.signed-out .auth { margin-top: 8px; }
 /* The form's buttons use the app's accent, like every other main button. */
 .auth .btn.primary { background: var(--amber); border-color: var(--amber); color: var(--amber-ink); min-height: 48px; padding-inline: 22px; }
 
+/* Signed out: no recipe, no Start bar, no recipe bar, whatever the script last showed. */
+body.signed-out #deck, body.signed-out #actionBar, body.signed-out .cardbar { display: none !important; }
 </style>
 </head>
 <body>
@@ -1292,7 +1294,7 @@ body.signed-out .auth { margin-top: 8px; }
       <button class="btn primary" id="goSignIn" type="button" hidden>Sign in</button>
     </div>
     <p class="guide-note" id="deckCounts"></p>
-    <p class="guide-note build" id="buildNo">Version 83</p>
+    <p class="guide-note build" id="buildNo">Version 84</p>
   </div>
 </dialog>
 
@@ -2198,7 +2200,7 @@ body.signed-out .auth { margin-top: 8px; }
   // The bar under a recipe: start the timer or log a brew for whichever card is in view.
   // Side by side on a wide screen: the deck never leaves, so there is always a recipe showing and no "deck view" to go back to.
   const WIDE = matchMedia("(min-width: 760px)");
-  const split = () => WIDE.matches && state.coffees.length > 0;
+  const split = () => WIDE.matches && state.coffees.length > 0 && !document.body.classList.contains("signed-out");
   const noDeck = () => state.view !== "grid" && !split(); // the deck (and its Add button) is out of sight
   // The recipe shown beside a deck belongs to that deck: the first card of the Filter or Espresso list if the current one is from the other.
   const settleActive = () => { if (kindOf(state.coffees[state.active]) === state.kind) return; const live = state.coffees.findIndex((c) => kindOf(c) === state.kind && !c.archived), any = live >= 0 ? live : state.coffees.findIndex((c) => kindOf(c) === state.kind); if (any >= 0) state.active = any; };
@@ -3355,6 +3357,7 @@ body.signed-out .auth { margin-top: 8px; }
     const signedIn = !!state.user;
     state.canWrite = signedIn;
     $("authPanel").hidden = signedIn; document.body.classList.toggle("signed-out", !signedIn);
+    if (!signedIn && state.view !== "grid") showView("grid"); else paintBar(); // signed out there is no recipe on screen, on any size
     $("addFirst").hidden = !signedIn; $("addBrew").hidden = !signedIn; $("importStarter").hidden = !signedIn;
     $("exportDeck").disabled = !signedIn; $("importRow").disabled = !signedIn; $("importFile").disabled = !signedIn;
     $("signOut").hidden = !signedIn; $("goSignIn").hidden = signedIn; $("whoLabel").textContent = signedIn ? "Signed in as" : "Not signed in";
