@@ -1294,7 +1294,7 @@ body.signed-out #deck, body.signed-out #actionBar, body.signed-out .cardbar { di
       <button class="btn primary" id="goSignIn" type="button" hidden>Sign in</button>
     </div>
     <p class="guide-note" id="deckCounts"></p>
-    <p class="guide-note build" id="buildNo">Version 84</p>
+    <p class="guide-note build" id="buildNo">Version 85</p>
   </div>
 </dialog>
 
@@ -1877,7 +1877,8 @@ body.signed-out #deck, body.signed-out #actionBar, body.signed-out .cardbar { di
     $("findSaid").textContent = said;
     paintFindButton();
   };
-  const applyFind = () => { state.showAllArchived = false; renderFind(); renderGrid(); };
+  // Beside the deck on a wide screen a recipe is showing too: its row holds only the coffees that match, so it is redrawn with the list.
+  const applyFind = () => { state.showAllArchived = false; renderFind(); renderGrid(); if (state.view !== "grid") { renderRail(); updateNav(); jumpTo(state.active); } };
   // A coffee's rating is the best rating in its brew log. Logs load per card, so the first time the sheet opens every rating is read in one request.
   const loadBestRatings = async () => {
     if (find.ratingsLoaded || !state.user) return;
@@ -2203,7 +2204,8 @@ body.signed-out #deck, body.signed-out #actionBar, body.signed-out .cardbar { di
   const split = () => WIDE.matches && state.coffees.length > 0 && !document.body.classList.contains("signed-out");
   const noDeck = () => state.view !== "grid" && !split(); // the deck (and its Add button) is out of sight
   // The recipe shown beside a deck belongs to that deck: the first card of the Filter or Espresso list if the current one is from the other.
-  const settleActive = () => { if (kindOf(state.coffees[state.active]) === state.kind) return; const live = state.coffees.findIndex((c) => kindOf(c) === state.kind && !c.archived), any = live >= 0 ? live : state.coffees.findIndex((c) => kindOf(c) === state.kind); if (any >= 0) state.active = any; };
+  const firstOfDeck = () => { const live = state.coffees.findIndex((c) => kindOf(c) === state.kind && !c.archived); return live >= 0 ? live : state.coffees.findIndex((c) => kindOf(c) === state.kind); };
+  const settleActive = () => { if (kindOf(state.coffees[state.active]) === state.kind) return; const any = firstOfDeck(); if (any >= 0) state.active = any; };
   const paintCurrent = () => { const on = document.body.classList.contains("split"); $("grid").querySelectorAll(".tile[data-i]").forEach((t) => { if (on && Number(t.dataset.i) === state.active) t.setAttribute("aria-current", "true"); else t.removeAttribute("aria-current"); }); };
   WIDE.addEventListener("change", () => { if (split() && state.view === "grid") { settleActive(); renderRail(); updateNav(); showView("card"); } else { paintBar(); paintCurrent(); renderGrid(); } });
   // Dark mode: on or off, kept on this device. The browser's own chrome (status bar, form controls) is told as well.
@@ -2637,9 +2639,14 @@ body.signed-out #deck, body.signed-out #actionBar, body.signed-out .cardbar { di
     try { localStorage.setItem("brewdeck.paper." + c.id, JSON.stringify(state.filterBy[c.id])); } catch {}
     renderFilterSeg(); rerenderCard(c);
   });
-  $("openGuide").addEventListener("click", () => { $("accountDialog").close(); ($("guideDialog").showModal(), $("guideTitle").focus({ preventScroll: true })); });
-  // The guide shows one section at a time; it opens on the grinder the card in view is set to.
+  // The guide shows one section at a time. With a recipe on screen it opens on the grinder that coffee is set to; from the deck alone
+  // (a phone) there is no such coffee, and it opens where it was left.
   const showGuideTab = (tab) => { $("guide").dataset.tab = tab; [...$("guideTabs").children].forEach((b) => b.setAttribute("aria-selected", String(b.dataset.tab === tab))); };
+  $("openGuide").addEventListener("click", () => {
+    const shown = state.view !== "grid" ? state.coffees[state.active] : null;
+    if (shown) showGuideTab(grinderFor(shown));
+    $("accountDialog").close(); $("guideDialog").showModal(); $("guideTitle").focus({ preventScroll: true });
+  });
   $("guideTabs").addEventListener("click", (e) => { const b = e.target.closest("button[data-tab]"); if (b) showGuideTab(b.dataset.tab); });
   $("closeGuide").addEventListener("click", () => $("guideDialog").close());
   $("grinderSeg").addEventListener("click", (e) => {
@@ -3070,7 +3077,7 @@ body.signed-out #deck, body.signed-out #actionBar, body.signed-out .cardbar { di
         await loadBrews(true);
       }
       confirmDialog.close();
-    } catch (err) { setStatus(friendly(err, "delete")); confirmDialog.close(); }
+    } catch (err) { confirmDialog.close(); setStatus(friendly(err, "delete")); }
     finally { $("confirmYes").disabled = false; state.pendingDelete = null; }
   });
 
@@ -3196,6 +3203,7 @@ body.signed-out #deck, body.signed-out #actionBar, body.signed-out .cardbar { di
     status.textContent = msg;
     if (!onCard || !msg || msg === SYNCING) return;
     clearCardStatus();
+    (logDialog.open ? logDialog : $("deck")).appendChild($("cardStatus")); // the brew log is a sheet over the page: a note written under it would never be seen
     $("cardStatus").textContent = msg;
     cardStatusTimer = setTimeout(clearCardStatus, CARD_STATUS_MS);
   };
@@ -3323,7 +3331,11 @@ body.signed-out #deck, body.signed-out #actionBar, body.signed-out .cardbar { di
     const wanted = state.pendingFocus || prevId;
     const idx = state.coffees.findIndex((c) => c.id === wanted);
     state.active = idx >= 0 ? idx : Math.min(state.active, Math.max(0, state.coffees.length - 1));
+    // The coffee that was showing is gone (deleted here or elsewhere). Beside the deck, whichever coffee took its place in the list may be
+    // archived or from the other deck; the recipe shown then is the first of the deck on screen.
+    if (idx < 0 && split()) { const now = state.coffees[state.active]; if (kindOf(now) !== state.kind || now?.archived) { const any = firstOfDeck(); if (any >= 0) state.active = any; } }
     if (state.pendingFocus && idx >= 0) { state.pendingFocus = null; state.view = "card"; }
+    if (!state.coffees.length) state.view = "grid"; // no coffee left to show a recipe for: back to the deck, where the empty note is
     if (split() && state.view === "grid") { settleActive(); state.view = "card"; }
     renderDeck();
     $("dash").hidden = state.view !== "grid"; $("deck").hidden = state.view === "grid"; $("top").classList.toggle("compact", state.view !== "grid");
@@ -3414,7 +3426,11 @@ body.signed-out #deck, body.signed-out #actionBar, body.signed-out .cardbar { di
     $("deckCounts").textContent = state.coffees.length ? `${f} filter · ${e} espresso · ${a} archived` : "";
     accountDialog.showModal(); $("accountTitle").focus({ preventScroll: true }); // otherwise the x is focused, and ringed, on open
   });
-  $("goSignIn").addEventListener("click", () => { accountDialog.close(); $("authPanel").scrollIntoView({ behavior: "smooth", block: "start" }); $("authEmail").focus(); });
+  // The sheet takes a moment to slide away, and until it has gone nothing on the page behind can take focus: the email field is focused once it has closed.
+  $("goSignIn").addEventListener("click", () => {
+    accountDialog.addEventListener("close", () => { $("authPanel").scrollIntoView({ behavior: "smooth", block: "start" }); $("authEmail").focus(); }, { once: true });
+    accountDialog.close();
+  });
   $("closeAccount").addEventListener("click", () => accountDialog.close());
   accountDialog.addEventListener("click", (e) => { if (e.target === accountDialog) accountDialog.close(); });
   const accountNote = (text, kind) => { const el = $("accountNote"); el.textContent = text; el.className = "guide-note" + (kind ? " auth-msg " + kind : ""); };
