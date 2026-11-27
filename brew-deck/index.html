@@ -1294,7 +1294,7 @@ body.signed-out #deck, body.signed-out #actionBar, body.signed-out .cardbar { di
       <button class="btn primary" id="goSignIn" type="button" hidden>Sign in</button>
     </div>
     <p class="guide-note" id="deckCounts"></p>
-    <p class="guide-note build" id="buildNo">Version 84</p>
+    <p class="guide-note build" id="buildNo">Version 85</p>
   </div>
 </dialog>
 
@@ -1877,7 +1877,8 @@ body.signed-out #deck, body.signed-out #actionBar, body.signed-out .cardbar { di
     $("findSaid").textContent = said;
     paintFindButton();
   };
-  const applyFind = () => { state.showAllArchived = false; renderFind(); renderGrid(); };
+  // Beside the deck on a wide screen a recipe is showing too: its row holds only the coffees that match, so it is redrawn with the list.
+  const applyFind = () => { state.showAllArchived = false; renderFind(); renderGrid(); if (state.view !== "grid") { renderRail(); updateNav(); jumpTo(state.active); } };
   // A coffee's rating is the best rating in its brew log. Logs load per card, so the first time the sheet opens every rating is read in one request.
   const loadBestRatings = async () => {
     if (find.ratingsLoaded || !state.user) return;
@@ -3070,7 +3071,7 @@ body.signed-out #deck, body.signed-out #actionBar, body.signed-out .cardbar { di
         await loadBrews(true);
       }
       confirmDialog.close();
-    } catch (err) { setStatus(friendly(err, "delete")); confirmDialog.close(); }
+    } catch (err) { confirmDialog.close(); setStatus(friendly(err, "delete")); }
     finally { $("confirmYes").disabled = false; state.pendingDelete = null; }
   });
 
@@ -3196,6 +3197,7 @@ body.signed-out #deck, body.signed-out #actionBar, body.signed-out .cardbar { di
     status.textContent = msg;
     if (!onCard || !msg || msg === SYNCING) return;
     clearCardStatus();
+    (logDialog.open ? logDialog : $("deck")).appendChild($("cardStatus")); // the brew log is a sheet over the page: a note written under it would never be seen
     $("cardStatus").textContent = msg;
     cardStatusTimer = setTimeout(clearCardStatus, CARD_STATUS_MS);
   };
@@ -3324,6 +3326,7 @@ body.signed-out #deck, body.signed-out #actionBar, body.signed-out .cardbar { di
     const idx = state.coffees.findIndex((c) => c.id === wanted);
     state.active = idx >= 0 ? idx : Math.min(state.active, Math.max(0, state.coffees.length - 1));
     if (state.pendingFocus && idx >= 0) { state.pendingFocus = null; state.view = "card"; }
+    if (!state.coffees.length) state.view = "grid"; // no coffee left to show a recipe for: back to the deck, where the empty note is
     if (split() && state.view === "grid") { settleActive(); state.view = "card"; }
     renderDeck();
     $("dash").hidden = state.view !== "grid"; $("deck").hidden = state.view === "grid"; $("top").classList.toggle("compact", state.view !== "grid");
