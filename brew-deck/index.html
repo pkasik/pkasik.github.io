@@ -2639,9 +2639,14 @@ body.signed-out #deck, body.signed-out #actionBar, body.signed-out .cardbar { di
     try { localStorage.setItem("brewdeck.paper." + c.id, JSON.stringify(state.filterBy[c.id])); } catch {}
     renderFilterSeg(); rerenderCard(c);
   });
-  $("openGuide").addEventListener("click", () => { $("accountDialog").close(); ($("guideDialog").showModal(), $("guideTitle").focus({ preventScroll: true })); });
-  // The guide shows one section at a time; it opens on the grinder the card in view is set to.
+  // The guide shows one section at a time. With a recipe on screen it opens on the grinder that coffee is set to; from the deck alone
+  // (a phone) there is no such coffee, and it opens where it was left.
   const showGuideTab = (tab) => { $("guide").dataset.tab = tab; [...$("guideTabs").children].forEach((b) => b.setAttribute("aria-selected", String(b.dataset.tab === tab))); };
+  $("openGuide").addEventListener("click", () => {
+    const shown = state.view !== "grid" ? state.coffees[state.active] : null;
+    if (shown) showGuideTab(grinderFor(shown));
+    $("accountDialog").close(); $("guideDialog").showModal(); $("guideTitle").focus({ preventScroll: true });
+  });
   $("guideTabs").addEventListener("click", (e) => { const b = e.target.closest("button[data-tab]"); if (b) showGuideTab(b.dataset.tab); });
   $("closeGuide").addEventListener("click", () => $("guideDialog").close());
   $("grinderSeg").addEventListener("click", (e) => {
